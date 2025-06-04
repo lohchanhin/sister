@@ -1,35 +1,26 @@
 # Marketing System Server
 
-> **VERTEX SOLUTION 內部行銷系統 – Node.js + Express + MongoDB**
+> VERTEX SOLUTION 內部行銷系統 – Node.js + Express + MongoDB
 
-本專案提供一個完整的行銷後端伺服器，包含使用者驗證、內容管理、檔案上傳、以及基本的 RESTful API 範例。  
-文件採 **Markdown** 格式編寫，請直接複製整份檔案後貼到 `README.md` 即可。
-
----
-
-## 1. 系統需求
-
-| 工具 | 版本 (建議) | 說明 |
-|------|-------------|------|
-| Node.js | ≥ 18.x | 建議 LTS 版本 |
-| npm / pnpm / yarn | 內建於 Node.js 或自行安裝 | 本說明以 **npm** 範例為主 |
-| MongoDB | ≥ 6.x (本機或 Atlas) | 資料庫 |
-| Git | ≥ 2.x | 版本控制 |
-| nodemon | 最新 | 開發用熱重載 |
-
----
-
-## 2. 專案安裝
-
+## 安裝
 ```bash
-git clone https://github.com/vertex-solution/marketing-system-server.git
-cd marketing-system-server
-
-# 複製環境變數範例並修改為你的設定
-cp .env.example .env       # 修改 MongoDB_URI、JWT_SECRET 等
-
-# 安裝依賴
+cp .env.example .env       # 修改 MongoDB、JWT 等設定
 npm install
+npm start                 # 啟動伺服器
+```
 
-# 開發模式 (nodemon 熱重載)
-npm run dev
+啟動後，可透過 `/static/<檔名>` 存取上傳檔案，API 根路徑為 `/api/*`。
+
+---
+
+## 啟動與測試
+1. **設定 `.env`**：複製 `.env.example`，填入正確的 `MONGODB_URI` 與 `JWT_SECRET`。
+2. **啟動 MongoDB**（本機或 Atlas）。
+3. 執行 `npm start`，若看到 `✅ MongoDB 已連線` 與 `🚀 Server running` 即成功。
+4. 使用 Postman 或 cURL 測試：
+   ```bash
+   # 登入
+   curl -X POST http://localhost:3000/api/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"username":"admin","password":"mypwd"}'
+   ```
