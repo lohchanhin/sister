@@ -1,28 +1,35 @@
 # Marketing System Server
 
-> VERTEX SOLUTION \u5167\u90e8\u884c\u92b7\u7cfb\u7d71 \u2013 Node.js + Express + MongoDB
+> **VERTEX SOLUTION 內部行銷系統 – Node.js + Express + MongoDB**
 
-## \u5b89\u88dd
-
-```bash
-cp .env.example .env       # \u4fee\u6539\u4f60\u7684 MongoDB\u3001JWT \u7b49\u8a2d\u5b9a
-npm install
-npm run dev                # nodemon \u71b1\u91cd\u8f09
-```
-
-\u4f3a\u670d\u5668\u555f\u52d5\u5f8c\uff0c\u975c\u614b\u6a94\u6848\u53ef\u900f\u904e /static/<filename> \u5b58\u53d6\uff0cAPI \u6839\u8def\u5f91\u70ba /api/*\u3002
+本專案提供一個完整的行銷後端伺服器，包含使用者驗證、內容管理、檔案上傳、以及基本的 RESTful API 範例。  
+文件採 **Markdown** 格式編寫，請直接複製整份檔案後貼到 `README.md` 即可。
 
 ---
 
-## 5. \u555f\u52d5\u8207\u6e2c\u8a66
+## 1. 系統需求
 
-1. **\u8a2d\u5b9a `.env`**\uff1a\u8907\u88fd `.env.example`\uff0c\u8f38\u5165\u6b63\u78ba\u7684 `MONGODB_URI` \u8207 `JWT_SECRET`\u3002
-2. **\u555f\u52d5 MongoDB**\uff08\u672c\u6a5f\u6216 Atlas\uff09\u3002
-3. `npm run dev` \u2192 \u770b\u5230 `\u2705 MongoDB \u5df2\u9023\u7dda` \u8207 `\uD83D\uDE80 Server running` \u5373\u6210\u529f\u3002
-4. \u4f7f\u7528 Postman / cURL \u6e2c\u8a66\uff1a
-   ```bash
-   # \u767b\u5165
-   curl -X POST http://localhost:3000/api/auth/login \
-     -H "Content-Type: application/json" \
-     -d '{"username":"admin","password":"mypwd"}'
-   ```
+| 工具 | 版本 (建議) | 說明 |
+|------|-------------|------|
+| Node.js | ≥ 18.x | 建議 LTS 版本 |
+| npm / pnpm / yarn | 內建於 Node.js 或自行安裝 | 本說明以 **npm** 範例為主 |
+| MongoDB | ≥ 6.x (本機或 Atlas) | 資料庫 |
+| Git | ≥ 2.x | 版本控制 |
+| nodemon | 最新 | 開發用熱重載 |
+
+---
+
+## 2. 專案安裝
+
+```bash
+git clone https://github.com/vertex-solution/marketing-system-server.git
+cd marketing-system-server
+
+# 複製環境變數範例並修改為你的設定
+cp .env.example .env       # 修改 MongoDB_URI、JWT_SECRET 等
+
+# 安裝依賴
+npm install
+
+# 開發模式 (nodemon 熱重載)
+npm run dev
