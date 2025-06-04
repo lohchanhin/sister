@@ -1,27 +1,25 @@
 # Marketing System Server
 
-> VERTEX SOLUTION \u5167\u90e8\u884c\u92b7\u7cfb\u7d71 \u2013 Node.js + Express + MongoDB
+> VERTEX SOLUTION 內部行銷系統 – Node.js + Express + MongoDB
 
-## \u5b89\u88dd
-
+## 安裝
 ```bash
-cp .env.example .env       # \u4fee\u6539\u4f60\u7684 MongoDB\u3001JWT \u7b49\u8a2d\u5b9a
+cp .env.example .env       # 修改 MongoDB、JWT 等設定
 npm install
-npm run dev                # nodemon \u71b1\u91cd\u8f09
+npm start                 # 啟動伺服器
 ```
 
-\u4f3a\u670d\u5668\u555f\u52d5\u5f8c\uff0c\u975c\u614b\u6a94\u6848\u53ef\u900f\u904e /static/<filename> \u5b58\u53d6\uff0cAPI \u6839\u8def\u5f91\u70ba /api/*\u3002
+啟動後，可透過 `/static/<檔名>` 存取上傳檔案，API 根路徑為 `/api/*`。
 
 ---
 
-## 5. \u555f\u52d5\u8207\u6e2c\u8a66
-
-1. **\u8a2d\u5b9a `.env`**\uff1a\u8907\u88fd `.env.example`\uff0c\u8f38\u5165\u6b63\u78ba\u7684 `MONGODB_URI` \u8207 `JWT_SECRET`\u3002
-2. **\u555f\u52d5 MongoDB**\uff08\u672c\u6a5f\u6216 Atlas\uff09\u3002
-3. `npm run dev` \u2192 \u770b\u5230 `\u2705 MongoDB \u5df2\u9023\u7dda` \u8207 `\uD83D\uDE80 Server running` \u5373\u6210\u529f\u3002
-4. \u4f7f\u7528 Postman / cURL \u6e2c\u8a66\uff1a
+## 啟動與測試
+1. **設定 `.env`**：複製 `.env.example`，填入正確的 `MONGODB_URI` 與 `JWT_SECRET`。
+2. **啟動 MongoDB**（本機或 Atlas）。
+3. 執行 `npm start`，若看到 `✅ MongoDB 已連線` 與 `🚀 Server running` 即成功。
+4. 使用 Postman 或 cURL 測試：
    ```bash
-   # \u767b\u5165
+   # 登入
    curl -X POST http://localhost:3000/api/auth/login \
      -H "Content-Type: application/json" \
      -d '{"username":"admin","password":"mypwd"}'
