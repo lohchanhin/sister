@@ -1,17 +1,10 @@
-# 影片素材與進度追蹤系統前端
+# 影片素材與進度追蹤系統
 
-此專案為使用 Vue 3 與 Vite 建構的前端程式碼，提供登入、素材庫管理與進度追蹤等功能。CSS 樣式位於 `client/src/style.css`，可依需求調整。
+此專案包含前端與後端兩個部分，分別位於 `client/` 與 `server/` 目錄。
+前端採用 **Vue 3 + Vite**，後端則使用 **Node.js + Express** 搭配 **MongoDB**。
 
-## 功能簡述
-- **登入與權限管理**：透過 JWT 驗證使用者身分。
-- **動態 Sidebar**：依使用者角色顯示不同選單。
-- **帳號資訊管理**：可查看並更新個人資料。
-- **素材庫與任務卡片**：上傳下載檔案並留言討論。
-- **進度追蹤系統**：支援自定義欄位與狀態標記。
-- **影片與廣告成效追蹤**：監控影片狀態及投放數據。
-
-## 開發環境建置
-1. 進入 `client` 目錄並安裝相依套件：
+## 前端 (client)
+1. 進入 `client` 目錄安裝依賴：
    ```bash
    npm install
    ```
@@ -19,20 +12,26 @@
    ```bash
    npm run dev
    ```
-   預設將在 `http://localhost:5173` 提供服務。
+   預設服務於 `http://localhost:5173`。
+3. 如需連接後端，可在 `.env` 檔中設定 `VITE_API_BASE`，預設為 `http://localhost:3000/api`。
 
-## 專案結構
+## 後端 (server)
+1. 進入 `server` 目錄安裝依賴並設定環境：
+   ```bash
+   cp .env.example .env     # 調整 MongoDB、JWT 等設定
+   npm install
+   ```
+2. 啟動 API：
+   ```bash
+   npm start
+   ```
+   伺服器啟動後，API 根路徑為 `http://localhost:3000/api`，
+   靜態檔案可自 `/static/<檔名>` 存取。
+
+## 專案結構簡述
 ```
-client/
-├── index.html            # 入口 HTML
-├── src/
-│   ├── App.vue           # 主要元件
-│   ├── style.css         # 全局樣式
-│   ├── router/           # 路由設定
-│   ├── stores/           # Pinia 狀態管理
-│   ├── views/            # 各頁面
-│   └── components/       # 共用元件
-└── package.json          # npm 設定
+client/  # 前端程式碼
+server/  # 後端 API
 ```
 
-欲進一步整合後端 API 或自訂樣式，請參閱程式碼內註解。歡迎依需求擴充功能。
+更多細節請分別參閱各目錄下的 README。歡迎依需求擴充功能。
