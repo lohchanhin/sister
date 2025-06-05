@@ -1,7 +1,7 @@
 # 影片素材與進度追蹤系統
 
 此專案包含前端與後端兩個部分，分別位於 `client/` 與 `server/` 目錄。
-前端採用 **Vue 3 + Vite**，後端則使用 **Node.js + Express** 搭配 **MongoDB**。
+前端採用 **Vue 3 + Vite** 並整合 **Element Plus**，後端則使用 **Node.js + Express** 搭配 **MongoDB**。
 
 ## 前端 (client)
 1. 進入 `client` 目錄安裝依賴：
