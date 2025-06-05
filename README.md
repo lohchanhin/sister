@@ -27,6 +27,11 @@
    ```
    伺服器啟動後，API 根路徑為 `http://localhost:3000/api`，
    靜態檔案可自 `/static/<檔名>` 存取。
+3. 進行登入測試：
+   ```bash
+   npm test
+   ```
+   這會在 `server` 目錄執行 Jest 測試，模擬 POST `/api/auth/login`。
 
 ## 根目錄一鍵啟動
 根目錄已新增 `package.json`，安裝相依套件後即可同時啟動前後端：
