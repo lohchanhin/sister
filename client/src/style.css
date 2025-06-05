@@ -11,6 +11,13 @@
   font-family: 'Noto Sans TC', 'Helvetica Neue', Arial, sans-serif;
 }
 
+body.dark {
+  --bg-color: #1f2937;
+  --text-color: #f8fafc;
+  --sidebar-bg: #1e293b;
+  --sidebar-hover: #334155;
+}
+
 body {
   margin: 0;
   background-color: var(--bg-color);
