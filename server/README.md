@@ -9,6 +9,16 @@ npm install
 npm start                 # 啟動伺服器
 ```
 
+執行 `npm run seed` 可建立預設帳號，方便初次測試。
+
+預設登入資訊如下：
+
+| 帳號 | 密碼  | 角色 |
+|------|-------|------|
+| employee  | 123456 | employee |
+| manager   | 123456 | manager  |
+| outsource | 123456 | outsource |
+
 啟動後，可透過 `/static/<檔名>` 存取上傳檔案，API 根路徑為 `/api/*`。
 
 ---
