@@ -1,5 +1,9 @@
 <script setup>
-// 根應用，僅負責渲染 <router-view/>
+import { onMounted } from 'vue'
+import { useThemeStore } from './stores/theme'
+
+const theme = useThemeStore()
+onMounted(() => theme.init())
 </script>
 
 <template>

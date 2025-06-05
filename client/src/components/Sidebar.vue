@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
+import ThemeToggle from './ThemeToggle.vue'
 
 const store = useAuthStore()
 const router = useRouter()
@@ -51,6 +52,9 @@ const navItems = computed(() => menus[store.role] ?? [])
         >
           登出
         </button>
+      </li>
+      <li>
+        <ThemeToggle />
       </li>
     </ul>
   </aside>
