@@ -28,6 +28,15 @@
    伺服器啟動後，API 根路徑為 `http://localhost:3000/api`，
    靜態檔案可自 `/static/<檔名>` 存取。
 
+## 根目錄一鍵啟動
+根目錄已新增 `package.json`，安裝相依套件後即可同時啟動前後端：
+```bash
+npm install       # 只需在第一次執行
+npm run dev       # 同時啟動 client 與 server
+```
+此指令會分別執行 `client` 的 `npm run dev` 與 `server` 的 `npm run dev`，
+方便在開發時一鍵啟動。
+
 ## 專案結構簡述
 ```
 client/  # 前端程式碼
