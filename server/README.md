@@ -20,6 +20,7 @@ npm start                 # 啟動伺服器
 | outsource | 123456 | outsource |
 
 啟動後，可透過 `/static/<檔名>` 存取上傳檔案，API 根路徑為 `/api/*`。
+亦可執行 `GET /api/health` 測試伺服器是否正常連線。
 
 ---
 
