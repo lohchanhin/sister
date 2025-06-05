@@ -29,33 +29,49 @@ const menus = {
 
 /* ---------- 目前使用者可見選單 ---------- */
 const navItems = computed(() => menus[store.role] ?? [])
+
+const onSelect = (path) => {
+  router.push(path)
+}
+
+const onLogout = () => {
+  store.logout()
+  router.push('/login')
+}
 </script>
 
 <template>
-  <aside class="w-60 bg-slate-800 text-white h-screen p-4">
-    <h2 class="text-xl font-bold mb-6">系統選單</h2>
-    <ul>
-      <li v-for="item in navItems" :key="item.path" class="mb-3">
-        <a
-          @click.prevent="router.push(item.path)"
-          class="flex items-center gap-2 hover:text-amber-300 transition"
-        >
-          <span>{{ item.icon }}</span>
-          <span>{{ item.label }}</span>
-        </a>
-      </li>
-      <li class="mt-10">
-        <button
-          @click="store.logout(); router.push('/login')"
-          class="w-full bg-red-600 hover:bg-red-700 py-2 rounded"
+  <aside class="w-60 h-screen bg-slate-800 text-white">
+    <el-menu
+      class="h-full"
+      :default-active="router.currentRoute.value.path"
+      @select="onSelect"
+    >
+      <h2 class="text-xl font-bold mb-6 p-4 text-white">系統選單</h2>
+      <el-menu-item
+        v-for="item in navItems"
+        :index="item.path"
+        :key="item.path"
+      >
+        <span>{{ item.icon }}</span>
+        <span class="ml-2">{{ item.label }}</span>
+      </el-menu-item>
+      <div class="p-4 mt-10">
+        <el-button
+          type="danger"
+          class="w-full logout-btn"
+          @click="onLogout"
         >
           登出
-        </button>
-      </li>
-    </ul>
+        </el-button>
+      </div>
+    </el-menu>
   </aside>
 </template>
 
 <style scoped>
 /* 簡易配色，可依 UI Kit 調整 */
+.logout-btn:hover {
+  cursor: copy;
+}
 </style>
