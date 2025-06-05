@@ -33,5 +33,10 @@ npm start                 # 啟動伺服器
    # 登入
    curl -X POST http://localhost:3000/api/auth/login \
      -H "Content-Type: application/json" \
-     -d '{"username":"admin","password":"mypwd"}'
+   -d '{"username":"admin","password":"mypwd"}'
    ```
+5. 執行自動化測試：
+   ```bash
+   npm test
+   ```
+   透過 Jest 與 Supertest 模擬登入，確認回傳資料包含 `token` 與 `user.role`。
