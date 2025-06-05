@@ -20,28 +20,17 @@ const onSubmit = async () => {
 
 <template>
   <div class="h-screen flex items-center justify-center bg-gray-100">
-    <form
+    <el-form
       @submit.prevent="onSubmit"
       class="w-80 bg-white rounded-2xl shadow-xl p-8 space-y-6"
     >
       <h1 class="text-2xl text-center font-bold">系統登入</h1>
-      <input v-model="username" placeholder="使用者名稱" class="input" required />
-      <input
-        v-model="password"
-        type="password"
-        placeholder="密碼"
-        class="input"
-        required
-      />
-      <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">
-        登入
-      </button>
-    </form>
+      <el-input v-model="username" placeholder="使用者名稱" clearable />
+      <el-input v-model="password" type="password" placeholder="密碼" show-password />
+      <el-button type="primary" class="w-full" native-type="submit">登入</el-button>
+    </el-form>
   </div>
 </template>
 
 <style scoped>
-.input {
-  @apply w-full border rounded px-3 py-2 focus:outline-none focus:ring;
-}
 </style>
