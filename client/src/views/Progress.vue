@@ -1,118 +1,320 @@
+<!-- ProgressTracker.vue -->
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+/*
+  進度追蹤 (Select + API)
+  ----------------------------------------------------
+  • 左側模板清單，右側 Excel 風格表格
+  • 新增欄位型別：select
+    ├─ 建立模板時必填 optionsApi
+    └─ 切換模板時自動呼叫 optionsApi 取得下拉資料
+*/
+
+import { ref, reactive, computed, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import api from '../services/api'
 
-const templates = ref([])
-const selectedTplId = ref(null)
-const records = ref([])
+/* ---------- 響應式狀態 ---------- */
+const templates = ref([])        // 全部模板
+const selectedTplId = ref(null)  // 目前選定模板 ID
+const records = ref([])          // 目前模板記錄
 
-const tplForm = reactive({ name: '', fields: [] })
-const recForm = reactive({ templateId: '', fieldValues: {} })
+/* ----- Drawer：新增模板 ----- */
+const tplDrawerVisible = ref(false)
+const tplForm = reactive({
+  name: '',
+  fields: [] // { fieldName, fieldType, optionsApi }
+})
 
-async function fetchTemplates() {
+/* ----- Excel：新增列 (newRow) ----- */
+const newRow = reactive({ fieldValues: {} })
+
+/* ----- 下拉選單選項快取 ----- */
+const selectOptions = reactive({}) // { [fieldName]: [{label,value}] }
+
+/* ----- 可選 API 清單 (供建立模板時選) ----- */
+const optionApis = ref([]) // [{ label:'員工', value:'/users' }, …]
+
+/* ---------- 計算屬性 ---------- */
+const selectedTpl = computed(() =>
+  templates.value.find(t => t._id === selectedTplId.value) || null
+)
+
+/* ================= API ================= */
+async function fetchTemplates () {
   const { data } = await api.get('/progress/templates')
   templates.value = data
-  if (data.length && !selectedTplId.value) {
+  if (!selectedTplId.value && data.length) {
     selectTemplate(data[0]._id)
   }
 }
 
-function addField() {
-  tplForm.fields.push({ fieldName: '', fieldType: 'string' })
-}
-
-function removeField(index) {
-  tplForm.fields.splice(index, 1)
-}
-
-async function createTemplate() {
-  if (!tplForm.name) return
-  await api.post('/progress/templates', { name: tplForm.name, fields: tplForm.fields })
-  tplForm.name = ''
-  tplForm.fields = []
-  await fetchTemplates()
-}
-
-async function selectTemplate(id) {
-  selectedTplId.value = id
-  recForm.templateId = id
-  const tpl = templates.value.find((t) => t._id === id)
-  recForm.fieldValues = {}
-  tpl.fields.forEach((f) => {
-    recForm.fieldValues[f.fieldName] = ''
-  })
-  await fetchRecords(id)
-}
-
-async function fetchRecords(tplId) {
+async function fetchRecords (tplId) {
   const { data } = await api.get(`/progress/records/${tplId}`)
   records.value = data
 }
 
-async function createRecord() {
-  await api.post('/progress/records', recForm)
-  await fetchRecords(selectedTplId.value)
-  Object.keys(recForm.fieldValues).forEach((key) => (recForm.fieldValues[key] = ''))
+/* 取得所有可用下拉式 API（後端回傳清單） */
+async function fetchOptionApis () {
+  const { data } = await api.get('/progress/option-apis')
+  optionApis.value = data        // 例：[{label:'員工',value:'/users'}, …]
 }
 
-onMounted(fetchTemplates)
+/* 依欄位 (select) 讀取選項並快取 */
+async function loadSelectOptions (field) {
+  if (selectOptions[field.fieldName]) return // 已快取
+  if (!field.optionsApi) return
+
+  const { data } = await api.get(field.optionsApi)
+  // 假設後端回傳 [{ id, name }]
+  selectOptions[field.fieldName] = data.map(u => ({
+    label: u.name,
+    value: u.id
+  }))
+}
+
+/* ================= 模板 CRUD ================= */
+function openTplDrawer () {
+  tplForm.name = ''
+  tplForm.fields = []
+  tplDrawerVisible.value = true
+}
+
+function addTplField () {
+  tplForm.fields.push({ fieldName: '', fieldType: 'string', optionsApi: '' })
+}
+
+function removeTplField (idx) {
+  tplForm.fields.splice(idx, 1)
+}
+
+async function createTemplate () {
+  // 驗證
+  if (!tplForm.name.trim()) return ElMessage.error('請輸入模板名稱')
+  for (const f of tplForm.fields) {
+    if (!f.fieldName.trim()) return ElMessage.error('欄位名稱不可空白')
+    if (f.fieldType === 'select' && !f.optionsApi)
+      return ElMessage.error(`欄位「${f.fieldName}」尚未指定資料來源 API`)
+  }
+
+  await api.post('/progress/templates', tplForm)
+  ElMessage.success('模板建立成功')
+  tplDrawerVisible.value = false
+  await fetchTemplates()
+}
+
+/* ================= 切換模板 ================= */
+async function selectTemplate (id) {
+  selectedTplId.value = id
+  await fetchRecords(id)
+
+  // 初始化新增列
+  newRow.fieldValues = {}
+  const tpl = templates.value.find(t => t._id === id)
+  for (const field of tpl.fields) {
+    newRow.fieldValues[field.fieldName] = ''
+    if (field.fieldType === 'select') await loadSelectOptions(field)
+  }
+}
+
+/* ================= 新增紀錄 ================= */
+async function addRecord () {
+  await api.post('/progress/records', {
+    templateId: selectedTplId.value,
+    fieldValues: newRow.fieldValues
+  })
+  ElMessage.success('已新增一筆資料')
+  await fetchRecords(selectedTplId.value)
+
+  // 清空輸入
+  Object.keys(newRow.fieldValues).forEach(k => { newRow.fieldValues[k] = '' })
+}
+
+/* ================= 初始化 ================= */
+onMounted(async () => {
+  await Promise.all([fetchTemplates(), fetchOptionApis()])
+})
 </script>
 
 <template>
-  <h1 class="text-2xl font-bold mb-4">進度追蹤</h1>
-
-  <el-card class="mb-6" shadow="hover">
-    <div class="mb-4">
-      <el-input v-model="tplForm.name" placeholder="模板名稱" />
-    </div>
-    <div v-for="(field, index) in tplForm.fields" :key="index" class="flex gap-2 mb-2">
-      <el-input v-model="field.fieldName" placeholder="欄位名稱" />
-      <el-select v-model="field.fieldType" placeholder="欄位類型">
-        <el-option label="文字" value="string" />
-        <el-option label="日期" value="date" />
-        <el-option label="數字" value="number" />
-      </el-select>
-      <el-button type="danger" @click="removeField(index)">移除</el-button>
-    </div>
-    <div class="flex gap-2">
-      <el-button type="primary" @click="addField">新增欄位</el-button>
-      <el-button type="success" @click="createTemplate">建立模板</el-button>
-    </div>
-  </el-card>
-
-  <el-select v-model="selectedTplId" placeholder="選擇模板" @change="selectTemplate" style="width: 200px; margin-bottom: 16px;">
-    <el-option v-for="tpl in templates" :key="tpl._id" :label="tpl.name" :value="tpl._id" />
-  </el-select>
-
-  <div v-if="selectedTplId">
-    <el-card class="mb-6" shadow="hover">
-      <div v-for="field in templates.find((t) => t._id === selectedTplId).fields" :key="field.fieldName" class="mb-4">
-        <el-form-item :label="field.fieldName">
-          <template v-if="field.fieldType === 'string'">
-            <el-input v-model="recForm.fieldValues[field.fieldName]" />
-          </template>
-          <template v-else-if="field.fieldType === 'date'">
-            <el-date-picker v-model="recForm.fieldValues[field.fieldName]" type="date" placeholder="選擇日期" style="width: 100%;" />
-          </template>
-          <template v-else-if="field.fieldType === 'number'">
-            <el-input-number v-model="recForm.fieldValues[field.fieldName]" style="width: 100%;" />
-          </template>
-        </el-form-item>
+  <!-- ===== 整體布局 ===== -->
+  <div class="flex h-screen overflow-hidden">
+    <!-- ===== 左側模板清單 ===== -->
+    <aside class="w-60 border-r border-gray-200 p-4 overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold">模板</h2>
+        <el-button circle type="primary" size="small" @click="openTplDrawer">＋</el-button>
       </div>
-      <el-button type="success" @click="createRecord">新增記錄</el-button>
-    </el-card>
 
-    <el-table :data="records" stripe style="width: 100%">
-      <el-table-column label="時間">
-        <template #default="{ row }">
-          {{ new Date(row.createdAt).toLocaleString() }}
-        </template>
-      </el-table-column>
-      <el-table-column v-for="field in templates.find((t) => t._id === selectedTplId).fields" :key="field.fieldName" :label="field.fieldName">
-        <template #default="{ row }">
-          {{ row.fieldValues[field.fieldName] }}
-        </template>
-      </el-table-column>
-    </el-table>
+      <el-menu
+        :default-active="selectedTplId"
+        class="border-0"
+        @select="selectTemplate"
+      >
+        <el-menu-item
+          v-for="tpl in templates"
+          :key="tpl._id"
+          :index="tpl._id"
+          class="!h-auto py-2"
+        >
+          <span>{{ tpl.name }}</span>
+          <span class="text-xs text-gray-400 ml-auto">{{ tpl.fields.length }} 欄</span>
+        </el-menu-item>
+      </el-menu>
+
+      <p v-if="!templates.length" class="text-gray-400 text-sm mt-4">
+        尚未建立模板，請點右上「＋」新增。
+      </p>
+    </aside>
+
+    <!-- ===== 右側 Excel 區域 ===== -->
+    <main class="flex-1 p-6 overflow-auto">
+      <p v-if="!selectedTpl" class="text-gray-500">請先選擇模板。</p>
+
+      <div v-else>
+        <h1 class="text-2xl font-bold mb-6">{{ selectedTpl.name }} – 工作表</h1>
+
+        <!-- === 新增資料列 === -->
+        <el-card class="mb-6" shadow="never" :body-style="{padding:'8px'}">
+          <div class="grid" :style="`grid-template-columns: 160px repeat(${selectedTpl.fields.length}, 1fr)`">
+            <div class="px-3 py-2 font-medium text-right">新增資料：</div>
+
+            <template v-for="field in selectedTpl.fields" :key="field.fieldName">
+              <!-- 文字 -->
+              <el-input
+                v-if="field.fieldType === 'string'"
+                v-model="newRow.fieldValues[field.fieldName]"
+                :placeholder="field.fieldName"
+              />
+              <!-- 數字 -->
+              <el-input-number
+                v-else-if="field.fieldType === 'number'"
+                v-model="newRow.fieldValues[field.fieldName]"
+                style="width:100%;"
+                :placeholder="field.fieldName"
+              />
+              <!-- 日期 -->
+              <el-date-picker
+                v-else-if="field.fieldType === 'date'"
+                v-model="newRow.fieldValues[field.fieldName]"
+                type="date"
+                style="width:100%;"
+                :placeholder="field.fieldName"
+              />
+              <!-- 下拉式選單 -->
+              <el-select
+                v-else-if="field.fieldType === 'select'"
+                v-model="newRow.fieldValues[field.fieldName]"
+                style="width:100%;"
+                :placeholder="field.fieldName"
+              >
+                <el-option
+                  v-for="opt in selectOptions[field.fieldName] || []"
+                  :key="opt.value"
+                  :label="opt.label"
+                  :value="opt.value"
+                />
+              </el-select>
+            </template>
+
+            <!-- 儲存 -->
+            <div class="col-span-full text-right mt-2">
+              <el-button type="success" size="small" @click="addRecord">儲存</el-button>
+            </div>
+          </div>
+        </el-card>
+
+        <!-- === 紀錄表格 === -->
+        <el-card shadow="never">
+          <div class="overflow-x-auto">
+            <table class="min-w-full border border-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-3 py-2 text-left border-b">#</th>
+                  <th v-for="field in selectedTpl.fields" :key="field.fieldName" class="px-3 py-2 text-left border-b">
+                    {{ field.fieldName }}
+                  </th>
+                  <th class="px-3 py-2 text-left border-b">建立時間</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, idx) in records" :key="row._id" class="odd:bg-white even:bg-gray-50">
+                  <td class="px-3 py-2 border-b">{{ idx + 1 }}</td>
+                  <td
+                    v-for="field in selectedTpl.fields"
+                    :key="field.fieldName"
+                    class="px-3 py-2 border-b"
+                  >
+                    <!-- 如果是 select，顯示 label -->
+                    <template v-if="field.fieldType === 'select'">
+                      {{
+                        (selectOptions[field.fieldName] || [])
+                          .find(o => o.value === row.fieldValues[field.fieldName])?.label ||
+                        row.fieldValues[field.fieldName]
+                      }}
+                    </template>
+                    <template v-else>
+                      {{ row.fieldValues[field.fieldName] }}
+                    </template>
+                  </td>
+                  <td class="px-3 py-2 border-b">
+                    {{ new Date(row.createdAt).toLocaleString() }}
+                  </td>
+                </tr>
+                <tr v-if="!records.length">
+                  <td :colspan="selectedTpl.fields.length + 2" class="text-center py-6 text-gray-400">
+                    尚未新增任何資料
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </el-card>
+      </div>
+    </main>
   </div>
+
+  <!-- ===== Drawer：建立模板 ===== -->
+  <el-drawer v-model="tplDrawerVisible" title="建立新模板" size="360px">
+    <el-form label-position="top" class="space-y-4">
+      <el-form-item label="模板名稱">
+        <el-input v-model="tplForm.name" placeholder="請輸入模板名稱" />
+      </el-form-item>
+
+      <el-form-item label="欄位設定">
+        <div>
+          <div v-for="(field, idx) in tplForm.fields" :key="idx" class="flex items-start gap-2 mb-3">
+            <!-- 欄位名稱 -->
+            <el-input v-model="field.fieldName" placeholder="欄位名稱" class="flex-1" />
+
+            <!-- 欄位型別 -->
+            <el-select v-model="field.fieldType" placeholder="類型" style="width: 100px">
+              <el-option label="文字" value="string" />
+              <el-option label="數字" value="number" />
+              <el-option label="日期" value="date" />
+              <el-option label="下拉" value="select" />
+            </el-select>
+
+            <!-- 下拉型別需選 API -->
+            <el-select
+              v-if="field.fieldType === 'select'"
+              v-model="field.optionsApi"
+              placeholder="資料來源 API"
+              style="width: 140px"
+            >
+              <el-option v-for="api in optionApis" :key="api.value" :label="api.label" :value="api.value" />
+            </el-select>
+
+            <!-- 移除 -->
+            <el-button icon="Delete" circle type="danger" size="small" @click="removeTplField(idx)" />
+          </div>
+
+          <el-button type="primary" plain size="small" @click="addTplField">＋ 新增欄位</el-button>
+        </div>
+      </el-form-item>
+
+      <el-form-item>
+        <el-button type="success" @click="createTemplate">建立模板</el-button>
+      </el-form-item>
+    </el-form>
+  </el-drawer>
 </template>
