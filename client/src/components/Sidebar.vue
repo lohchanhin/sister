@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
 import ThemeToggle from './ThemeToggle.vue'
@@ -29,11 +29,16 @@ const menus = {
 
 /* ---------- 目前使用者可見選單 ---------- */
 const navItems = computed(() => menus[store.role] ?? [])
+const isCollapsed = ref(false)
 </script>
 
 <template>
-  <aside class="w-60 bg-slate-800 text-white h-screen p-4">
-    <h2 class="text-xl font-bold mb-6">系統選單</h2>
+  <aside :class="[isCollapsed ? 'w-16' : 'w-60', 'bg-slate-800 text-white h-screen p-4 transition-all']">
+    <button @click="isCollapsed = !isCollapsed" class="mb-4 w-full text-right">
+      <span v-if="isCollapsed">➡️</span>
+      <span v-else>⬅️</span>
+    </button>
+    <h2 v-if="!isCollapsed" class="text-xl font-bold mb-6">系統選單</h2>
     <ul>
       <li v-for="item in navItems" :key="item.path" class="mb-3">
         <a
@@ -41,19 +46,20 @@ const navItems = computed(() => menus[store.role] ?? [])
           class="flex items-center gap-2 hover:text-amber-300 transition"
         >
           <span>{{ item.icon }}</span>
-          <span>{{ item.label }}</span>
+          <span v-if="!isCollapsed">{{ item.label }}</span>
         </a>
       </li>
       <li class="mt-10">
         <button
           @click="store.logout(); router.push('/login')"
-          class="w-full bg-red-600 hover:bg-red-700 py-2 rounded"
+          class="w-full bg-red-600 hover:bg-red-700 py-2 rounded flex items-center justify-center gap-2"
         >
-          登出
+          <span>🚪</span>
+          <span v-if="!isCollapsed">登出</span>
         </button>
       </li>
       <li>
-        <ThemeToggle />
+        <ThemeToggle :collapsed="isCollapsed" />
       </li>
     </ul>
   </aside>
