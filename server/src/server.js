@@ -30,6 +30,7 @@ app.use('/static', express.static(path.resolve(uploadDir)))
 import authRoutes from './routes/auth.routes.js'
 import userRoutes from './routes/user.routes.js'
 import assetRoutes from './routes/asset.routes.js'
+import folderRoutes from './routes/folder.routes.js'
 import taskRoutes from './routes/task.routes.js'
 import progressRoutes from './routes/progress.routes.js'
 import healthRoutes from './routes/health.routes.js'
@@ -38,6 +39,7 @@ import healthRoutes from './routes/health.routes.js'
 app.use('/api/auth', authRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/assets', assetRoutes)
+app.use('/api/folders', folderRoutes)
 app.use('/api/tasks', taskRoutes)
 app.use('/api/progress', progressRoutes)
 // app.use('/api/analytics', analyticsRoutes) // 尚未啟用
