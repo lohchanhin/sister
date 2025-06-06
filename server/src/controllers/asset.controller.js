@@ -7,14 +7,18 @@ export const uploadFile = async (req, res) => {
     filename: req.file.filename,
     path: req.file.path,
     type: req.body.type || 'raw',
-    uploadedBy: req.user._id
+    uploadedBy: req.user._id,
+    folderId: req.body.folderId || null
   })
   res.status(201).json(asset)
 }
 
 /* ---------- GET /api/assets ---------- */
 export const getAssets = async (req, res) => {
-  const assets = await Asset.find({ allowRoles: req.user.role })
+  const query = { allowRoles: req.user.role }
+  if (req.query.folderId) query.folderId = req.query.folderId
+  else query.folderId = null
+  const assets = await Asset.find(query)
   res.json(assets)
 }
 
