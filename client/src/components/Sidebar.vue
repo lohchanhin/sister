@@ -19,8 +19,7 @@ const menus = {
     { path: '/', icon: '🏠', label: '首頁' },
     { path: '/progress', icon: '📈', label: '進度追踪' },
     { path: '/assets', icon: '🎞️', label: '素材庫' },
-    { path: '/account', icon: '👤', label: '帳號資訊' },
-    { path: '/analytics', icon: '📊', label: '廣告分析' } // 之後擴充
+    { path: '/account', icon: '👤', label: '帳號資訊' }
   ],
   outsource: [
     { path: '/assets', icon: '🎞️', label: '素材庫' },

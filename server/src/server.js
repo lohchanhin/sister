@@ -32,15 +32,15 @@ import userRoutes from './routes/user.routes.js'
 import assetRoutes from './routes/asset.routes.js'
 import taskRoutes from './routes/task.routes.js'
 import progressRoutes from './routes/progress.routes.js'
-import analyticsRoutes from './routes/analytics.routes.js'
 import healthRoutes from './routes/health.routes.js'
+// import analyticsRoutes from './routes/analytics.routes.js' // 尚未啟用
 
 app.use('/api/auth', authRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/assets', assetRoutes)
 app.use('/api/tasks', taskRoutes)
 app.use('/api/progress', progressRoutes)
-app.use('/api/analytics', analyticsRoutes)
+// app.use('/api/analytics', analyticsRoutes) // 尚未啟用
 app.use('/api/health', healthRoutes)
 
 /* ---------- 404 \u8207\u932f\u8aa4\u8655\u7406 ---------- */
