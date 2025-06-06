@@ -1,7 +1,38 @@
 <script setup>
+import { ref } from 'vue'
+import { useAuthStore } from '../stores/auth'
+import api from '../services/api'
+
+const store = useAuthStore()
+const username = ref(store.user?.username || '')
+const email = ref(store.user?.email || '')
+const password = ref('')
+
+const onSubmit = async () => {
+  try {
+    const payload = { username: username.value, email: email.value }
+    if (password.value) payload.password = password.value
+    const { data } = await api.put('/user/profile', payload)
+    store.user = data
+    password.value = ''
+    alert('更新成功')
+  } catch (e) {
+    // 錯誤已在攔截器處理
+  }
+}
 </script>
 
 <template>
   <h1 class="text-2xl font-bold mb-4">帳號資訊</h1>
-  <p>此處將提供使用者更新個人資料。</p>
+  <el-form @submit.prevent="onSubmit" class="w-80 space-y-6">
+    <el-input v-model="username" placeholder="使用者名稱" clearable />
+    <el-input v-model="email" placeholder="Email" clearable />
+    <el-input
+      v-model="password"
+      type="password"
+      placeholder="新密碼"
+      show-password
+    />
+    <el-button type="primary" class="w-full" native-type="submit">更新資料</el-button>
+  </el-form>
 </template>
