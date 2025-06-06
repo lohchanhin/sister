@@ -1,35 +1,3 @@
-<script setup>
-import { computed } from 'vue'
-import { useAuthStore } from '../stores/auth'
-import { useRouter } from 'vue-router'
-import ThemeToggle from './ThemeToggle.vue'
-
-const store = useAuthStore()
-const router = useRouter()
-
-/* ---------- 依角色顯示選單 ---------- */
-const menus = {
-  employee: [
-    { path: '/', icon: '🏠', label: '首頁' },
-    { path: '/progress', icon: '📈', label: '進度追踪' },
-    { path: '/assets', icon: '🎞️', label: '素材庫' },
-    { path: '/account', icon: '👤', label: '帳號資訊' }
-  ],
-  manager: [
-    { path: '/', icon: '🏠', label: '首頁' },
-    { path: '/progress', icon: '📈', label: '進度追踪' },
-    { path: '/assets', icon: '🎞️', label: '素材庫' },
-    { path: '/account', icon: '👤', label: '帳號資訊' }
-  ],
-  outsource: [
-    { path: '/assets', icon: '🎞️', label: '素材庫' },
-    { path: '/progress', icon: '📈', label: '任務追踪' }
-  ]
-}
-
-/* ---------- 目前使用者可見選單 ---------- */
-const navItems = computed(() => menus[store.role] ?? [])
-</script>
 
 <template>
   <!-- 240 ⇆ 64 -->
