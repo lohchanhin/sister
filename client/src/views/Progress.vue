@@ -1,4 +1,5 @@
 <script setup>
+// TODO: 如需取得廣告數據，於此處調用對應 API
 </script>
 
 <template>
