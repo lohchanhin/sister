@@ -18,6 +18,7 @@ const assetSchema = new mongoose.Schema(
     path: { type: String, required: true },
     type: { type: String, enum: ['raw', 'edited'], default: 'raw' },
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    folderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Folder', default: null },
     allowRoles: {
       type: [String],
       enum: Object.values(ROLES),

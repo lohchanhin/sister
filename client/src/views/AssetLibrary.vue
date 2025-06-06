@@ -1,67 +1,96 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import api from '../services/api'
+import { ref, onMounted } from 'vue'
+import { fetchFolders, createFolder, updateFolder, getFolder } from '../services/folders'
+import { fetchAssets, uploadAsset } from '../services/assets'
 
+const folders = ref([])
 const assets = ref([])
-const fileInput = ref(null)
-const type = ref('raw')
-const commentMap = reactive({})
+const currentFolder = ref(null)
+const detail = ref({ description: '', script: '' })
+const showDetail = ref(false)
+const newFolderName = ref('')
 
-async function fetchAssets() {
-  const { data } = await api.get('/assets')
-  assets.value = data
+const loadData = async (id = null) => {
+  folders.value = await fetchFolders(id)
+  assets.value = await fetchAssets(id)
+  currentFolder.value = id ? await getFolder(id) : null
 }
 
-async function upload() {
-  if (!fileInput.value.files.length) return
-  const file = fileInput.value.files[0]
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('type', type.value)
-  await api.post('/assets/upload', formData)
-  fileInput.value.value = null
-  await fetchAssets()
+onMounted(() => loadData())
+
+const openFolder = (f) => {
+  loadData(f._id)
 }
 
-async function addComment(id) {
-  const message = commentMap[id]
-  if (!message) return
-  const { data } = await api.post(`/assets/${id}/comment`, { message })
-  const idx = assets.value.findIndex((a) => a._id === id)
-  if (idx !== -1) assets.value[idx] = data
-  commentMap[id] = ''
+const goUp = () => {
+  loadData(currentFolder.value?.parentId || null)
 }
 
-const STATIC_BASE = import.meta.env.VITE_API_BASE.replace(/\/api$/, '')
+const saveDetail = async () => {
+  if (!currentFolder.value) return
+  await updateFolder(currentFolder.value._id, detail.value)
+  showDetail.value = false
+  loadData(currentFolder.value._id)
+}
 
-onMounted(fetchAssets)
+const showDetailFor = (f) => {
+  currentFolder.value = f
+  detail.value.description = f.description || ''
+  detail.value.script = f.script || ''
+  showDetail.value = true
+}
+
+const createNewFolder = async () => {
+  if (!newFolderName.value) return
+  await createFolder({ name: newFolderName.value, parentId: currentFolder.value?._id })
+  newFolderName.value = ''
+  loadData(currentFolder.value?._id)
+}
+
+const onFileChange = async (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+  await uploadAsset(file, currentFolder.value?._id)
+  loadData(currentFolder.value?._id)
+}
 </script>
 
 <template>
   <h1 class="text-2xl font-bold mb-4">素材庫</h1>
-  <div class="mb-4 space-y-4">
-    <input type="file" ref="fileInput" />
-    <el-select v-model="type" placeholder="選擇類型">
-      <el-option label="Raw" value="raw" />
-      <el-option label="Edited" value="edited" />
-    </el-select>
-    <el-button type="primary" @click="upload">上傳素材</el-button>
+  <div class="mb-4 flex gap-2">
+    <el-button @click="goUp" :disabled="!currentFolder">返回上層</el-button>
+    <el-input v-model="newFolderName" placeholder="新增資料夾名稱" class="w-40" />
+    <el-button type="primary" @click="createNewFolder">新增資料夾</el-button>
+    <input type="file" @change="onFileChange" />
   </div>
-  <el-table :data="assets" stripe style="width: 100%">
-    <el-table-column prop="filename" label="檔名" />
-    <el-table-column label="預覽">
-      <template #default="{ row }">
-        <a :href="`${STATIC_BASE}/static/${row.filename}`" target="_blank">預覽</a>
-      </template>
-    </el-table-column>
-    <el-table-column prop="type" label="類型" />
-    <el-table-column label="評論">
-      <template #default="{ row }">
-        <div class="flex items-center gap-2">
-          <el-input v-model="commentMap[row._id]" placeholder="新增評論" size="small" />
-          <el-button @click="addComment(row._id)" size="small">送出</el-button>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <el-card v-for="f in folders" :key="f._id" class="cursor-pointer">
+      <template #header>
+        <div class="flex justify-between items-center">
+          <span @click="openFolder(f)">📁 {{ f.name }}</span>
+          <el-button size="small" @click.stop="showDetailFor(f)">詳細</el-button>
         </div>
       </template>
-    </el-table-column>
-  </el-table>
+    </el-card>
+    <el-card v-for="a in assets" :key="a._id">
+      {{ a.filename }}
+    </el-card>
+  </div>
+  <el-dialog v-model="showDetail" title="資料夾資訊">
+    <el-form @submit.prevent>
+      <el-form-item label="描述">
+        <el-input v-model="detail.description" type="textarea" />
+      </el-form-item>
+      <el-form-item label="腳本需求">
+        <el-input v-model="detail.script" type="textarea" />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="showDetail = false">取消</el-button>
+      <el-button type="primary" @click="saveDetail">儲存</el-button>
+    </template>
+  </el-dialog>
 </template>
+
+<style scoped>
+</style>
