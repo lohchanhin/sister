@@ -55,8 +55,8 @@ watch(isCollapsed, (v) => {
     </button>
     <img v-if="isCollapsed" src="/vite.svg" alt="logo" class="w-8 h-8 mx-auto mb-6" />
     <h2 v-else class="text-xl font-bold mb-6">系統選單</h2>
-    <ul>
-      <li v-for="item in navItems" :key="item.path" class="mb-3">
+    <ul class="list-none">
+      <li v-for="item in navItems" :key="item.path" class="mb-3 cursor-pointer">
         <a @click.prevent="router.push(item.path)" class="flex items-center gap-2 hover:text-amber-300 transition">
           <span>{{ item.icon }}</span>
           <span v-if="!isCollapsed">{{ item.label }}</span>
