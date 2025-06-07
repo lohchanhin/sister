@@ -36,3 +36,12 @@ export const deleteTemplate = async (req, res) => {
   await tpl.deleteOne()
   res.json({ message: '已刪除' })
 }
+
+/* ---------- 依 limit 取得最新紀錄 ---------- */
+export const getRecentRecords = async (req, res) => {
+  const limit = Number(req.query.limit) || 5
+  const recs = await ProgressRecord.find()
+    .sort({ createdAt: -1 })
+    .limit(limit)
+  res.json(recs)
+}

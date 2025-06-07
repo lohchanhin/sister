@@ -6,7 +6,8 @@ import {
     getAssets,
     addComment,
     updateAsset,
-    deleteAsset      // ★ 新增
+    deleteAsset,      // ★ 新增
+    getRecentAssets
 } from '../controllers/asset.controller.js'
 
 const router = Router()
@@ -14,6 +15,7 @@ const router = Router()
 router.post('/upload', protect, upload.single('file'), uploadFile)
 router.get('/', protect, getAssets)
 router.post('/:id/comment', protect, addComment)
+router.get('/recent', protect, getRecentAssets)
 
 /* ★ 新增：更新檔名／描述 */
 router.put('/:id', protect, updateAsset)
