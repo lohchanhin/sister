@@ -45,3 +45,24 @@ export const deleteUser = async (req,res) => {
   await User.findByIdAndDelete(req.params.id)
   res.json({ message:'已刪除' })
 }
+
+/* 取得個人資料 */
+export const getProfile = async (req,res) => {
+  res.json(req.user)
+}
+
+/* 更新個人資料 */
+export const updateProfile = async (req,res) => {
+  const { username,email,password } = req.body
+  const u = await User.findById(req.user._id)
+  if (!u) return res.status(404).json({ message:'找不到使用者' })
+  if (username && username!==u.username && await User.findOne({ username }))
+    return res.status(400).json({ message:'使用者已存在' })
+  if (email && email!==u.email && await User.findOne({ email }))
+    return res.status(400).json({ message:'Email 已存在' })
+  if (username) u.username = username
+  if (email)    u.email    = email
+  if (password) u.password = await bcrypt.hash(password,12)
+  await u.save()
+  res.json(u)
+}

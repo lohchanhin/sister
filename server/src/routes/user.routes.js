@@ -1,12 +1,19 @@
 import { Router } from 'express'
 import { protect } from '../middleware/auth.js'
 import {
-  getAllUsers, createUser, updateUser, deleteUser
+  getAllUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+  getProfile,
+  updateProfile
 } from '../controllers/user.controller.js'
 
 const router = Router()
 
 router.use(protect)               // 登入保護
+router.get('/profile', getProfile)
+router.put('/profile', updateProfile)
 
 router
   .route('/')
