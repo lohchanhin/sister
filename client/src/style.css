@@ -71,6 +71,8 @@ body {
 .transition { transition: all 0.3s ease; }
 .gap-2 { gap: 0.5rem; }
 .overflow-y-auto { overflow-y: auto; }
+.list-none { list-style: none; padding-left: 0; }
+.cursor-pointer { cursor: pointer; }
 
 /* --- Hover States --- */
 .hover\:text-amber-300:hover { color: var(--sidebar-active); }

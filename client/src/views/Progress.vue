@@ -1,6 +1,75 @@
 <!-- ProgressTracker.vue -->
 <script setup>
-// TODO: 如需取得廣告數據，於此處調用對應 API
+import { ref, computed, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
+import {
+  fetchTemplates,
+  createTemplate as createTemplateApi,
+  fetchRecords,
+  createRecord
+} from '../services/progress'
+
+const templates = ref([])
+const selectedTplId = ref('')
+const records = ref([])
+const tplDrawerVisible = ref(false)
+
+const tplForm = ref({
+  name: '',
+  fields: [{ fieldName: '', fieldType: 'string' }]
+})
+
+const newRow = ref({ fieldValues: {} })
+
+// select 下拉資料來源，目前未實作 API，預留結構
+const selectOptions = ref({})
+const optionApis = []
+
+const selectedTpl = computed(() =>
+  templates.value.find((t) => t._id === selectedTplId.value)
+)
+
+async function loadTemplates() {
+  templates.value = await fetchTemplates()
+}
+
+async function selectTemplate(id) {
+  selectedTplId.value = id
+  records.value = await fetchRecords(id)
+  newRow.value = { fieldValues: {} }
+}
+
+async function addRecord() {
+  if (!selectedTpl.value) return
+  await createRecord({
+    templateId: selectedTplId.value,
+    fieldValues: newRow.value.fieldValues
+  })
+  ElMessage.success('已新增資料')
+  await selectTemplate(selectedTplId.value)
+}
+
+function openTplDrawer() {
+  tplDrawerVisible.value = true
+}
+
+function addTplField() {
+  tplForm.value.fields.push({ fieldName: '', fieldType: 'string' })
+}
+
+function removeTplField(idx) {
+  tplForm.value.fields.splice(idx, 1)
+}
+
+async function createTemplate() {
+  const tpl = await createTemplateApi(tplForm.value)
+  templates.value.push(tpl)
+  tplDrawerVisible.value = false
+  tplForm.value = { name: '', fields: [{ fieldName: '', fieldType: 'string' }] }
+  ElMessage.success('已建立模板')
+}
+
+onMounted(loadTemplates)
 </script>
 
 <template>
