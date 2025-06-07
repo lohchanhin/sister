@@ -1,8 +1,8 @@
 // src/services/users.js
 import api from './api'
 
-export const fetchUsers = () =>
-  api.get('/user').then(r => r.data)          // GET /api/user   (全部)
+export const fetchUsers = (params = {}) =>
+  api.get('/user', { params }).then(r => r.data)          // GET /api/user
 
 export const createUser = data =>
   api.post('/user', data).then(r => r.data)   // POST /api/user
