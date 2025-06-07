@@ -2,20 +2,24 @@ import User from '../models/user.model.js'
 import bcrypt from 'bcryptjs'
 
 const managerOnly = (req,res) => {
-  if (req.user.role !== 'manager')
-    return res.status(403).json({ message:'僅限 Manager 操作' })
+  if (req.user.role !== 'manager') {
+    res.status(403).json({ message:'僅限 Manager 操作' })
+    return true
+  }
+  return false
 }
 
 /* 取得所有使用者 */
 export const getAllUsers = async (req,res) => {
-  managerOnly(req,res)
-  const users = await User.find().select('-password')
+  if (!req.query.role && managerOnly(req,res)) return
+  const filter = req.query.role ? { role: req.query.role } : {}
+  const users = await User.find(filter).select('-password')
   res.json(users)
 }
 
 /* 新增 */
 export const createUser = async (req,res) => {
-  managerOnly(req,res)
+  if (managerOnly(req,res)) return
   const { name,email,role,password } = req.body
   if (await User.findOne({ email })) return res.status(400).json({ message:'Email 已存在' })
   const hash = await bcrypt.hash(password,12)
@@ -25,7 +29,7 @@ export const createUser = async (req,res) => {
 
 /* 更新 */
 export const updateUser = async (req,res) => {
-  managerOnly(req,res)
+  if (managerOnly(req,res)) return
   const { name,email,role,password } = req.body
   const u = await User.findById(req.params.id)
   if (!u) return res.status(404).json({ message:'找不到使用者' })
@@ -41,7 +45,7 @@ export const updateUser = async (req,res) => {
 
 /* 刪除 */
 export const deleteUser = async (req,res) => {
-  managerOnly(req,res)
+  if (managerOnly(req,res)) return
   await User.findByIdAndDelete(req.params.id)
   res.json({ message:'已刪除' })
 }
