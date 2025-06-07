@@ -2,7 +2,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { fetchUsers, createUser, updateUser, deleteUser } from '../services/users'
+import { fetchUsers, createUser, updateUser, deleteUser } from '../services/user'
 import { useAuthStore } from '../stores/auth'   // 取當前登入者資訊
 
 /* ---------- 角色選單 ---------- */

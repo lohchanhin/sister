@@ -10,7 +10,7 @@ import {
   fetchRecords, createRecord as apiCreateRecord
 } from '../services/progress'
 import { Check, Close, Edit, Delete } from '@element-plus/icons-vue'
-import { fetchUsers } from '../services/users'
+import { fetchUsers } from '../services/user'
 
 /* ---------------- State ---------------- */
 const templates = ref([])
