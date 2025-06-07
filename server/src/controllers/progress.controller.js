@@ -20,3 +20,19 @@ export const getRecords = async (req, res) => {
   const recs = await ProgressRecord.find({ templateId: req.params.tplId })
   res.json(recs)
 }
+
+/* ★ 新增 ↓ */
+export const updateTemplate = async (req, res) => {
+  const tpl = await ProgressTemplate.findById(req.params.id)
+  if (!tpl) return res.status(404).json({ message: '模板不存在' })
+  tpl.name   = req.body.name   ?? tpl.name
+  tpl.fields = req.body.fields ?? tpl.fields
+  await tpl.save()
+  res.json(tpl)
+}
+export const deleteTemplate = async (req, res) => {
+  const tpl = await ProgressTemplate.findById(req.params.id)
+  if (!tpl) return res.status(404).json({ message: '模板不存在' })
+  await tpl.deleteOne()
+  res.json({ message: '已刪除' })
+}

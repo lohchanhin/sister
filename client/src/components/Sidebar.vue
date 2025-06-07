@@ -1,6 +1,7 @@
-<!-- Sidebar.vue – 完整版，背景色隨亮/暗主題正確切換 -->
+<!-- Sidebar.vue – 固定白色主題，無暗色切換 -->
 <template>
-  <el-aside :width="isCollapsed ? '64px' : '200px'" class="sidebar">
+  <el-aside :width="isCollapsed ? '64px' : '200px'"
+    class="sidebar bg-white text-gray-800 border-r transition-all duration-200">
     <!-- ===== 漢堡按鈕 ===== -->
     <div class="sidebar__top">
       <el-button type="text" class="sidebar__toggle" @click="toggleCollapse">
@@ -20,19 +21,8 @@
       </el-menu-item>
     </el-menu>
 
-    <!-- ===== 底部操作 ===== -->
+    <!-- ===== 底部：登出 ===== -->
     <div class="sidebar__bottom">
-      <!-- 主題切換 -->
-      <template v-if="isCollapsed">
-        <el-tooltip content="切換主題" placement="right">
-          <ThemeToggle icon-only />
-        </el-tooltip>
-      </template>
-      <template v-else>
-        <ThemeToggle class="w-full" />
-      </template>
-
-      <!-- 登出 -->
       <template v-if="isCollapsed">
         <el-tooltip content="登出" placement="right">
           <el-button circle type="danger" @click="logout">
@@ -58,15 +48,18 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import ThemeToggle from './ThemeToggle.vue'
 import { Menu, SwitchButton } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
+/* 折疊狀態 */
 const isCollapsed = ref(false)
+
+/* 基本狀態 */
 const store = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
+/* 角色對應選單 */
 const menus = {
   employee: [
     { path: '/', icon: '🏠', label: '首頁' },
@@ -87,15 +80,16 @@ const menus = {
 }
 const navItems = computed(() => menus[store.role] || [])
 
-function toggleCollapse() { isCollapsed.value = !isCollapsed.value }
-function handleSelect(index) { if (route.path !== index) router.push(index) }
-function logout() {
-  store.logout();
-  router.push('/login');
+/* 事件 */
+const toggleCollapse = () => (isCollapsed.value = !isCollapsed.value)
+const handleSelect = idx => { if (route.path !== idx) router.push(idx) }
+const logout = () => {
+  store.logout()
+  router.push('/login')
   ElMessage.success('已登出')
 }
 
-/* 自動調整 main padding */
+/* 自動調整 main padding-left */
 watch(isCollapsed, val => {
   const main = document.querySelector('main')
   if (main) main.style.paddingLeft = val ? '64px' : '200px'
@@ -103,20 +97,6 @@ watch(isCollapsed, val => {
 </script>
 
 <style scoped>
-/* ===== 顏色：亮色 / 暗色 ===== */
-.sidebar {
-  @apply flex flex-col h-screen transition-width duration-200 border-r;
-  background-color: #ffffff;
-  /* default light */
-  color: #1f2937;
-}
-
-.dark .sidebar {
-  background-color: #1f2937;
-  /* slate-800 */
-  color: #f9fafb;
-}
-
 .sidebar__top {
   display: flex;
   justify-content: flex-end;

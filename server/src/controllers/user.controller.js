@@ -1,19 +1,47 @@
 import User from '../models/user.model.js'
+import bcrypt from 'bcryptjs'
 
-/* ---------- GET /api/user/profile ---------- */
-export const getProfile = async (req, res) => {
-  res.json(req.user)
+const managerOnly = (req,res) => {
+  if (req.user.role !== 'manager')
+    return res.status(403).json({ message:'僅限 Manager 操作' })
 }
 
-/* ---------- PUT /api/user/profile ---------- */
-export const updateProfile = async (req, res) => {
-  const { username, email, password } = req.body
-  const user = await User.findById(req.user._id).select('+password')
-  if (!user) return res.status(404).json({ message: '使用者不存在' })
-  if (username) user.username = username
-  if (email) user.email = email
-  if (password) user.password = password
-  await user.save()
-  const updated = await User.findById(user._id).select('-password')
-  res.json(updated)
+/* 取得所有使用者 */
+export const getAllUsers = async (req,res) => {
+  managerOnly(req,res)
+  const users = await User.find().select('-password')
+  res.json(users)
+}
+
+/* 新增 */
+export const createUser = async (req,res) => {
+  managerOnly(req,res)
+  const { name,email,role,password } = req.body
+  if (await User.findOne({ email })) return res.status(400).json({ message:'Email 已存在' })
+  const hash = await bcrypt.hash(password,12)
+  const u = await User.create({ name,email,role,password:hash })
+  res.status(201).json(u)
+}
+
+/* 更新 */
+export const updateUser = async (req,res) => {
+  managerOnly(req,res)
+  const { name,email,role,password } = req.body
+  const u = await User.findById(req.params.id)
+  if (!u) return res.status(404).json({ message:'找不到使用者' })
+  if (email && email!==u.email && await User.findOne({ email }))
+    return res.status(400).json({ message:'Email 已存在' })
+  if (name)  u.name  = name
+  if (email) u.email = email
+  if (role)  u.role  = role
+  if (password) u.password = await bcrypt.hash(password,12)
+  await u.save()
+  res.json(u)
+}
+
+/* 刪除 */
+export const deleteUser = async (req,res) => {
+  managerOnly(req,res)
+  await User.findByIdAndDelete(req.params.id)
+  res.json({ message:'已刪除' })
 }

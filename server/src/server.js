@@ -1,56 +1,59 @@
 /**
- * \u4f3a\u670d\u5668\u5165\u53e3
+ * 伺服器入口 (server.js)
  */
-import express from 'express'
-import cors from 'cors'
-import cookieParser from 'cookie-parser'
-import dotenv from 'dotenv'
-import path from 'node:path'
-import fs from 'node:fs'
-import connectDB from './config/db.js'
-import { errorHandler, notFound } from './utils/handleError.js'
+import express        from 'express'
+import cors           from 'cors'
+import cookieParser   from 'cookie-parser'
+import dotenv         from 'dotenv'
+import path           from 'node:path'
+import fs             from 'node:fs'
 
-/* ---------- \u521d\u59cb\u5316 ---------- */
+import connectDB                    from './config/db.js'
+import { notFound, errorHandler }   from './utils/handleError.js'
+
+/* ---------- 初始化 ---------- */
 dotenv.config()
 connectDB()
 
 const app = express()
 
-/* ---------- \u901a\u7528\u4e2d\u4ecb\u5c64 ---------- */
-app.use(cors({ credentials: true, origin: true })) // \u8de8\u57df
-app.use(express.json())                            // \u89e3\u6790 JSON
-app.use(cookieParser())                            // \u89e3\u6790 Cookie
+/* ---------- 通用中介層 ---------- */
+app.use(cors({ origin: true, credentials: true }))   // 允許跨域並攜帶 Cookie
+app.use(express.json())                              // 解析 JSON
+app.use(cookieParser())                              // 解析 Cookie
 
-/* ---------- \u975c\u614b\u6a94\u6848\uff1a\u4e0a\u50b3\u7528 ---------- */
-const uploadDir = process.env.UPLOAD_DIR || 'uploads'
+/* ---------- 靜態檔案（上傳用） ----------
+ * 前端存取方式：/static/檔名
+ */
+const uploadDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR || 'uploads')
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
-app.use('/static', express.static(path.resolve(uploadDir)))
+app.use('/static', express.static(uploadDir))
 
-/* ---------- \u8def\u7531 ---------- */
-import authRoutes from './routes/auth.routes.js'
-import userRoutes from './routes/user.routes.js'
-import assetRoutes from './routes/asset.routes.js'
-import folderRoutes from './routes/folder.routes.js'
-import taskRoutes from './routes/task.routes.js'
+/* ---------- 路由 ---------- */
+import authRoutes     from './routes/auth.routes.js'
+import userRoutes     from './routes/user.routes.js'      // ★ Manager 用帳號管理
+import assetRoutes    from './routes/asset.routes.js'
+import folderRoutes   from './routes/folder.routes.js'
+import taskRoutes     from './routes/task.routes.js'
 import progressRoutes from './routes/progress.routes.js'
-import healthRoutes from './routes/health.routes.js'
-// import analyticsRoutes from './routes/analytics.routes.js' // 尚未啟用
+import healthRoutes   from './routes/health.routes.js'
+// import analyticsRoutes from './routes/analytics.routes.js' // 未啟用
 
-app.use('/api/auth', authRoutes)
-app.use('/api/user', userRoutes)
-app.use('/api/assets', assetRoutes)
-app.use('/api/folders', folderRoutes)
-app.use('/api/tasks', taskRoutes)
+app.use('/api/auth',     authRoutes)
+app.use('/api/user',     userRoutes)      // <─ CRUD: GET/POST/PUT/DELETE
+app.use('/api/assets',   assetRoutes)
+app.use('/api/folders',  folderRoutes)
+app.use('/api/tasks',    taskRoutes)
 app.use('/api/progress', progressRoutes)
-// app.use('/api/analytics', analyticsRoutes) // 尚未啟用
-app.use('/api/health', healthRoutes)
+app.use('/api/health',   healthRoutes)
+// app.use('/api/analytics', analyticsRoutes)
 
-/* ---------- 404 \u8207\u932f\u8aa4\u8655\u7406 ---------- */
+/* ---------- 404 與錯誤處理 ---------- */
 app.use(notFound)
 app.use(errorHandler)
 
-/* ---------- \u555f\u52d5\u4f3a\u670d\u5668 ---------- */
+/* ---------- 啟動 ---------- */
 const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
-  console.log(`\uD83D\uDE80 Server running on http://localhost:${PORT}`)
+  console.log(`🚀 Server running at http://localhost:${PORT}`)
 })
