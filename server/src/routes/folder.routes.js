@@ -4,7 +4,8 @@ import {
   createFolder,
   getFolders,
   getFolder,
-  updateFolder
+  updateFolder,
+  deleteFolder
 } from '../controllers/folder.controller.js'
 
 const router = Router()
@@ -13,5 +14,6 @@ router.post('/', protect, createFolder)
 router.get('/', protect, getFolders)
 router.get('/:id', protect, getFolder)
 router.put('/:id', protect, updateFolder)
+router.delete('/:id', protect, deleteFolder)
 
 export default router

@@ -27,3 +27,9 @@ export const updateFolder = async (req, res) => {
   if (!folder) return res.status(404).json({ message: '資料夾不存在' })
   res.json(folder)
 }
+
+export const deleteFolder = async (req, res) => {
+  const folder = await Folder.findByIdAndDelete(req.params.id)
+  if (!folder) return res.status(404).json({ message: '資料夾不存在' })
+  res.json({ message: '已刪除' })
+}

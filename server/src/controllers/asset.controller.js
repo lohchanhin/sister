@@ -30,3 +30,29 @@ export const addComment = async (req, res) => {
   await asset.save()
   res.json(asset)
 }
+
+/* ---------- PUT /api/assets/:id ---------- */
+export const updateAsset = async (req, res) => {
+  const asset = await Asset.findByIdAndUpdate(req.params.id, req.body, {
+    new: true
+  })
+  if (!asset) return res.status(404).json({ message: '素材不存在' })
+  res.json(asset)
+}
+
+/* ---------- DELETE /api/assets/:id ---------- */
+export const deleteAsset = async (req, res) => {
+  const asset = await Asset.findByIdAndDelete(req.params.id)
+  if (!asset) return res.status(404).json({ message: '素材不存在' })
+  res.json({ message: '已刪除' })
+}
+
+/* ---------- GET /api/assets/recent ---------- */
+export const getRecentAssets = async (req, res) => {
+  const limit = parseInt(req.query.limit) || 5
+  const query = { allowRoles: req.user.role }
+  const assets = await Asset.find(query)
+    .sort({ createdAt: -1 })
+    .limit(limit)
+  res.json(assets)
+}
