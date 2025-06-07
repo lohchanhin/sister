@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import Cookies from 'js-cookie'
 import api from '../services/api'
+import { login as loginService } from '../services/auth'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -14,7 +15,7 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     /* ---------- 登入 ---------- */
     async login(username, password) {
-      const { data } = await api.post('/auth/login', { username, password })
+      const data = await loginService({ username, password })
       this.token = data.token
       Cookies.set('token', data.token, { secure: true })
       this.user = data.user
