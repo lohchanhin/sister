@@ -10,6 +10,7 @@ import {
   fetchRecords, createRecord as apiCreateRecord
 } from '../services/progress'
 import { Check, Close, Edit, Delete } from '@element-plus/icons-vue'
+import { fetchUsers } from '../services/users'
 
 /* ---------------- State ---------------- */
 const templates = ref([])
@@ -24,7 +25,7 @@ const editingName = ref('')
 /* 建立模板表單 */
 const tplForm = ref({
   name: '',
-  fields: [{ fieldName: '', fieldType: 'string' }]
+  fields: [{ fieldName: '', fieldType: 'string', optionsRole: '' }]
 })
 
 /* 新增紀錄列 */
@@ -32,7 +33,11 @@ const newRow = ref({ fieldValues: {} })
 
 /* 下拉選單暫存結構（未接 API 亦可建模板） */
 const selectOptions = ref({})   // { fieldName: [{label,value}] }
-const optionApis = []        // Drawer「資料來源 API」選項
+const roleOptions = [
+  { label: 'Manager',  value: 'manager'  },
+  { label: 'Employee', value: 'employee' },
+  { label: 'Outsource',value: 'outsource'}
+] // Drawer「資料來源權限」選項
 
 /* 目前選定模板 */
 const selectedTpl = computed(() =>
@@ -46,6 +51,18 @@ const selectTemplate = async id => {
   selectedTplId.value = id
   records.value = await fetchRecords(id)
   newRow.value = { fieldValues: {} }
+  await loadSelectOptions()
+}
+
+const loadSelectOptions = async () => {
+  const tpl = templates.value.find(t => t._id === selectedTplId.value)
+  if (!tpl) return
+  for (const f of tpl.fields) {
+    if (f.fieldType === 'select' && f.optionsRole) {
+      const users = await fetchUsers({ role: f.optionsRole })
+      selectOptions.value[f.fieldName] = users.map(u => ({ label: u.name, value: u._id }))
+    }
+  }
 }
 
 const addRecord = async () => {
@@ -60,14 +77,14 @@ const addRecord = async () => {
 
 /* ---- 模板 CRUD ---- */
 const openDrawer = () => (drawerVis.value = true)
-const addTplField = () => tplForm.value.fields.push({ fieldName: '', fieldType: 'string' })
+const addTplField = () => tplForm.value.fields.push({ fieldName: '', fieldType: 'string', optionsRole: '' })
 const removeTplField = idx => tplForm.value.fields.splice(idx, 1)
 
 const createTemplate = async () => {
   const tpl = await apiCreateTemplate(tplForm.value)
   templates.value.push(tpl)
   drawerVis.value = false
-  tplForm.value = { name: '', fields: [{ fieldName: '', fieldType: 'string' }] }
+  tplForm.value = { name: '', fields: [{ fieldName: '', fieldType: 'string', optionsRole: '' }] }
   ElMessage.success('已建立模板')
 }
 
@@ -243,9 +260,9 @@ onMounted(loadTemplates)
               <el-option label="下拉" value="select" />
             </el-select>
 
-            <el-select v-if="field.fieldType === 'select'" v-model="field.optionsApi" placeholder="資料來源 API"
+            <el-select v-if="field.fieldType === 'select'" v-model="field.optionsRole" placeholder="權限"
               style="width:140px">
-              <el-option v-for="api in optionApis" :key="api.value" :label="api.label" :value="api.value" />
+              <el-option v-for="r in roleOptions" :key="r.value" :label="r.label" :value="r.value" />
             </el-select>
 
             <el-button :icon="Delete" circle type="danger" size="small" @click="removeTplField(idx)" />
