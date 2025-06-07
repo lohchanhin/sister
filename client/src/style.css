@@ -69,6 +69,10 @@ body {
 .rounded-2xl { border-radius: 1rem; }
 .shadow-xl { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); }
 .transition { transition: all 0.3s ease; }
+.transition-width { transition: width 0.3s ease; }
+.transition-transform { transition: transform 0.3s ease; }
+.rotate-90 { transform: rotate(90deg); }
+.inline-block { display: inline-block; }
 .gap-2 { gap: 0.5rem; }
 .overflow-y-auto { overflow-y: auto; }
 .list-none { list-style: none; padding-left: 0; }
