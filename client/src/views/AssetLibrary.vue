@@ -1,96 +1,357 @@
+<!-- AssetLibrary.vue – 修正版 -->
+<template>
+  <section class="asset-library p-6 flex gap-6 relative">
+
+    <!-- =============== 左側格線區 =============== -->
+    <div class="flex-1">
+      <!-- 工具列 -->
+      <div class="tool-bar flex flex-wrap gap-4 items-end mb-8">
+        <el-button :disabled="!currentFolder" @click="goUp">返回上層</el-button>
+        <el-input v-model="newFolderName" placeholder="新增資料夾名稱" class="w-56" @keyup.enter="createNewFolder" />
+        <el-button type="primary" @click="createNewFolder">建立資料夾</el-button>
+        <el-upload v-if="currentFolder" :before-upload="beforeUpload" :show-file-list="false">
+          <el-button type="success">上傳檔案</el-button>
+        </el-upload>
+      </div>
+
+      <!-- 卡片格線 -->
+      <transition-group name="fade-slide" tag="div" class="flex flex-wrap gap-5">
+
+        <!-- ===== 資料夾卡 ===== -->
+        <el-card v-for="f in folders" :key="f._id" class="folder-card card-base cursor-pointer" shadow="hover"
+          @dblclick="openFolder(f)">
+          <template #header>
+            <div class="flex items-center mb-2">
+              <div class="flex items-center gap-2 flex-1 truncate" @click.stop="openFolder(f)">
+                <el-icon>
+                  <Folder />
+                </el-icon>
+                <span class="font-medium">{{ f.name }}</span>
+              </div>
+              <el-button link size="small" @click.stop="showDetailFor(f, 'folder')"><el-icon>
+                  <InfoFilled />
+                </el-icon></el-button>
+            </div>
+          </template>
+          <el-scrollbar max-height="60">
+            <div class="desc-line">{{ f.description || '—' }}</div>
+          </el-scrollbar>
+        </el-card>
+
+        <!-- ===== 素材卡 ===== -->
+        <el-card v-for="a in assets" :key="a._id" class="asset-card card-base cursor-pointer" shadow="never"
+          @click="previewAsset(a)">
+          <template #header>
+            <div class="flex items-center mb-2">
+              <div class="flex-1 truncate" :title="a.title || a.filename">📄 {{ a.title || a.filename }}</div>
+              <el-button link size="small" @click.stop="showDetailFor(a, 'asset')"><el-icon>
+                  <InfoFilled />
+                </el-icon></el-button>
+            </div>
+          </template>
+          <el-scrollbar max-height="60">
+            <div class="desc-line">{{ a.description || '—' }}</div>
+          </el-scrollbar>
+        </el-card>
+
+      </transition-group>
+    </div>
+
+    <!-- =============== 右側說明面板 =============== -->
+    <transition name="slide-left">
+      <aside v-if="showDetail" class="detail-panel" :style="{ '--panel-bg': sidebarBg }">
+        <header class="panel-header">
+          <div class="title">
+            <el-icon>
+              <InfoFilled />
+            </el-icon>
+            <span class="text">{{ detail.title || detail.name || detailTitle }}</span>
+          </div>
+          <el-button link class="close-btn" @click="showDetail = false"><el-icon>
+              <Close />
+            </el-icon></el-button>
+        </header>
+
+        <el-scrollbar class="panel-body">
+          <el-form label-position="top" @submit.prevent>
+            <el-form-item label="名稱">
+              <el-input v-model="detail.title" />
+            </el-form-item>
+            <el-form-item label="描述">
+              <el-input v-model="detail.description" type="textarea" rows="4" resize="vertical" />
+            </el-form-item>
+            <el-form-item v-if="detailType === 'folder'" label="腳本需求">
+              <el-input v-model="detail.script" type="textarea" rows="4" resize="vertical" />
+            </el-form-item>
+          </el-form>
+        </el-scrollbar>
+
+        <footer class="panel-footer">
+          <el-popconfirm :title="`確定刪除${detailType === 'folder' ? '資料夾' : '素材'}？`" confirm-button-text="刪除"
+            cancel-button-text="取消" confirm-button-type="danger" @confirm="handleDelete">
+            <template #reference><el-button size="small" type="danger">刪除</el-button></template>
+          </el-popconfirm>
+          <el-button size="small" @click="showDetail = false">取消</el-button>
+          <el-button size="small" type="primary" @click="saveDetail">儲存</el-button>
+        </footer>
+      </aside>
+    </transition>
+
+    <!-- =============== 素材預覽 Dialog =============== -->
+    <el-dialog v-model="previewVisible" width="60%" top="5vh" :destroy-on-close="true">
+      <template #header>{{ previewItem?.title || previewItem?.filename }}</template>
+
+      <!-- 讓媒體自適應：max-width:100% + max-height:70vh -->
+      <div class="w-full flex justify-center">
+        <img v-if="isImage(previewItem)" :src="previewItem.url" class="preview-media" />
+        <video v-else controls class="preview-media">
+          <source :src="previewItem.url" type="video/mp4" />
+        </video>
+      </div>
+
+      <template #footer>
+        <el-button @click="previewVisible = false">關閉</el-button>
+      </template>
+    </el-dialog>
+
+
+  </section>
+</template>
+
 <script setup>
-import { ref, onMounted } from 'vue'
-import { fetchFolders, createFolder, updateFolder, getFolder } from '../services/folders'
-import { fetchAssets, uploadAsset } from '../services/assets'
+import { ref, computed, onMounted } from 'vue'
+import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder } from '../services/folders'
+import { fetchAssets, uploadAsset, updateAsset, deleteAsset } from '../services/assets'
+import { ElMessage } from 'element-plus'
+import { Folder, InfoFilled, Close } from '@element-plus/icons-vue'
 
 const folders = ref([])
 const assets = ref([])
 const currentFolder = ref(null)
-const detail = ref({ description: '', script: '' })
+
+const detail = ref({ title: '', description: '', script: '' })
 const showDetail = ref(false)
+const detailType = ref('folder')   // 'folder' | 'asset'
 const newFolderName = ref('')
 
-const loadData = async (id = null) => {
+/* 預覽 Dialog */
+const previewVisible = ref(false)
+const previewItem = ref(null)
+const isImage = a => /\.(png|jpe?g|gif|webp)$/i.test(a?.filename || '')
+
+/* 主題色 */
+const sidebarBg = computed(() => getComputedStyle(document.querySelector('.sidebar')).backgroundColor || '#1f2937')
+const detailTitle = computed(() => previewItem.value ? previewItem.value.filename : currentFolder.value?.name || '資訊')
+
+async function loadData(id = null) {
   folders.value = await fetchFolders(id)
-  assets.value = await fetchAssets(id)
+  assets.value = id ? await fetchAssets(id) : []
   currentFolder.value = id ? await getFolder(id) : null
 }
 
 onMounted(() => loadData())
 
-const openFolder = (f) => {
-  loadData(f._id)
-}
+function openFolder(f) { loadData(f._id) }
+function goUp() { loadData(currentFolder.value?.parentId || null) }
 
-const goUp = () => {
-  loadData(currentFolder.value?.parentId || null)
-}
+function showDetailFor(item, type) {
+  detailType.value = type
+  if (type === 'folder') currentFolder.value = item
 
-const saveDetail = async () => {
-  if (!currentFolder.value) return
-  await updateFolder(currentFolder.value._id, detail.value)
-  showDetail.value = false
-  loadData(currentFolder.value._id)
-}
+  detail.value.title = item.title || item.filename || ''
+  detail.value.description = item.description || ''
+  detail.value.script = item.script || ''
 
-const showDetailFor = (f) => {
-  currentFolder.value = f
-  detail.value.description = f.description || ''
-  detail.value.script = f.script || ''
+  previewItem.value = type === 'asset' ? item : null
   showDetail.value = true
 }
 
-const createNewFolder = async () => {
-  if (!newFolderName.value) return
-  await createFolder({ name: newFolderName.value, parentId: currentFolder.value?._id })
+async function saveDetail() {
+  if (detailType.value === 'folder' && currentFolder.value) {
+    await updateFolder(currentFolder.value._id, {
+      name: detail.value.title,
+      description: detail.value.description,
+      script: detail.value.script
+    })
+  } else if (detailType.value === 'asset' && previewItem.value) {
+    await updateAsset(previewItem.value._id, {
+      title: detail.value.title,
+      description: detail.value.description
+    })
+  }
+  ElMessage.success('已儲存')
+  showDetail.value = false
+  loadData(currentFolder.value?._id)
+}
+
+async function handleDelete() {
+  if (detailType.value === 'folder' && currentFolder.value) {
+    await deleteFolder(currentFolder.value._id)
+    ElMessage.success('資料夾已刪除')
+    loadData(currentFolder.value?.parentId || null)
+  } else if (detailType.value === 'asset' && previewItem.value) {
+    await deleteAsset(previewItem.value._id)
+    ElMessage.success('素材已刪除')
+    loadData(currentFolder.value?._id)
+  }
+  showDetail.value = false
+}
+
+async function createNewFolder() {
+  if (!newFolderName.value.trim()) return
+  await createFolder({ name: newFolderName.value.trim(), parentId: currentFolder.value?._id || null })
   newFolderName.value = ''
   loadData(currentFolder.value?._id)
 }
 
-const onFileChange = async (e) => {
-  const file = e.target.files[0]
-  if (!file) return
+async function beforeUpload(file) {
   await uploadAsset(file, currentFolder.value?._id)
+  ElMessage.success('上傳完成')
   loadData(currentFolder.value?._id)
+  return false
+}
+
+function previewAsset(a) {
+  // 如果 url 已經以 /static/ 開頭就不重複加
+  const url = /^\/static\//.test(a.url) ? a.url : `/static/${a.filename}`
+  previewItem.value = { ...a, url }
+  console.log('[預覽素材]', url)
+  previewVisible.value = true
 }
 </script>
 
-<template>
-  <h1 class="text-2xl font-bold mb-4">素材庫</h1>
-  <div class="mb-4 flex gap-2">
-    <el-button @click="goUp" :disabled="!currentFolder">返回上層</el-button>
-    <el-input v-model="newFolderName" placeholder="新增資料夾名稱" class="w-40" />
-    <el-button type="primary" @click="createNewFolder">新增資料夾</el-button>
-    <input type="file" @change="onFileChange" />
-  </div>
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-    <el-card v-for="f in folders" :key="f._id" class="cursor-pointer">
-      <template #header>
-        <div class="flex justify-between items-center">
-          <span @click="openFolder(f)">📁 {{ f.name }}</span>
-          <el-button size="small" @click.stop="showDetailFor(f)">詳細</el-button>
-        </div>
-      </template>
-    </el-card>
-    <el-card v-for="a in assets" :key="a._id">
-      {{ a.filename }}
-    </el-card>
-  </div>
-  <el-dialog v-model="showDetail" title="資料夾資訊">
-    <el-form @submit.prevent>
-      <el-form-item label="描述">
-        <el-input v-model="detail.description" type="textarea" />
-      </el-form-item>
-      <el-form-item label="腳本需求">
-        <el-input v-model="detail.script" type="textarea" />
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <el-button @click="showDetail = false">取消</el-button>
-      <el-button type="primary" @click="saveDetail">儲存</el-button>
-    </template>
-  </el-dialog>
-</template>
 
 <style scoped>
+/* ================== 卡片 ================== */
+.card-base {
+  width: 208px;
+  min-width: 208px;
+  height: auto;
+  min-height: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--el-fill-color-lighter);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.card-base :deep(.el-card__body) {
+  min-height: 150px;
+  /* body 最小高度 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.folder-card .el-icon {
+  font-size: 1.2rem;
+}
+
+.desc-line {
+  font-size: .75rem;
+  line-height: 1.1rem;
+}
+
+/* 亮 / 暗文字 */
+:not(.dark) .desc-line,
+:not(.dark) .panel-body textarea,
+:not(.dark) .panel-body .el-input__inner {
+  color: #111827;
+}
+
+.dark .desc-line,
+.dark .panel-body textarea,
+.dark .panel-body .el-input__inner {
+  color: #f3f4f6;
+}
+
+/* ===== 動畫 ===== */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all .2s ease;
+}
+
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.slide-left-enter-active,
+.slide-left-leave-active {
+  transition: transform .25s ease;
+}
+
+.slide-left-enter-from {
+  transform: translateX(100%);
+}
+
+.slide-left-leave-to {
+  transform: translateX(100%);
+}
+
+/* ================= 右側面板 ================= */
+.detail-panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  height: 100vh;
+  width: 25%;
+  display: flex;
+  flex-direction: column;
+  z-index: 40;
+  background: var(--panel-bg);
+  color: #fff;
+  box-shadow: -2px 0 6px rgba(0, 0, 0, .15);
+}
+
+.panel-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, .15);
+}
+
+.panel-header .title {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex: 1;
+}
+
+.panel-header .title .text {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.panel-body {
+  flex: 1;
+  padding: 1.5rem;
+  overscroll-behavior: contain;
+}
+
+.panel-footer {
+  padding: .75rem 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, .15);
+  display: flex;
+  justify-content: flex-end;
+  gap: .75rem;
+  background: rgba(0, 0, 0, .05);
+}
+
+.panel-body :deep(.el-scrollbar__bar) {
+  display: none;
+}
+
+/* 預覽圖片 / 影片：限制寬高，保持比例 */
+.preview-media {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;  /* 影片、圖片皆等比縮放 */
+}
+
 </style>
