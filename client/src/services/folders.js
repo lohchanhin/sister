@@ -17,3 +17,6 @@ export const getFolder = (id) => {
 export const updateFolder = (id, data) => {
   return api.put(`/folders/${id}`, data).then((res) => res.data)
 }
+
+export const deleteFolder = id =>
+  api.delete(`/folders/${id}`).then(res => res.data)

@@ -9,7 +9,7 @@ const props = defineProps({
 const { collapsed } = toRefs(props)
 const theme = useThemeStore()
 
-const label = computed(() => (theme.dark ? '切換為白天模式' : '切換為黑夜模式'))
+const label = computed(() => (theme.dark ? '' : ''))
 const icon = computed(() => (theme.dark ? '🌞' : '🌙'))
 </script>
 
