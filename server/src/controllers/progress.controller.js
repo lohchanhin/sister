@@ -20,3 +20,12 @@ export const getRecords = async (req, res) => {
   const recs = await ProgressRecord.find({ templateId: req.params.tplId })
   res.json(recs)
 }
+
+/* ---------- GET /api/progress/recent ---------- */
+export const getRecentProgress = async (req, res) => {
+  const limit = parseInt(req.query.limit) || 5
+  const recs = await ProgressRecord.find()
+    .sort({ createdAt: -1 })
+    .limit(limit)
+  res.json(recs)
+}
