@@ -1,10 +1,21 @@
 import { Router } from 'express'
 import { protect } from '../middleware/auth.js'
 import { upload } from '../middleware/upload.js'
-import { uploadFile, getAssets, addComment } from '../controllers/asset.controller.js'
+import {
+    uploadFile,
+    getAssets,
+    addComment,
+    updateAsset,
+    deleteAsset      // ★ 新增
+} from '../controllers/asset.controller.js'
 
 const router = Router()
+
 router.post('/upload', protect, upload.single('file'), uploadFile)
 router.get('/', protect, getAssets)
 router.post('/:id/comment', protect, addComment)
+
+/* ★ 新增：更新檔名／描述 */
+router.put('/:id', protect, updateAsset)
+router.delete('/:id', protect, deleteAsset)    // assets
 export default router

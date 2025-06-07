@@ -1,23 +1,33 @@
+/**
+ * Asset Controller  (完整)
+ */
 import Asset from '../models/asset.model.js'
 
 /* ---------- POST /api/assets/upload ---------- */
 export const uploadFile = async (req, res) => {
-  if (!req.file) return res.status(400).json({ message: '\u672a\u4e0a\u50b3\u6a94\u6848' })
+  if (!req.file) {
+    return res.status(400).json({ message: '未上傳檔案' })
+  }
+
   const asset = await Asset.create({
-    filename: req.file.filename,
+    title: req.file.originalname,     // 顯示用標題
+    filename: req.file.filename,         // 實際檔名
     path: req.file.path,
+    url: `/static/${req.file.filename}`,
     type: req.body.type || 'raw',
     uploadedBy: req.user._id,
-    folderId: req.body.folderId || null
+    folderId: req.body.folderId || null,
+    description: req.body.description || ''
   })
+
   res.status(201).json(asset)
 }
 
 /* ---------- GET /api/assets ---------- */
 export const getAssets = async (req, res) => {
   const query = { allowRoles: req.user.role }
-  if (req.query.folderId) query.folderId = req.query.folderId
-  else query.folderId = null
+  query.folderId = req.query.folderId ? req.query.folderId : null
+
   const assets = await Asset.find(query)
   res.json(assets)
 }
@@ -25,8 +35,30 @@ export const getAssets = async (req, res) => {
 /* ---------- POST /api/assets/:id/comment ---------- */
 export const addComment = async (req, res) => {
   const asset = await Asset.findById(req.params.id)
-  if (!asset) return res.status(404).json({ message: '\u627e\u4e0d\u5230\u7d20\u6750' })
+  if (!asset) return res.status(404).json({ message: '找不到素材' })
+
   asset.comments.push({ userId: req.user._id, message: req.body.message })
   await asset.save()
   res.json(asset)
+}
+
+/* ---------- PUT /api/assets/:id ---------- */
+/* 允許更新：title、description */
+export const updateAsset = async (req, res) => {
+  const { title, description } = req.body
+
+  const asset = await Asset.findById(req.params.id)
+  if (!asset) return res.status(404).json({ message: '找不到素材' })
+
+  if (title) asset.title = title
+  if (description) asset.description = description
+  // filename 不可修改，故不處理
+
+  await asset.save()
+  res.json(asset)
+}
+
+export const deleteAsset = async (req, res) => {
+  await Asset.findByIdAndDelete(req.params.id)
+  res.json({ message: '素材已刪除' })
 }
