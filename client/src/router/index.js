@@ -7,6 +7,7 @@ import Dashboard from '../views/Dashboard.vue'
 import Account from '../views/Account.vue'
 import Progress from '../views/Progress.vue'
 import AssetLibrary from '../views/AssetLibrary.vue'
+import EmployeeManager from '../views/EmployeeManager.vue'
 
 const routes = [
   {
@@ -22,7 +23,8 @@ const routes = [
       { path: '', name: 'Dashboard', component: Dashboard },
       { path: 'account', name: 'Account', component: Account },
       { path: 'progress', name: 'Progress', component: Progress },
-      { path: 'assets', name: 'Assets', component: AssetLibrary }
+      { path: 'assets', name: 'Assets', component: AssetLibrary },
+      { path: 'employees', name: 'EmployeeManager', component: EmployeeManager, meta: { role: 'manager' } }
     ]
   },
   // 404
@@ -41,6 +43,7 @@ router.beforeEach((to) => {
 
   // 若尚未登入，導向 login
   if (!store.isAuthenticated) return '/login'
+  if (to.meta.role && store.role !== to.meta.role) return '/'
   return true
 })
 
