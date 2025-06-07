@@ -62,3 +62,13 @@ export const deleteAsset = async (req, res) => {
   await Asset.findByIdAndDelete(req.params.id)
   res.json({ message: '素材已刪除' })
 }
+
+/* ---------- 依 limit 取得最新素材 ---------- */
+export const getRecentAssets = async (req, res) => {
+  const limit = Number(req.query.limit) || 5
+  const query = { allowRoles: req.user.role }
+  const assets = await Asset.find(query)
+    .sort({ createdAt: -1 })
+    .limit(limit)
+  res.json(assets)
+}

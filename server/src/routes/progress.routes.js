@@ -3,7 +3,8 @@ import { protect } from '../middleware/auth.js'
 import {
   createTemplate,  getTemplates,
   updateTemplate,  deleteTemplate,   // ← 新增
-  createRecord,    getRecords
+  createRecord,    getRecords,
+  getRecentRecords
 } from '../controllers/progress.controller.js'
 
 const router = Router()
@@ -15,6 +16,7 @@ router.delete('/templates/:id', protect, deleteTemplate) // ★
 
 router.get ('/records/:tplId', protect, getRecords)
 router.post('/records',       protect, createRecord)
+router.get ('/recent', protect, getRecentRecords)
 
 export default router
 
