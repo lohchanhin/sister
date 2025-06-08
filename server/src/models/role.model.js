@@ -1,4 +1,5 @@
 
+
 /**
  * \u89d2\u8272 Model
  */
@@ -11,5 +12,6 @@ const roleSchema = new mongoose.Schema(
   },
   { timestamps: true }
 )
+
 
 export default mongoose.model('Role', roleSchema)
