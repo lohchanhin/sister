@@ -54,6 +54,11 @@ router.get(
   requirePerm(PERMISSIONS.PROGRESS_MANAGE),
   getRecentRecords
 )
-
+router.put(
+  '/records/:id',
+  protect,
+  requirePerm(PERMISSIONS.PROGRESS_MANAGE),
+  updateRecord
+)
 export default router
 
