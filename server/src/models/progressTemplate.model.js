@@ -1,29 +1,31 @@
-/**
- * \u81ea\u5b9a\u7fa9\u9032\u5ea6\u8ffd\u8e64\u300c\u6b04\u4f4d\u6a21\u677f\u300d
- */
-import mongoose from 'mongoose'
-import { ROLES } from '../config/roles.js'
+// models/progressTemplate.model.js
+import mongoose from 'mongoose';
+import { ROLES } from '../config/roles.js';
 
 const fieldSchema = new mongoose.Schema(
   {
-    fieldName: { type: String, required: true },
-    fieldType: {
-      type: String,
-      enum: ['string', 'date', 'number', 'select'],
+    fieldName : { type: String, required: true },
+
+    /** 支援  string / number / date / select / bool */
+    fieldType : {
+      type   : String,
+      enum   : ['string', 'number', 'date', 'select', 'bool'],
       default: 'string'
     },
-    optionsRole: { type: String, enum: Object.values(ROLES) }
+
+    /** ▼ 只是前端「下拉權限對應」的備註欄，允許留空，所以 **拿掉 enum 驗證** */
+    optionsRole: { type: String }   // 'employee' | 'manager' | 'outsource' | undefined
   },
   { _id: false }
-)
+);
 
 const templateSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    fields: [fieldSchema],
+    name     : { type: String, required: true },
+    fields   : { type: [fieldSchema], required: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
   },
   { timestamps: true }
-)
+);
 
-export default mongoose.model('ProgressTemplate', templateSchema)
+export default mongoose.model('ProgressTemplate', templateSchema);
