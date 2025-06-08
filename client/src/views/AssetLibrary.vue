@@ -9,13 +9,21 @@
         <el-button :disabled="!currentFolder" @click="goUp">返回上層</el-button>
         <el-input v-model="newFolderName" placeholder="新增資料夾名稱" class="w-56" @keyup.enter="createNewFolder" />
         <el-button type="primary" @click="createNewFolder">建立資料夾</el-button>
-        <el-upload v-if="currentFolder" :before-upload="beforeUpload" :show-file-list="false">
+        <el-upload
+          v-if="currentFolder"
+          :http-request="uploadRequest"
+          :on-progress="handleProgress"
+          :on-success="handleSuccess"
+          :on-error="handleError"
+          :show-file-list="false"
+        >
           <el-button type="success">上傳檔案</el-button>
         </el-upload>
         <el-select v-model="filterTags" multiple placeholder="標籤篩選" style="min-width:150px">
           <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
         </el-select>
         <el-button @click="loadData(currentFolder.value?._id || null)">套用</el-button>
+
       </div>
 
       <!-- 卡片格線 -->
@@ -222,11 +230,30 @@ async function createNewFolder() {
   loadData(currentFolder.value?._id)
 }
 
-async function beforeUpload(file) {
-  await uploadAsset(file, currentFolder.value?._id)
+const progressList = ref({})
+
+function handleProgress(evt, file) {
+  progressList.value[file.uid] = Math.round(evt.percent)
+}
+
+function handleSuccess(_, file) {
+  progressList.value[file.uid] = 100
+  setTimeout(() => delete progressList.value[file.uid], 500)
   ElMessage.success('上傳完成')
   loadData(currentFolder.value?._id)
-  return false
+}
+
+function handleError(_, file) {
+  delete progressList.value[file.uid]
+}
+
+async function uploadRequest({ file, onProgress, onSuccess, onError }) {
+  try {
+    await uploadAsset(file, currentFolder.value?._id, null, onProgress)
+    onSuccess()
+  } catch (e) {
+    onError(e)
+  }
 }
 
 function previewAsset(a) {
