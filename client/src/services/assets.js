@@ -39,5 +39,5 @@ export const deleteAsset = id =>
   api.delete(`/assets/${id}`).then(res => res.data)
 
 export const reviewAsset = (id, status) =>
-  api.post(`/assets/${id}/review`, { reviewStatus: status }).then(res => res.data)
+  api.put(`/assets/${id}/review`, { reviewStatus: status }).then(res => res.data)
 
