@@ -6,8 +6,9 @@ import {
     getAssets,
     addComment,
     updateAsset,
-    deleteAsset,      // ★ 新增
-    getRecentAssets
+    deleteAsset,
+    getRecentAssets,
+    reviewAsset
 } from '../controllers/asset.controller.js'
 
 const router = Router()
@@ -19,5 +20,6 @@ router.get('/recent', protect, getRecentAssets)
 
 /* ★ 新增：更新檔名／描述 */
 router.put('/:id', protect, updateAsset)
+router.put('/:id/review', protect, reviewAsset)
 router.delete('/:id', protect, deleteAsset)    // assets
 export default router
