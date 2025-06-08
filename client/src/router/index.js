@@ -30,7 +30,7 @@ const routes = [
       { path: 'assets', name: 'Assets', component: AssetLibrary },
       { path: 'products', name: 'Products', component: ProductLibrary },
 
-      { path: 'employees', name: 'EmployeeManager', component: EmployeeManager, meta: { role: 'manager' } }
+      { path: 'employees', name: 'EmployeeManager', component: EmployeeManager, meta: { role: 'manager' } },
       { path: 'roles', name: 'RoleSettings', component: RoleSettings, meta: { role: 'manager' } }
     ]
   },
