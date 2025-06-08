@@ -7,5 +7,6 @@ export const PERMISSION_NAMES = {
   'progress:manage': '進度管理',
   'user:manage': '使用者管理',
   'task:manage': '任務管理',
+  'tag:manage': '標籤管理',
   'analytics:view': '統計檢視'
 }
