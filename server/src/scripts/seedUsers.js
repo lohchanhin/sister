@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import User from '../models/user.model.js'
 import Role from '../models/role.model.js'
 import { ROLES } from '../config/roles.js'
+import { PERMISSIONS } from '../config/permissions.js'
 
 dotenv.config()
 
@@ -22,9 +23,11 @@ const seed = async () => {
     await Role.deleteMany({})
 
     // 建立角色資料
-    const roleDocs = await Role.insertMany(
-      Object.values(ROLES).map((name) => ({ name }))
-    )
+    const roleDocs = await Role.insertMany([
+      { name: ROLES.EMPLOYEE },
+      { name: ROLES.MANAGER, permissions: Object.values(PERMISSIONS) },
+      { name: ROLES.OUTSOURCE }
+    ])
     const roleMap = {}
     for (const r of roleDocs) roleMap[r.name] = r._id
 
