@@ -3,6 +3,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { fetchRoles, createRole, updateRole, deleteRole, fetchPermissions } from '../services/roles'
+import { PERMISSION_NAMES } from '../permissionNames'
 import { useAuthStore } from '../stores/auth'
 
 const store = useAuthStore()
@@ -24,7 +25,8 @@ const loadRoles = async () => {
 }
 
 const loadPermissions = async () => {
-  permissionList.value = await fetchPermissions()
+  const codes = await fetchPermissions()
+  permissionList.value = codes.map(code => ({ value: code, label: PERMISSION_NAMES[code] }))
 }
 
 const openCreate = () => {
@@ -98,7 +100,13 @@ onMounted(() => {
         <el-form-item label="角色名稱"><el-input v-model="form.name" /></el-form-item>
         <el-form-item label="權限">
           <el-checkbox-group v-model="form.permissions">
-            <el-checkbox v-for="p in permissionList" :key="p" :label="p">{{ p }}</el-checkbox>
+            <el-checkbox
+              v-for="p in permissionList"
+              :key="p.value"
+              :label="p.value"
+            >
+              {{ p.label }}
+            </el-checkbox>
           </el-checkbox-group>
         </el-form-item>
       </el-form>
