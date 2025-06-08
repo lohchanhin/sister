@@ -1,13 +1,12 @@
 import { Router } from 'express'
 import { protect } from '../middleware/auth.js'
-import { authorize } from '../middleware/roleGuard.js'
+import { requirePerm } from '../middleware/permissionGuard.js'
 import { createTask, getTasks, updateTask } from '../controllers/task.controller.js'
-import { ROLES } from '../config/roles.js'
 
 const router = Router()
 
 router.get('/', protect, getTasks)
-router.post('/', protect, authorize(ROLES.MANAGER, ROLES.EMPLOYEE), createTask)
-router.put('/:id', protect, authorize(ROLES.MANAGER, ROLES.EMPLOYEE), updateTask)
+router.post('/', protect, requirePerm('task:create'), createTask)
+router.put('/:id', protect, requirePerm('task:update'), updateTask)
 
 export default router
