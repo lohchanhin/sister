@@ -1,4 +1,5 @@
 <!-- AssetLibrary.vue – 修正版 -->
+
 <template>
   <section class="asset-library p-6 flex gap-6 relative">
 
@@ -44,6 +45,9 @@
           <template #header>
             <div class="flex items-center mb-2">
               <div class="flex-1 truncate" :title="a.title || a.filename">📄 {{ a.title || a.filename }}</div>
+
+              <span class="text-xs mr-2">{{ a.reviewStatus }}</span>
+
               <el-button link size="small" @click.stop="showDetailFor(a, 'asset')"><el-icon>
                   <InfoFilled />
                 </el-icon></el-button>
@@ -103,6 +107,7 @@
             type="warning"
             @click="review('rejected')"
           >退回</el-button>
+
           <el-button size="small" @click="showDetail = false">取消</el-button>
           <el-button size="small" type="primary" @click="saveDetail">儲存</el-button>
         </footer>
@@ -161,7 +166,9 @@ const detailTitle = computed(() => previewItem.value ? previewItem.value.filenam
 
 async function loadData(id = null) {
   folders.value = await fetchFolders(id)
+
   assets.value = id ? await fetchAssets(id, 'edited') : []
+
   currentFolder.value = id ? await getFolder(id) : null
 }
 
@@ -222,10 +229,12 @@ async function createNewFolder() {
 
 async function beforeUpload(file) {
   await uploadAsset(file, currentFolder.value?._id)
+
   ElMessage.success('上傳完成')
   loadData(currentFolder.value?._id)
   return false
 }
+
 
 async function review(status) {
   if (!previewItem.value) return
@@ -235,6 +244,7 @@ async function review(status) {
   loadData(currentFolder.value?._id)
 }
 
+
 function previewAsset(a) {
   // 如果 url 已經以 /static/ 開頭就不重複加
   const url = /^\/static\//.test(a.url) ? a.url : `/static/${a.filename}`
@@ -242,6 +252,8 @@ function previewAsset(a) {
   console.log('[預覽素材]', url)
   previewVisible.value = true
 }
+
+
 </script>
 
 

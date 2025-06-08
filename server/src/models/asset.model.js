@@ -23,8 +23,9 @@ const assetSchema = new mongoose.Schema(
     filename:   { type: String, required: true },
 
     path:       { type: String, required: true },
-    type:       { type: String, enum: ['raw', 'edited'], default: 'raw' },
-    description:{ type: String, default: '' },
+    type:         { type: String, enum: ['raw', 'edited'], default: 'raw' },
+    reviewStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    description:  { type: String, default: '' },
 
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     folderId:   { type: mongoose.Schema.Types.ObjectId, ref: 'Folder', default: null },
