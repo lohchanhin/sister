@@ -36,12 +36,6 @@ router.delete(
   deleteTemplate
 ) // ★
 
-<<<<<<< HEAD
-router.get ('/records/:tplId', protect, getRecords)
-router.post('/records',       protect, createRecord)
-router.get ('/recent', protect, getRecentRecords)
-router.put('/records/:id', protect, updateRecord)   // ★ 新增
-=======
 router.get(
   '/records/:tplId',
   protect,
@@ -60,7 +54,11 @@ router.get(
   requirePerm(PERMISSIONS.PROGRESS_MANAGE),
   getRecentRecords
 )
-
->>>>>>> 87a3e855fe613b710d1b2aa470615797b3a4051c
+router.put(
+  '/records/:id',
+  protect,
+  requirePerm(PERMISSIONS.PROGRESS_MANAGE),
+  updateRecord
+)
 export default router
 
