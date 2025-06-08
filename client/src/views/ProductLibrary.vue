@@ -1,4 +1,5 @@
-<!-- ProductLibrary.vue – 成品區 -->
+<!-- AssetLibrary.vue – 修正版 -->
+
 <template>
   <section class="asset-library p-6 flex gap-6 relative">
 
@@ -44,7 +45,9 @@
           <template #header>
             <div class="flex items-center mb-2">
               <div class="flex-1 truncate" :title="a.title || a.filename">📄 {{ a.title || a.filename }}</div>
+
               <span class="text-xs mr-2">{{ a.reviewStatus }}</span>
+
               <el-button link size="small" @click.stop="showDetailFor(a, 'asset')"><el-icon>
                   <InfoFilled />
                 </el-icon></el-button>
@@ -92,10 +95,19 @@
             cancel-button-text="取消" confirm-button-type="danger" @confirm="handleDelete">
             <template #reference><el-button size="small" type="danger">刪除</el-button></template>
           </el-popconfirm>
-          <template v-if="detailType === 'asset' && canReview">
-            <el-button size="small" type="success" @click="review('approved')">通過</el-button>
-            <el-button size="small" type="warning" @click="review('rejected')">退回</el-button>
-          </template>
+          <el-button
+            v-if="detailType === 'asset' && canReview"
+            size="small"
+            type="success"
+            @click="review('approved')"
+          >通過</el-button>
+          <el-button
+            v-if="detailType === 'asset' && canReview"
+            size="small"
+            type="warning"
+            @click="review('rejected')"
+          >退回</el-button>
+
           <el-button size="small" @click="showDetail = false">取消</el-button>
           <el-button size="small" type="primary" @click="saveDetail">儲存</el-button>
         </footer>
@@ -134,6 +146,7 @@ import { Folder, InfoFilled, Close } from '@element-plus/icons-vue'
 const folders = ref([])
 const assets = ref([])
 const currentFolder = ref(null)
+
 const store = useAuthStore()
 const canReview = computed(() => store.role === 'manager')
 
@@ -153,7 +166,9 @@ const detailTitle = computed(() => previewItem.value ? previewItem.value.filenam
 
 async function loadData(id = null) {
   folders.value = await fetchFolders(id)
-  assets.value = id ? await fetchAssets({ folderId: id, type: 'edited' }) : []
+
+  assets.value = id ? await fetchAssets(id, 'edited') : []
+
   currentFolder.value = id ? await getFolder(id) : null
 }
 
@@ -213,11 +228,22 @@ async function createNewFolder() {
 }
 
 async function beforeUpload(file) {
-  await uploadAsset(file, currentFolder.value?._id, 'edited')
+  await uploadAsset(file, currentFolder.value?._id)
+
   ElMessage.success('上傳完成')
   loadData(currentFolder.value?._id)
   return false
 }
+
+
+async function review(status) {
+  if (!previewItem.value) return
+  await reviewAsset(previewItem.value._id, status)
+  ElMessage.success('已更新狀態')
+  showDetail.value = false
+  loadData(currentFolder.value?._id)
+}
+
 
 function previewAsset(a) {
   // 如果 url 已經以 /static/ 開頭就不重複加
@@ -227,13 +253,7 @@ function previewAsset(a) {
   previewVisible.value = true
 }
 
-async function review(status) {
-  if (!previewItem.value) return
-  await reviewAsset(previewItem.value._id, status)
-  ElMessage.success('已更新狀態')
-  showDetail.value = false
-  loadData(currentFolder.value?._id)
-}
+
 </script>
 
 
