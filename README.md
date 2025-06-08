@@ -14,6 +14,8 @@
    ```
    預設服務於 `http://localhost:5173`。
 3. 如需連接後端，可在 `.env` 檔中設定 `VITE_API_BASE`，預設為 `http://localhost:3000/api`。
+4. 上傳檔案可呼叫 `uploadAsset(file, folderId, extraData)`，其中 `extraData`
+   會被加入 `FormData`；剪輯師上傳成品時可傳入 `{ type: 'edited' }`。
 
 ## 後端 (server)
 1. 進入 `server` 目錄安裝依賴並設定環境：
@@ -50,3 +52,7 @@ server/  # 後端 API
 ```
 
 更多細節請分別參閱各目錄下的 README。歡迎依需求擴充功能。
+
+## 成品區
+新增的成品區僅顯示 `type=edited` 的素材，管理者可在此審核成品並決定是否通過或退回。
+前端路徑為 `/products`，員工與管理者皆可瀏覽。
