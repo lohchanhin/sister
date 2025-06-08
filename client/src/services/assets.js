@@ -17,7 +17,7 @@ export const fetchAssets = (folderId, type) => {
   )
 }
 
-export const uploadAsset = (file, folderId, extraData = null) => {
+export const uploadAsset = (file, folderId, extraData = null, onUploadProgress = null) => {
   const formData = new FormData()
   formData.append('file', file)
   if (folderId) formData.append('folderId', folderId)
@@ -28,7 +28,8 @@ export const uploadAsset = (file, folderId, extraData = null) => {
   }
 
   return api.post('/assets/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress
   }).then((res) => res.data)
 }
 
