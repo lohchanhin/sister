@@ -3,6 +3,14 @@
  */
 import Asset from '../models/asset.model.js'
 
+const managerOnly = (req, res) => {
+  if (req.user.roleId?.name !== 'manager') {
+    res.status(403).json({ message: '僅限 Manager 操作' })
+    return true
+  }
+  return false
+}
+
 /* ---------- POST /api/assets/upload ---------- */
 export const uploadFile = async (req, res) => {
   if (!req.file) {
@@ -15,6 +23,7 @@ export const uploadFile = async (req, res) => {
     path: req.file.path,
     url: `/static/${req.file.filename}`,
     type: req.body.type || 'raw',
+    reviewStatus: req.body.type === 'edited' ? 'pending' : undefined,
     uploadedBy: req.user._id,
     folderId: req.body.folderId || null,
     description: req.body.description || ''
@@ -27,6 +36,8 @@ export const uploadFile = async (req, res) => {
 export const getAssets = async (req, res) => {
   const query = { allowRoles: req.user.roleId?.name }
   query.folderId = req.query.folderId ? req.query.folderId : null
+  if (req.query.type) query.type = req.query.type
+  if (req.query.reviewStatus) query.reviewStatus = req.query.reviewStatus
 
   const assets = await Asset.find(query)
   res.json(assets)
@@ -54,6 +65,19 @@ export const updateAsset = async (req, res) => {
   if (description) asset.description = description
   // filename 不可修改，故不處理
 
+  await asset.save()
+  res.json(asset)
+}
+
+export const reviewAsset = async (req, res) => {
+  if (managerOnly(req, res)) return
+  const { reviewStatus } = req.body
+  if (!['pending', 'approved', 'rejected'].includes(reviewStatus)) {
+    return res.status(400).json({ message: '狀態錯誤' })
+  }
+  const asset = await Asset.findById(req.params.id)
+  if (!asset) return res.status(404).json({ message: '找不到素材' })
+  asset.reviewStatus = reviewStatus
   await asset.save()
   res.json(asset)
 }
