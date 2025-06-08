@@ -145,7 +145,7 @@ const detailTitle = computed(() => previewItem.value ? previewItem.value.filenam
 
 async function loadData(id = null) {
   folders.value = await fetchFolders(id)
-  assets.value = id ? await fetchAssets(id) : []
+  assets.value = id ? await fetchAssets(id, 'raw') : []
   currentFolder.value = id ? await getFolder(id) : null
 }
 
