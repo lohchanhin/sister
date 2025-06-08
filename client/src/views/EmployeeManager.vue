@@ -1,16 +1,18 @@
 <!-- src/views/EmployeeManager.vue -->
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { fetchUsers, createUser, updateUser, deleteUser } from '../services/user'
+import { fetchRoles } from '../services/roles'
 import { useAuthStore } from '../stores/auth'   // 取當前登入者資訊
 
 /* ---------- 角色選單 ---------- */
-const roleOptions = [
-  { label: 'Manager',  value: 'manager'  },
-  { label: 'Employee', value: 'employee' },
-  { label: 'Outsource',value: 'outsource'}
-]
+const roleOptions = ref([])
+
+const loadRoles = async () => {
+  const roles = await fetchRoles()
+  roleOptions.value = roles.map(r => ({ label: r.name, value: r.name }))
+}
 
 /* ---------- 權限檢查：非 manager 直接跳回首頁 ---------- */
 const store = useAuthStore()
@@ -68,7 +70,10 @@ const removeUser = async u => {
   await loadUsers()
 }
 
-onMounted(loadUsers)
+onMounted(() => {
+  loadUsers()
+  loadRoles()
+})
 </script>
 
 <template>
@@ -84,7 +89,7 @@ onMounted(loadUsers)
       <el-table-column
         prop="role"
         label="角色"
-        :formatter="(_, __, cell) => roleOptions.find(r => r.value===cell)?.label"
+        :formatter="(_, __, cell) => roleOptions.value.find(r => r.value===cell)?.label"
       />
       <el-table-column label="操作" width="160">
         <template #default="{ row }">
