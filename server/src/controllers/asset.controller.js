@@ -3,6 +3,17 @@
  */
 import Asset from '../models/asset.model.js'
 
+const parseTags = (t) => {
+  if (!t) return []
+  if (Array.isArray(t)) return t
+  try {
+    const parsed = JSON.parse(t)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return t.split(',').map((s) => s.trim()).filter(Boolean)
+  }
+}
+
 const managerOnly = (req, res) => {
   if (req.user.roleId?.name !== 'manager') {
     res.status(403).json({ message: '僅限 Manager 操作' })
@@ -26,7 +37,8 @@ export const uploadFile = async (req, res) => {
     reviewStatus: req.body.type === 'edited' ? 'pending' : undefined,
     uploadedBy: req.user._id,
     folderId: req.body.folderId || null,
-    description: req.body.description || ''
+    description: req.body.description || '',
+    tags: parseTags(req.body.tags)
   })
 
   res.status(201).json(asset)
@@ -40,6 +52,12 @@ export const getAssets = async (req, res) => {
 
   if (req.query.reviewStatus) query.reviewStatus = req.query.reviewStatus
 
+  if (req.query.tags) {
+    const tags = Array.isArray(req.query.tags)
+      ? req.query.tags
+      : req.query.tags.split(',')
+    query.tags = { $all: tags }
+  }
 
   const assets = await Asset.find(query)
   res.json(assets)
@@ -65,6 +83,7 @@ export const updateAsset = async (req, res) => {
 
   if (title) asset.title = title
   if (description) asset.description = description
+  if (req.body.tags) asset.tags = parseTags(req.body.tags)
   // filename 不可修改，故不處理
 
   await asset.save()
