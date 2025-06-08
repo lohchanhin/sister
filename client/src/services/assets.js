@@ -1,10 +1,11 @@
 import api from './api'
 
 
-export const fetchAssets = (folderId, type) => {
+export const fetchAssets = (folderId, type, tags = []) => {
   const params = {}
   if (folderId) params.folderId = folderId
   if (type) params.type = type
+  if (tags.length) params.tags = tags
 
   return api.get('/assets', { params }).then(res =>
     res.data.map(a => {
