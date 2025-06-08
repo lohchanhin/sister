@@ -1,5 +1,7 @@
 import { Router } from 'express'
 import { protect } from '../middleware/auth.js'
+import { requirePerm } from '../middleware/permission.js'
+import { PERMISSIONS } from '../config/permissions.js'
 import {
   getAllUsers,
   createUser,
@@ -17,12 +19,12 @@ router.put('/profile', updateProfile)
 
 router
   .route('/')
-  .get(getAllUsers)               // GET  /api/user
-  .post(createUser)               // POST /api/user
+  .get(requirePerm(PERMISSIONS.USER_MANAGE), getAllUsers)               // GET  /api/user
+  .post(requirePerm(PERMISSIONS.USER_MANAGE), createUser)               // POST /api/user
 
 router
   .route('/:id')
-  .put(updateUser)                // PUT    /api/user/:id
-  .delete(deleteUser)             // DELETE /api/user/:id
+  .put(requirePerm(PERMISSIONS.USER_MANAGE), updateUser)                // PUT    /api/user/:id
+  .delete(requirePerm(PERMISSIONS.USER_MANAGE), deleteUser)             // DELETE /api/user/:id
 
 export default router
