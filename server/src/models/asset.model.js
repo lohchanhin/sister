@@ -30,6 +30,9 @@ const assetSchema = new mongoose.Schema(
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     folderId:   { type: mongoose.Schema.Types.ObjectId, ref: 'Folder', default: null },
 
+    /* 標籤 */
+    tags:       { type: [String], default: [] },
+
     /* 允許查看角色 */
     allowRoles: {
       type: [String],

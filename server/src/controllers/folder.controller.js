@@ -1,18 +1,37 @@
 import Folder from '../models/folder.model.js'
 
+const parseTags = (t) => {
+  if (!t) return []
+  if (Array.isArray(t)) return t
+  try {
+    const parsed = JSON.parse(t)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return t.split(',').map(s => s.trim()).filter(Boolean)
+  }
+}
+
 export const createFolder = async (req, res) => {
   const folder = await Folder.create({
     name: req.body.name,
     parentId: req.body.parentId || null,
     description: req.body.description,
-    script: req.body.script
+    script: req.body.script,
+    tags: parseTags(req.body.tags)
   })
   res.status(201).json(folder)
 }
 
 export const getFolders = async (req, res) => {
   const parentId = req.query.parentId || null
-  const folders = await Folder.find({ parentId })
+  const query = { parentId }
+  if (req.query.tags) {
+    const tags = Array.isArray(req.query.tags)
+      ? req.query.tags
+      : req.query.tags.split(',')
+    query.tags = { $all: tags }
+  }
+  const folders = await Folder.find(query)
   res.json(folders)
 }
 
@@ -23,6 +42,7 @@ export const getFolder = async (req, res) => {
 }
 
 export const updateFolder = async (req, res) => {
+  if (req.body.tags) req.body.tags = parseTags(req.body.tags)
   const folder = await Folder.findByIdAndUpdate(req.params.id, req.body, { new: true })
   if (!folder) return res.status(404).json({ message: '資料夾不存在' })
   res.json(folder)
