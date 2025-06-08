@@ -64,7 +64,10 @@ export const deleteUser = async (req,res) => {
 /* 取得個人資料 */
 export const getProfile = async (req,res) => {
   const user = await req.user.populate('roleId')
-  res.json(user)
+  res.json({
+    ...user.toObject(),
+    role: user.roleId?.name
+  })
 }
 
 /* 更新個人資料 */
