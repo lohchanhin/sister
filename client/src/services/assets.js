@@ -16,11 +16,16 @@ export const fetchAssets = ({ folderId, type, reviewStatus } = {}) => {
   )
 }
 
-export const uploadAsset = (file, folderId, type = 'raw') => {
+export const uploadAsset = (file, folderId, extraData = null) => {
   const formData = new FormData()
   formData.append('file', file)
   if (folderId) formData.append('folderId', folderId)
-  if (type) formData.append('type', type)
+  if (extraData) {
+    for (const [k, v] of Object.entries(extraData)) {
+      formData.append(k, v)
+    }
+  }
+
   return api.post('/assets/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }).then((res) => res.data)
