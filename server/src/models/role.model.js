@@ -1,9 +1,12 @@
+
 import mongoose from 'mongoose'
 import { PERMISSIONS } from '../config/permissions.js'
+
 
 const roleSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true },
+
     permissions: {
       type: [String],
       validate: {
@@ -12,8 +15,11 @@ const roleSchema = new mongoose.Schema(
       },
       default: []
     }
+
+
   },
   { timestamps: true }
 )
+
 
 export default mongoose.model('Role', roleSchema)
