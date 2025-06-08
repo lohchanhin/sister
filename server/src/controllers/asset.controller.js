@@ -27,6 +27,7 @@ export const uploadFile = async (req, res) => {
 export const getAssets = async (req, res) => {
   const query = { allowRoles: req.user.roleId?.name }
   query.folderId = req.query.folderId ? req.query.folderId : null
+  if (req.query.type) query.type = req.query.type
 
   const assets = await Asset.find(query)
   res.json(assets)
