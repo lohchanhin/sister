@@ -22,7 +22,12 @@ export const getAllUsers = async (req,res) => {
     .select('-password')
     .populate('roleId')
 
-  res.json(users)
+  const result = users.map((u) => ({
+    ...u.toObject(),
+    role: u.roleId?.name
+  }))
+
+  res.json(result)
 }
 
 /* 新增 */
@@ -33,7 +38,10 @@ export const createUser = async (req,res) => {
   const roleDoc = await Role.findOne({ name: role })
   const u = await User.create({ name,email,roleId: roleDoc?._id,password:hash })
   const populated = await u.populate('roleId')
-  res.status(201).json(populated)
+  res.status(201).json({
+    ...populated.toObject(),
+    role: populated.roleId?.name
+  })
 }
 
 /* 更新 */
@@ -52,7 +60,10 @@ export const updateUser = async (req,res) => {
   if (password) u.password = await bcrypt.hash(password,12)
   await u.save()
   const populated = await u.populate('roleId')
-  res.json(populated)
+  res.json({
+    ...populated.toObject(),
+    role: populated.roleId?.name
+  })
 }
 
 /* 刪除 */
