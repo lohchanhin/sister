@@ -4,7 +4,7 @@
 export const authorize =
   (...roles) =>
   (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    if (!roles.includes(req.user.roleId?.name)) {
       return res.status(403).json({ message: '\u6b0a\u9650\u4e0d\u8db3' })
     }
     next()

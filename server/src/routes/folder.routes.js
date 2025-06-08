@@ -1,5 +1,7 @@
 import { Router } from 'express'
 import { protect } from '../middleware/auth.js'
+import { requirePerm } from '../middleware/permission.js'
+import { PERMISSIONS } from '../config/permissions.js'
 import {
   createFolder,
   getFolders,
@@ -10,10 +12,15 @@ import {
 
 const router = Router()
 
-router.post('/', protect, createFolder)
-router.get('/', protect, getFolders)
-router.get('/:id', protect, getFolder)
-router.put('/:id', protect, updateFolder)
-router.delete('/:id', protect, deleteFolder)   // folders
+router.post('/', protect, requirePerm(PERMISSIONS.FOLDER_MANAGE), createFolder)
+router.get('/', protect, requirePerm(PERMISSIONS.FOLDER_MANAGE), getFolders)
+router.get('/:id', protect, requirePerm(PERMISSIONS.FOLDER_MANAGE), getFolder)
+router.put('/:id', protect, requirePerm(PERMISSIONS.FOLDER_MANAGE), updateFolder)
+router.delete(
+  '/:id',
+  protect,
+  requirePerm(PERMISSIONS.FOLDER_MANAGE),
+  deleteFolder
+)   // folders
 
 export default router
