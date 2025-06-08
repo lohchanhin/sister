@@ -13,7 +13,9 @@ export default defineConfig({
       '/static': 'http://localhost:3000'
     }
   },
-  alias: {
-    '@': path.resolve(__dirname, 'src')   // ★ 加這行
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'src')   // ★ 加這行
+    }
   }
 })
