@@ -1,9 +1,11 @@
 import api from './api'
 
+
 export const fetchAssets = (folderId, type) => {
   const params = {}
   if (folderId) params.folderId = folderId
   if (type) params.type = type
+
   return api.get('/assets', { params }).then(res =>
     res.data.map(a => {
       const hasStatic = /^\/static\//.test(a.url || '')
@@ -15,10 +17,16 @@ export const fetchAssets = (folderId, type) => {
   )
 }
 
-export const uploadAsset = (file, folderId) => {
+export const uploadAsset = (file, folderId, extraData = null) => {
   const formData = new FormData()
   formData.append('file', file)
   if (folderId) formData.append('folderId', folderId)
+  if (extraData) {
+    for (const [k, v] of Object.entries(extraData)) {
+      formData.append(k, v)
+    }
+  }
+
   return api.post('/assets/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }).then((res) => res.data)
@@ -32,3 +40,4 @@ export const deleteAsset = id =>
 
 export const reviewAsset = (id, status) =>
   api.post(`/assets/${id}/review`, { reviewStatus: status }).then(res => res.data)
+
