@@ -37,7 +37,9 @@ export const getAssets = async (req, res) => {
   const query = { allowRoles: req.user.roleId?.name }
   query.folderId = req.query.folderId ? req.query.folderId : null
   if (req.query.type) query.type = req.query.type
+
   if (req.query.reviewStatus) query.reviewStatus = req.query.reviewStatus
+
 
   const assets = await Asset.find(query)
   res.json(assets)
