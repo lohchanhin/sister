@@ -8,6 +8,7 @@ import Account from '../views/Account.vue'
 import Progress from '../views/Progress.vue'
 import AssetLibrary from '../views/AssetLibrary.vue'
 import EmployeeManager from '../views/EmployeeManager.vue'
+import RoleSettings from '../views/RoleSettings.vue'
 
 const routes = [
   {
@@ -24,7 +25,8 @@ const routes = [
       { path: 'account', name: 'Account', component: Account },
       { path: 'progress', name: 'Progress', component: Progress },
       { path: 'assets', name: 'Assets', component: AssetLibrary },
-      { path: 'employees', name: 'EmployeeManager', component: EmployeeManager, meta: { role: 'manager' } }
+      { path: 'employees', name: 'EmployeeManager', component: EmployeeManager, meta: { role: 'manager' } },
+      { path: 'roles', name: 'RoleSettings', component: RoleSettings, meta: { role: 'manager' } }
     ]
   },
   // 404
