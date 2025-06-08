@@ -14,6 +14,8 @@
    ```
    預設服務於 `http://localhost:5173`。
 3. 如需連接後端，可在 `.env` 檔中設定 `VITE_API_BASE`，預設為 `http://localhost:3000/api`。
+4. 上傳檔案可呼叫 `uploadAsset(file, folderId, extraData)`，其中 `extraData`
+   會被加入 `FormData`；剪輯師上傳成品時可傳入 `{ type: 'edited' }`。
 
 ## 後端 (server)
 1. 進入 `server` 目錄安裝依賴並設定環境：

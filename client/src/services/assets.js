@@ -13,10 +13,16 @@ export const fetchAssets = folderId => {
   )
 }
 
-export const uploadAsset = (file, folderId) => {
+// 上傳素材，可額外傳入 extraData 例如 { type: 'edited' }
+export const uploadAsset = (file, folderId, extraData = null) => {
   const formData = new FormData()
   formData.append('file', file)
   if (folderId) formData.append('folderId', folderId)
+  if (extraData) {
+    for (const [k, v] of Object.entries(extraData)) {
+      formData.append(k, v)
+    }
+  }
   return api.post('/assets/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }).then((res) => res.data)
