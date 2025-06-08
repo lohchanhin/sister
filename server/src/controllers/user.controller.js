@@ -1,10 +1,27 @@
 import User from '../models/user.model.js'
+import Role from '../models/role.model.js'
 import bcrypt from 'bcryptjs'
+
+const managerOnly = (req,res) => {
+  if (req.user.roleId?.name !== 'manager') {
+    res.status(403).json({ message:'僅限 Manager 操作' })
+    return true
+  }
+  return false
+}
 
 /* 取得所有使用者 */
 export const getAllUsers = async (req,res) => {
-  const filter = req.query.role ? { role: req.query.role } : {}
-  const users = await User.find(filter).select('-password')
+  if (!req.query.role && managerOnly(req,res)) return
+  let filter = {}
+  if (req.query.role) {
+    const roleDoc = await Role.findOne({ name: req.query.role })
+    if (roleDoc) filter.roleId = roleDoc._id
+  }
+  const users = await User.find(filter)
+    .select('-password')
+    .populate('roleId')
+
   res.json(users)
 }
 
@@ -13,8 +30,10 @@ export const createUser = async (req,res) => {
   const { name,email,role,password } = req.body
   if (await User.findOne({ email })) return res.status(400).json({ message:'Email 已存在' })
   const hash = await bcrypt.hash(password,12)
-  const u = await User.create({ name,email,role,password:hash })
-  res.status(201).json(u)
+  const roleDoc = await Role.findOne({ name: role })
+  const u = await User.create({ name,email,roleId: roleDoc?._id,password:hash })
+  const populated = await u.populate('roleId')
+  res.status(201).json(populated)
 }
 
 /* 更新 */
@@ -26,10 +45,14 @@ export const updateUser = async (req,res) => {
     return res.status(400).json({ message:'Email 已存在' })
   if (name)  u.name  = name
   if (email) u.email = email
-  if (role)  u.role  = role
+  if (role) {
+    const roleDoc = await Role.findOne({ name: role })
+    u.roleId = roleDoc?._id
+  }
   if (password) u.password = await bcrypt.hash(password,12)
   await u.save()
-  res.json(u)
+  const populated = await u.populate('roleId')
+  res.json(populated)
 }
 
 /* 刪除 */
@@ -40,7 +63,8 @@ export const deleteUser = async (req,res) => {
 
 /* 取得個人資料 */
 export const getProfile = async (req,res) => {
-  res.json(req.user)
+  const user = await req.user.populate('roleId')
+  res.json(user)
 }
 
 /* 更新個人資料 */
@@ -56,5 +80,6 @@ export const updateProfile = async (req,res) => {
   if (email)    u.email    = email
   if (password) u.password = await bcrypt.hash(password,12)
   await u.save()
-  res.json(u)
+  const populated = await u.populate('roleId')
+  res.json(populated)
 }
