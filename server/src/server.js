@@ -36,6 +36,7 @@ import assetRoutes    from './routes/asset.routes.js'
 import folderRoutes   from './routes/folder.routes.js'
 import taskRoutes     from './routes/task.routes.js'
 import progressRoutes from './routes/progress.routes.js'
+import roleRoutes     from './routes/role.routes.js'
 import healthRoutes   from './routes/health.routes.js'
 // import analyticsRoutes from './routes/analytics.routes.js' // 未啟用
 
@@ -45,6 +46,7 @@ app.use('/api/assets',   assetRoutes)
 app.use('/api/folders',  folderRoutes)
 app.use('/api/tasks',    taskRoutes)
 app.use('/api/progress', progressRoutes)
+app.use('/api/roles',    roleRoutes)
 app.use('/api/health',   healthRoutes)
 // app.use('/api/analytics', analyticsRoutes)
 
