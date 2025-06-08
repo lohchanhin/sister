@@ -2,6 +2,7 @@ import dotenv from 'dotenv'
 import mongoose from 'mongoose'
 import bcrypt from 'bcryptjs'
 import User from '../models/user.model.js'
+import Role from '../models/role.model.js'
 import { ROLES } from '../config/roles.js'
 
 dotenv.config()
@@ -18,9 +19,19 @@ const seed = async () => {
     console.log('✅ MongoDB 已連線')
 
     await User.deleteMany({})
+    await Role.deleteMany({})
+
+    // 建立角色資料
+    const roleDocs = await Role.insertMany(
+      Object.values(ROLES).map((name) => ({ name }))
+    )
+    const roleMap = {}
+    for (const r of roleDocs) roleMap[r.name] = r._id
 
     for (const user of users) {
       user.password = await bcrypt.hash(user.password, 10)
+      user.roleId = roleMap[user.role]
+      delete user.role
     }
 
     await User.insertMany(users)

@@ -4,6 +4,7 @@ import mongoose from 'mongoose'
 import { MongoMemoryServer } from 'mongodb-memory-server'
 import authRoutes from '../src/routes/auth.routes.js'
 import User from '../src/models/user.model.js'
+import Role from '../src/models/role.model.js'
 import dotenv from 'dotenv'
 
 dotenv.config({ override: true })
@@ -19,11 +20,12 @@ beforeAll(async () => {
   app.use(express.json())
   app.use('/api/auth', authRoutes)
 
+  const role = await Role.create({ name: 'manager' })
   await User.create({
     username: 'admin',
     password: 'mypwd',
     email: 'admin@example.com',
-    role: 'manager'
+    roleId: role._id
   })
 })
 
