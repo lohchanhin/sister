@@ -65,12 +65,14 @@ const menus = {
     { path: '/', icon: '🏠', label: '首頁' },
     { path: '/progress', icon: '📈', label: '進度追踪' },
     { path: '/assets', icon: '🎞️', label: '素材庫' },
+    { path: '/products', icon: '✅', label: '成品區' },
     { path: '/account', icon: '👤', label: '帳號資訊' }
   ],
   manager: [
     { path: '/', icon: '🏠', label: '首頁' },
     { path: '/progress', icon: '📈', label: '進度追踪' },
     { path: '/assets', icon: '🎞️', label: '素材庫' },
+    { path: '/products', icon: '✅', label: '成品區' },
     { path: '/employees', icon: '👥', label: '人員管理' },
     { path: '/roles', icon: '🛡️', label: '角色設定' },
     { path: '/account', icon: '👤', label: '帳號資訊' }

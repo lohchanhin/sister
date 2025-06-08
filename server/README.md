@@ -39,4 +39,10 @@ npm start                 # 啟動伺服器
    ```bash
    npm test
    ```
-   透過 Jest 與 Supertest 模擬登入，確認回傳資料包含 `token` 與 `user.role`。
+透過 Jest 與 Supertest 模擬登入，確認回傳資料包含 `token` 與 `user.role`。
+
+## 成品審核 API
+素材上傳後若 `type=edited`，預設 `reviewStatus` 為 `pending`。管理者可呼叫
+`PUT /api/assets/:id/review` 並傳入 `{ reviewStatus: 'approved' | 'rejected' }`
+更新審核狀態。前端可依 `GET /api/assets?type=edited&reviewStatus=pending`
+取得待審成品。
