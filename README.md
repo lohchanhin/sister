@@ -37,13 +37,13 @@
 
 
 ## 根目錄一鍵啟動
-根目錄已新增 `package.json`，安裝相依套件後即可同時啟動前後端：
+根目錄已新增 `package.json`，安裝相依套件後即可同時啟動前後端。
+首次啟動前，請先於 `client` 與 `server` 目錄分別執行 `npm install`：
 ```bash
-npm install       # 只需在第一次執行
+npm install       # 安裝根目錄套件，第一次執行即可
 npm run dev       # 同時啟動 client 與 server
 ```
-此指令會分別執行 `client` 的 `npm run dev` 與 `server` 的 `npm run dev`，
-方便在開發時一鍵啟動。
+此指令會分別執行 `client` 的 `npm run dev` 與 `server` 的 `npm run dev`，方便在開發時一鍵啟動。
 
 ## 專案結構簡述
 ```
