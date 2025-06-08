@@ -1,7 +1,9 @@
 import api from './api'
 
-export const fetchAssets = folderId => {
-  const params = folderId ? { folderId } : {}
+export const fetchAssets = (folderId, type) => {
+  const params = {}
+  if (folderId) params.folderId = folderId
+  if (type) params.type = type
   return api.get('/assets', { params }).then(res =>
     res.data.map(a => {
       const hasStatic = /^\/static\//.test(a.url || '')
@@ -27,3 +29,6 @@ export const updateAsset = (id, data) =>
 
 export const deleteAsset = id =>
   api.delete(`/assets/${id}`).then(res => res.data)
+
+export const reviewAsset = (id, status) =>
+  api.post(`/assets/${id}/review`, { reviewStatus: status }).then(res => res.data)
