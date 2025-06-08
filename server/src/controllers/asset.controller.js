@@ -25,7 +25,7 @@ export const uploadFile = async (req, res) => {
 
 /* ---------- GET /api/assets ---------- */
 export const getAssets = async (req, res) => {
-  const query = { allowRoles: req.user.role }
+  const query = { allowRoles: req.user.roleId?.name }
   query.folderId = req.query.folderId ? req.query.folderId : null
 
   const assets = await Asset.find(query)
@@ -66,7 +66,7 @@ export const deleteAsset = async (req, res) => {
 /* ---------- 依 limit 取得最新素材 ---------- */
 export const getRecentAssets = async (req, res) => {
   const limit = Number(req.query.limit) || 5
-  const query = { allowRoles: req.user.role }
+  const query = { allowRoles: req.user.roleId?.name }
   const assets = await Asset.find(query)
     .sort({ createdAt: -1 })
     .limit(limit)
