@@ -4,7 +4,7 @@ import {
   createTemplate,  getTemplates,
   updateTemplate,  deleteTemplate,   // ← 新增
   createRecord,    getRecords,
-  getRecentRecords
+  getRecentRecords , updateRecord
 } from '../controllers/progress.controller.js'
 
 const router = Router()
@@ -17,6 +17,6 @@ router.delete('/templates/:id', protect, deleteTemplate) // ★
 router.get ('/records/:tplId', protect, getRecords)
 router.post('/records',       protect, createRecord)
 router.get ('/recent', protect, getRecentRecords)
-
+router.put('/records/:id', protect, updateRecord)   // ★ 新增
 export default router
 

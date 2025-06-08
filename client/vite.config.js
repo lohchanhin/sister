@@ -1,6 +1,7 @@
 // vite.config.js
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import path from 'node:path'
 
 export default defineConfig({
   plugins: [vue()],
@@ -11,5 +12,8 @@ export default defineConfig({
       // 靜態檔：/static/* → http://localhost:3000/static/*
       '/static': 'http://localhost:3000'
     }
+  },
+  alias: {
+    '@': path.resolve(__dirname, 'src')   // ★ 加這行
   }
 })

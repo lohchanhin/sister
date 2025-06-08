@@ -22,3 +22,6 @@ export const fetchRecords = tplId =>
 
 export const createRecord = data =>
   api.post('/progress/records', data).then(r => r.data)
+
+export const updateRecord = (id, data) =>
+  api.put(`/progress/records/${id}`, data).then(res => res.data)

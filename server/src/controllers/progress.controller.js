@@ -45,3 +45,11 @@ export const getRecentRecords = async (req, res) => {
     .limit(limit)
   res.json(recs)
 }
+
+export const updateRecord = async (req, res) => {
+  const rec = await ProgressRecord.findById(req.params.id)
+  if (!rec) return res.status(404).json({ message:'紀錄不存在' })
+  rec.fieldValues = req.body.fieldValues
+  await rec.save()
+  res.json(rec)
+}
