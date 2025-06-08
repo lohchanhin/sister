@@ -21,12 +21,12 @@ export const getAllUsers = async (req,res) => {
   const users = await User.find(filter)
     .select('-password')
     .populate('roleId')
+
   res.json(users)
 }
 
 /* 新增 */
 export const createUser = async (req,res) => {
-  if (managerOnly(req,res)) return
   const { name,email,role,password } = req.body
   if (await User.findOne({ email })) return res.status(400).json({ message:'Email 已存在' })
   const hash = await bcrypt.hash(password,12)
@@ -38,7 +38,6 @@ export const createUser = async (req,res) => {
 
 /* 更新 */
 export const updateUser = async (req,res) => {
-  if (managerOnly(req,res)) return
   const { name,email,role,password } = req.body
   const u = await User.findById(req.params.id)
   if (!u) return res.status(404).json({ message:'找不到使用者' })
@@ -58,7 +57,6 @@ export const updateUser = async (req,res) => {
 
 /* 刪除 */
 export const deleteUser = async (req,res) => {
-  if (managerOnly(req,res)) return
   await User.findByIdAndDelete(req.params.id)
   res.json({ message:'已刪除' })
 }
