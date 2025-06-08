@@ -9,6 +9,7 @@ import Progress from '../views/Progress.vue'
 import AssetLibrary from '../views/AssetLibrary.vue'
 import ProductLibrary from '../views/ProductLibrary.vue'
 import EmployeeManager from '../views/EmployeeManager.vue'
+import RoleSettings from '../views/RoleSettings.vue'
 
 const routes = [
   {
@@ -27,6 +28,7 @@ const routes = [
       { path: 'assets', name: 'Assets', component: AssetLibrary },
       { path: 'products', name: 'Products', component: ProductLibrary },
       { path: 'employees', name: 'EmployeeManager', component: EmployeeManager, meta: { role: 'manager' } }
+      { path: 'roles', name: 'RoleSettings', component: RoleSettings, meta: { role: 'manager' } }
     ]
   },
   // 404
