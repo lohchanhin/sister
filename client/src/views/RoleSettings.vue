@@ -2,7 +2,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { fetchRoles, createRole, updateRole, deleteRole } from '../services/roles'
+import { fetchRoles, createRole, updateRole, deleteRole, fetchPermissions } from '../services/roles'
 import { useAuthStore } from '../stores/auth'
 
 const store = useAuthStore()
@@ -13,24 +13,29 @@ if (store.role !== 'manager') {
 const roles = ref([])
 const dialog = ref(false)
 const editing = ref(false)
+const permissionList = ref([])
 const form = ref({
   name: '',
-  permissions: ''
+  permissions: []
 })
 
 const loadRoles = async () => {
   roles.value = await fetchRoles()
 }
 
+const loadPermissions = async () => {
+  permissionList.value = await fetchPermissions()
+}
+
 const openCreate = () => {
   editing.value = false
-  form.value = { name: '', permissions: '' }
+  form.value = { name: '', permissions: [] }
   dialog.value = true
 }
 
 const openEdit = r => {
   editing.value = true
-  form.value = { ...r, permissions: r.permissions?.join(',') || '' }
+  form.value = { ...r, permissions: Array.isArray(r.permissions) ? [...r.permissions] : [] }
   dialog.value = true
 }
 
@@ -38,9 +43,6 @@ const submit = async () => {
   const data = {
     name: form.value.name,
     permissions: form.value.permissions
-      .split(',')
-      .map(p => p.trim())
-      .filter(Boolean)
   }
   if (editing.value) {
     await updateRole(form.value._id, data)
@@ -64,7 +66,10 @@ const removeRole = async r => {
   await loadRoles()
 }
 
-onMounted(loadRoles)
+onMounted(() => {
+  loadRoles()
+  loadPermissions()
+})
 </script>
 
 <template>
@@ -91,8 +96,10 @@ onMounted(loadRoles)
     <el-dialog v-model="dialog" :title="editing ? '編輯角色' : '新增角色'" width="420px">
       <el-form label-position="top" @submit.prevent>
         <el-form-item label="角色名稱"><el-input v-model="form.name" /></el-form-item>
-        <el-form-item label="權限 (以逗號分隔)">
-          <el-input v-model="form.permissions" placeholder="read,write,delete" />
+        <el-form-item label="權限">
+          <el-checkbox-group v-model="form.permissions">
+            <el-checkbox v-for="p in permissionList" :key="p" :label="p">{{ p }}</el-checkbox>
+          </el-checkbox-group>
         </el-form-item>
       </el-form>
       <template #footer>

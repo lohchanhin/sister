@@ -11,3 +11,6 @@ export const updateRole = (id, data) =>
 
 export const deleteRole = id =>
   api.delete(`/roles/${id}`).then(r => r.data)
+
+export const fetchPermissions = () =>
+  api.get('/permissions').then(r => r.data)
