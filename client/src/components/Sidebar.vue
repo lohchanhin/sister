@@ -74,6 +74,7 @@ const menus = {
     { path: '/assets', icon: '🎞️', label: '素材庫' },
     { path: '/products', icon: '✅', label: '成品區' },
     { path: '/employees', icon: '👥', label: '人員管理' },
+    { path: '/roles', icon: '🛡️', label: '角色設定' },
     { path: '/account', icon: '👤', label: '帳號資訊' }
   ],
   outsource: [
