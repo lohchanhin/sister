@@ -20,12 +20,11 @@
         >
           <el-button type="success">上傳檔案</el-button>
         </el-upload>
-        <el-progress
-          v-for="(p, id) in progressList"
-          :key="id"
-          class="w-56 mt-2"
-          :percentage="p"
-        />
+        <el-select v-model="filterTags" multiple placeholder="標籤篩選" style="min-width:150px">
+          <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
+        </el-select>
+        <el-button @click="loadData(currentFolder.value?._id || null)">套用</el-button>
+
       </div>
 
       <!-- 卡片格線 -->
@@ -97,6 +96,11 @@
             <el-form-item label="描述">
               <el-input v-model="detail.description" type="textarea" rows="4" resize="vertical" />
             </el-form-item>
+            <el-form-item label="標籤">
+              <el-select v-model="detail.tags" multiple filterable allow-create>
+                <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
+              </el-select>
+            </el-form-item>
             <el-form-item v-if="detailType === 'folder'" label="腳本需求">
               <el-input v-model="detail.script" type="textarea" rows="4" resize="vertical" />
             </el-form-item>
@@ -163,10 +167,12 @@ const currentFolder = ref(null)
 const store = useAuthStore()
 const canReview = computed(() => store.role === 'manager')
 
-const detail = ref({ title: '', description: '', script: '' })
+const detail = ref({ title: '', description: '', script: '', tags: [] })
 const showDetail = ref(false)
 const detailType = ref('folder')   // 'folder' | 'asset'
 const newFolderName = ref('')
+const filterTags = ref([])
+const allTags = ref([])
 
 /* 預覽 Dialog */
 const previewVisible = ref(false)
@@ -178,10 +184,12 @@ const sidebarBg = computed(() => getComputedStyle(document.querySelector('.sideb
 const detailTitle = computed(() => previewItem.value ? previewItem.value.filename : currentFolder.value?.name || '資訊')
 
 async function loadData(id = null) {
-  folders.value = await fetchFolders(id)
-
-  assets.value = id ? await fetchAssets(id, 'edited') : []
-
+  folders.value = await fetchFolders(id, filterTags.value)
+  assets.value = id ? await fetchAssets(id, 'edited', filterTags.value) : []
+  allTags.value = Array.from(new Set([
+    ...folders.value.flatMap(f => f.tags || []),
+    ...assets.value.flatMap(a => a.tags || [])
+  ]))
   currentFolder.value = id ? await getFolder(id) : null
 }
 
@@ -197,6 +205,7 @@ function showDetailFor(item, type) {
   detail.value.title = item.title || item.filename || ''
   detail.value.description = item.description || ''
   detail.value.script = item.script || ''
+  detail.value.tags = Array.isArray(item.tags) ? [...item.tags] : []
 
   previewItem.value = type === 'asset' ? item : null
   showDetail.value = true
@@ -207,12 +216,14 @@ async function saveDetail() {
     await updateFolder(currentFolder.value._id, {
       name: detail.value.title,
       description: detail.value.description,
-      script: detail.value.script
+      script: detail.value.script,
+      tags: detail.value.tags
     })
   } else if (detailType.value === 'asset' && previewItem.value) {
     await updateAsset(previewItem.value._id, {
       title: detail.value.title,
-      description: detail.value.description
+      description: detail.value.description,
+      tags: detail.value.tags
     })
   }
   ElMessage.success('已儲存')
