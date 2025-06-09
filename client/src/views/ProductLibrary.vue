@@ -49,6 +49,14 @@
           <el-scrollbar max-height="60">
             <div class="desc-line">{{ f.description || '—' }}</div>
           </el-scrollbar>
+          <div v-if="f.tags?.length" class="tag-list mt-1">
+            <el-tag
+              v-for="tag in f.tags"
+              :key="tag"
+              size="small"
+              class="mr-1"
+            >{{ tag }}</el-tag>
+          </div>
         </el-card>
 
         <!-- ===== 素材卡 ===== -->
@@ -68,6 +76,14 @@
           <el-scrollbar max-height="60">
             <div class="desc-line">{{ a.description || '—' }}</div>
           </el-scrollbar>
+          <div v-if="a.tags?.length" class="tag-list mt-1">
+            <el-tag
+              v-for="tag in a.tags"
+              :key="tag"
+              size="small"
+              class="mr-1"
+            >{{ tag }}</el-tag>
+          </div>
         </el-card>
 
       </transition-group>
@@ -328,6 +344,17 @@ function previewAsset(a) {
 .desc-line {
   font-size: .75rem;
   line-height: 1.1rem;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: .75rem;
+  line-height: 1.1rem;
+}
+
+.tag-list .el-tag {
+  margin-bottom: .25rem;
 }
 
 /* 亮 / 暗文字 */
