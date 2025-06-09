@@ -155,7 +155,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder } from '../services/folders'
-import { fetchAssets, uploadAsset, updateAsset, deleteAsset, reviewAsset } from '../services/assets'
+import { fetchProducts, uploadAsset, updateAsset, deleteAsset, reviewAsset } from '../services/assets'
 import { useAuthStore } from '../stores/auth'
 import { ElMessage } from 'element-plus'
 import { Folder, InfoFilled, Close } from '@element-plus/icons-vue'
@@ -185,7 +185,7 @@ const detailTitle = computed(() => previewItem.value ? previewItem.value.filenam
 
 async function loadData(id = null) {
   folders.value = await fetchFolders(id, filterTags.value)
-  assets.value = id ? await fetchAssets(id, 'edited', filterTags.value) : []
+  assets.value = id ? await fetchProducts(id, filterTags.value) : []
   allTags.value = Array.from(new Set([
     ...folders.value.flatMap(f => f.tags || []),
     ...assets.value.flatMap(a => a.tags || [])
