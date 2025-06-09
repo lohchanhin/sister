@@ -15,6 +15,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'testsecret'
 let mongo
 let app
 let token
+let stageId
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create()
@@ -46,5 +47,24 @@ describe('ReviewStage CRUD', () => {
       .send({ name: '審核一', order: 1, responsible: global.userId })
       .expect(201)
     expect(res.body.name).toBe('審核一')
+    stageId = res.body._id
+  })
+
+  it('create stage with invalid responsible', async () => {
+    const fakeId = new mongoose.Types.ObjectId()
+    await request(app)
+      .post('/api/review-stages')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: '審核二', order: 2, responsible: fakeId })
+      .expect(400)
+  })
+
+  it('update stage with invalid responsible', async () => {
+    const fakeId = new mongoose.Types.ObjectId()
+    await request(app)
+      .put(`/api/review-stages/${stageId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ responsible: fakeId })
+      .expect(400)
   })
 })
