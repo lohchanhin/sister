@@ -11,6 +11,7 @@ import ProductLibrary from '../views/ProductLibrary.vue'
 import EmployeeManager from '../views/EmployeeManager.vue'
 import RoleSettings from '../views/RoleSettings.vue'
 import TagManager from '../views/TagManager.vue'
+import ReviewSettings from '../views/ReviewSettings.vue'
 
 
 const routes = [
@@ -32,7 +33,8 @@ const routes = [
 
       { path: 'employees', name: 'EmployeeManager', component: EmployeeManager, meta: { role: 'manager' } },
       { path: 'roles', name: 'RoleSettings', component: RoleSettings, meta: { role: 'manager' } },
-      { path: 'tags', name: 'TagManager', component: TagManager, meta: { role: 'manager' } }
+      { path: 'tags', name: 'TagManager', component: TagManager, meta: { role: 'manager' } },
+      { path: 'review-stages', name: 'ReviewSettings', component: ReviewSettings, meta: { role: 'manager' } }
     ]
   },
   // 404
