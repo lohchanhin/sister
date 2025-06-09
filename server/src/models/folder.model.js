@@ -6,6 +6,7 @@ const folderSchema = new mongoose.Schema(
     parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Folder', default: null },
     description: { type: String },
     script: { type: String },
+    type: { type: String, enum: ['raw', 'edited'], default: 'raw' },
 
     /* 標籤 */
     tags: { type: [String], default: [] }
