@@ -286,7 +286,7 @@ function handleError(_, file) {
 
 async function uploadRequest({ file, onProgress, onSuccess, onError }) {
   try {
-    await uploadAsset(file, currentFolder.value?._id, null, onProgress)
+    await uploadAsset(file, currentFolder.value?._id, { type: 'edited' }, onProgress)
     onSuccess()
   } catch (e) {
     onError(e)
