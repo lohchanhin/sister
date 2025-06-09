@@ -132,16 +132,21 @@
             type="success"
             @click="review('approved')"
           >通過</el-button>
-          <el-button
-            v-if="detailType === 'asset' && canReview"
-            size="small"
-            type="warning"
-            @click="review('rejected')"
-          >退回</el-button>
+        <el-button
+          v-if="detailType === 'asset' && canReview"
+          size="small"
+          type="warning"
+          @click="review('rejected')"
+        >退回</el-button>
+        <el-button
+          v-if="detailType === 'asset'"
+          size="small"
+          @click="openStageDialog(previewItem)"
+        >審查關卡</el-button>
 
-          <el-button size="small" @click="showDetail = false">取消</el-button>
-          <el-button size="small" type="primary" @click="saveDetail">儲存</el-button>
-        </div>
+        <el-button size="small" @click="showDetail = false">取消</el-button>
+        <el-button size="small" type="primary" @click="saveDetail">儲存</el-button>
+      </div>
       </template>
     </el-dialog>
 
@@ -162,6 +167,19 @@
       </template>
     </el-dialog>
 
+    <!-- =============== 審查關卡 Dialog =============== -->
+    <el-dialog v-model="stageDialog" width="420px" :title="stageAsset?.title || stageAsset?.filename">
+      <el-form label-position="top">
+        <el-form-item
+          v-for="s in stageList"
+          :key="s._id"
+          :label="s.order + '. ' + s.name + ' (負責: ' + (s.responsible?.username || '') + ')'"
+        >
+          <el-checkbox v-model="s.completed" :disabled="!canModify(s)" @change="() => toggleStage(s)" />
+        </el-form-item>
+      </el-form>
+    </el-dialog>
+
 
   </section>
 </template>
@@ -169,7 +187,15 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder } from '../services/folders'
-import { fetchProducts, uploadAsset, updateAsset, deleteAsset, reviewAsset } from '../services/assets'
+import {
+  fetchProducts,
+  uploadAsset,
+  updateAsset,
+  deleteAsset,
+  reviewAsset,
+  fetchAssetStages,
+  updateAssetStage
+} from '../services/assets'
 import { useAuthStore } from '../stores/auth'
 import { ElMessage } from 'element-plus'
 import { Folder, InfoFilled, Close } from '@element-plus/icons-vue'
@@ -193,6 +219,11 @@ const allTags = ref([])
 const previewVisible = ref(false)
 const previewItem = ref(null)
 const isImage = a => /\.(png|jpe?g|gif|webp)$/i.test(a?.filename || '')
+
+/* 審查關卡 Dialog */
+const stageDialog = ref(false)
+const stageList = ref([])
+const stageAsset = ref(null)
 
 /* 主題色 */
 const sidebarBg = computed(() => getComputedStyle(document.querySelector('.sidebar')).backgroundColor || '#1f2937')
@@ -302,6 +333,24 @@ async function review(status) {
   ElMessage.success('已更新狀態')
   showDetail.value = false
   loadData(currentFolder.value?._id)
+}
+
+async function openStageDialog(asset) {
+  stageAsset.value = asset
+  stageList.value = await fetchAssetStages(asset._id)
+  stageDialog.value = true
+}
+
+function canModify(stage) {
+  return (
+    store.role === 'manager' ||
+    stage.responsible?._id === store.user?._id
+  )
+}
+
+async function toggleStage(stage) {
+  await updateAssetStage(stageAsset.value._id, stage._id, stage.completed)
+  if (stage.completed) ElMessage.success('已完成階段')
 }
 
 
