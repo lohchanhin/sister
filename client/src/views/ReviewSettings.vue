@@ -68,7 +68,7 @@ onMounted(() => {
     <el-table :data="stages" style="width:100%" stripe border>
       <el-table-column prop="order" label="順序" width="80" />
       <el-table-column prop="name" label="名稱" />
-      <el-table-column prop="responsible.name" label="負責人" />
+      <el-table-column prop="responsible.username" label="負責人" />
       <el-table-column label="操作" width="160">
         <template #default="{ row }">
           <el-button link type="primary" @click="openEdit(row)">編輯</el-button>
@@ -83,7 +83,7 @@ onMounted(() => {
         <el-form-item label="順序"><el-input-number v-model="form.order" :min="1" style="width:100%" /></el-form-item>
         <el-form-item label="負責人">
           <el-select v-model="form.responsible" placeholder="選擇負責人" style="width:100%">
-            <el-option v-for="u in users" :key="u._id" :label="u.name" :value="u._id" />
+            <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
           </el-select>
         </el-form-item>
       </el-form>
