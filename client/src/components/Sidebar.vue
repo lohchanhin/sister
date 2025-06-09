@@ -77,6 +77,7 @@ const menus = {
 
     { path: '/employees', icon: '👥', label: '人員管理' },
     { path: '/roles', icon: '🛡️', label: '角色設定' },
+    { path: '/review-stages', icon: '✅', label: '審查關卡' },
     { path: '/account', icon: '👤', label: '帳號資訊' }
   ],
   outsource: [
