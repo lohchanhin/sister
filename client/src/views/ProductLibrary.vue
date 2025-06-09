@@ -177,6 +177,7 @@ import { Folder, InfoFilled, Close } from '@element-plus/icons-vue'
 const folders = ref([])
 const assets = ref([])
 const currentFolder = ref(null)
+const editingFolder = ref(null)
 
 const store = useAuthStore()
 const canReview = computed(() => store.role === 'manager')
@@ -215,7 +216,7 @@ function goUp() { loadData(currentFolder.value?.parentId || null) }
 
 function showDetailFor(item, type) {
   detailType.value = type
-  if (type === 'folder') currentFolder.value = item
+  if (type === 'folder') editingFolder.value = item
 
   detail.value.title = item.title || item.filename || ''
   detail.value.description = item.description || ''
@@ -227,8 +228,8 @@ function showDetailFor(item, type) {
 }
 
 async function saveDetail() {
-  if (detailType.value === 'folder' && currentFolder.value) {
-    await updateFolder(currentFolder.value._id, {
+  if (detailType.value === 'folder' && editingFolder.value) {
+    await updateFolder(editingFolder.value._id, {
       name: detail.value.title,
       description: detail.value.description,
       script: detail.value.script,
@@ -243,20 +244,22 @@ async function saveDetail() {
   }
   ElMessage.success('已儲存')
   showDetail.value = false
+  editingFolder.value = null
   loadData(currentFolder.value?._id)
 }
 
 async function handleDelete() {
-  if (detailType.value === 'folder' && currentFolder.value) {
-    await deleteFolder(currentFolder.value._id)
+  if (detailType.value === 'folder' && editingFolder.value) {
+    await deleteFolder(editingFolder.value._id)
     ElMessage.success('資料夾已刪除')
-    loadData(currentFolder.value?.parentId || null)
+    loadData(currentFolder.value?._id)
   } else if (detailType.value === 'asset' && previewItem.value) {
     await deleteAsset(previewItem.value._id)
     ElMessage.success('素材已刪除')
     loadData(currentFolder.value?._id)
   }
   showDetail.value = false
+  editingFolder.value = null
 }
 
 async function createNewFolder() {
