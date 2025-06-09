@@ -88,41 +88,40 @@
       </transition-group>
     </div>
 
-    <!-- =============== 右側說明面板 =============== -->
-    <transition name="slide-left">
-      <aside v-if="showDetail" class="detail-panel" :style="{ '--panel-bg': sidebarBg }">
-        <header class="panel-header">
+    <!-- =============== 詳細資訊 Dialog =============== -->
+    <el-dialog v-model="showDetail" width="40%" top="10vh" :modal="true" append-to-body>
+      <template #header>
+        <header class="panel-header" :style="{ '--panel-bg': sidebarBg }">
           <div class="title">
             <el-icon>
               <InfoFilled />
             </el-icon>
             <span class="text">{{ detail.title || detail.name || detailTitle }}</span>
           </div>
-          <el-button link class="close-btn" @click="showDetail = false"><el-icon>
-              <Close />
-            </el-icon></el-button>
         </header>
+      </template>
 
-        <el-scrollbar class="panel-body">
-          <el-form label-position="top" @submit.prevent>
-            <el-form-item label="名稱">
-              <el-input v-model="detail.title" />
-            </el-form-item>
-            <el-form-item label="描述">
-              <el-input v-model="detail.description" type="textarea" rows="4" resize="vertical" />
-            </el-form-item>
-            <el-form-item label="標籤">
-              <el-select v-model="detail.tags" multiple filterable allow-create>
-                <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
-              </el-select>
-            </el-form-item>
-            <el-form-item v-if="detailType === 'folder'" label="腳本需求">
-              <el-input v-model="detail.script" type="textarea" rows="4" resize="vertical" />
-            </el-form-item>
-          </el-form>
-        </el-scrollbar>
+      <el-scrollbar class="panel-body">
+        <el-form label-position="top" @submit.prevent>
+          <el-form-item label="名稱">
+            <el-input v-model="detail.title" />
+          </el-form-item>
+          <el-form-item label="描述">
+            <el-input v-model="detail.description" type="textarea" rows="4" resize="vertical" />
+          </el-form-item>
+          <el-form-item label="標籤">
+            <el-select v-model="detail.tags" multiple filterable allow-create>
+              <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
+            </el-select>
+          </el-form-item>
+          <el-form-item v-if="detailType === 'folder'" label="腳本需求">
+            <el-input v-model="detail.script" type="textarea" rows="4" resize="vertical" />
+          </el-form-item>
+        </el-form>
+      </el-scrollbar>
 
-        <footer class="panel-footer">
+      <template #footer>
+        <div class="panel-footer">
           <el-popconfirm :title="`確定刪除${detailType === 'folder' ? '資料夾' : '素材'}？`" confirm-button-text="刪除"
             cancel-button-text="取消" confirm-button-type="danger" @confirm="handleDelete">
             <template #reference><el-button size="small" type="danger">刪除</el-button></template>
@@ -142,9 +141,9 @@
 
           <el-button size="small" @click="showDetail = false">取消</el-button>
           <el-button size="small" type="primary" @click="saveDetail">儲存</el-button>
-        </footer>
-      </aside>
-    </transition>
+        </div>
+      </template>
+    </el-dialog>
 
     <!-- =============== 素材預覽 Dialog =============== -->
     <el-dialog v-model="previewVisible" width="60%" top="5vh" :destroy-on-close="true">
@@ -400,19 +399,6 @@ function previewAsset(a) {
 }
 
 /* ================= 右側面板 ================= */
-.detail-panel {
-  position: fixed;
-  right: 0;
-  top: 0;
-  height: 100vh;
-  width: 25%;
-  display: flex;
-  flex-direction: column;
-  z-index: 40;
-  background: var(--panel-bg);
-  color: #fff;
-  box-shadow: -2px 0 6px rgba(0, 0, 0, .15);
-}
 
 .panel-header {
   padding: 1rem 1.5rem;
