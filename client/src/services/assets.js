@@ -1,11 +1,12 @@
 import api from './api'
 
 
-export const fetchAssets = (folderId, type, tags = []) => {
+export const fetchAssets = (folderId, type, tags = [], deep = false) => {
   const params = {}
   if (folderId) params.folderId = folderId
   if (type) params.type = type
   if (tags.length) params.tags = tags
+  if (deep) params.deep = 'true'
 
   return api.get('/assets', { params }).then(res =>
     res.data.map(a => {
@@ -18,10 +19,11 @@ export const fetchAssets = (folderId, type, tags = []) => {
   )
 }
 
-export const fetchProducts = (folderId, tags = []) => {
+export const fetchProducts = (folderId, tags = [], deep = false) => {
   const params = {}
   if (folderId) params.folderId = folderId
   if (tags.length) params.tags = tags
+  if (deep) params.deep = 'true'
 
   return api.get('/products', { params }).then(res =>
     res.data.map(a => {

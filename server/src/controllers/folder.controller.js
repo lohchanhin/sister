@@ -1,4 +1,5 @@
 import Folder from '../models/folder.model.js'
+import { getDescendantFolderIds } from '../utils/folderTree.js'
 
 const parseTags = (t) => {
   if (!t) return []
@@ -25,7 +26,16 @@ export const createFolder = async (req, res) => {
 
 export const getFolders = async (req, res) => {
   const parentId = req.query.parentId || null
-  const query = { parentId, type: req.query.type || 'raw' }
+  const deep = req.query.deep === 'true'
+  const type = req.query.type || 'raw'
+
+  let parentIds = [parentId]
+  if (deep) {
+    const childIds = await getDescendantFolderIds(parentId)
+    parentIds = parentIds.concat(childIds)
+  }
+
+  const query = { parentId: { $in: parentIds }, type }
   if (req.query.tags) {
     const tags = Array.isArray(req.query.tags)
       ? req.query.tags

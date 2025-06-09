@@ -2,6 +2,7 @@
  * Asset Controller  (完整)
  */
 import Asset from '../models/asset.model.js'
+import { getDescendantFolderIds } from '../utils/folderTree.js'
 
 const parseTags = (t) => {
   if (!t) return []
@@ -46,8 +47,17 @@ export const uploadFile = async (req, res) => {
 
 /* ---------- GET /api/assets ---------- */
 export const getAssets = async (req, res) => {
+  const deep = req.query.deep === 'true'
   const query = { allowRoles: req.user.roleId?.name }
-  query.folderId = req.query.folderId ? req.query.folderId : null
+  let folderId = req.query.folderId ? req.query.folderId : null
+
+  if (deep) {
+    const childIds = await getDescendantFolderIds(folderId)
+    query.folderId = { $in: [folderId, ...childIds] }
+  } else {
+    query.folderId = folderId
+  }
+
   if (req.query.type) query.type = req.query.type
 
   if (req.query.reviewStatus) query.reviewStatus = req.query.reviewStatus
