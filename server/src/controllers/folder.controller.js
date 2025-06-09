@@ -17,6 +17,7 @@ export const createFolder = async (req, res) => {
     parentId: req.body.parentId || null,
     description: req.body.description,
     script: req.body.script,
+    type: req.body.type || 'raw',
     tags: parseTags(req.body.tags)
   })
   res.status(201).json(folder)
@@ -24,7 +25,7 @@ export const createFolder = async (req, res) => {
 
 export const getFolders = async (req, res) => {
   const parentId = req.query.parentId || null
-  const query = { parentId }
+  const query = { parentId, type: req.query.type || 'raw' }
   if (req.query.tags) {
     const tags = Array.isArray(req.query.tags)
       ? req.query.tags
@@ -43,6 +44,9 @@ export const getFolder = async (req, res) => {
 
 export const updateFolder = async (req, res) => {
   if (req.body.tags) req.body.tags = parseTags(req.body.tags)
+  if (req.body.type && !['raw', 'edited'].includes(req.body.type)) {
+    delete req.body.type
+  }
   const folder = await Folder.findByIdAndUpdate(req.params.id, req.body, { new: true })
   if (!folder) return res.status(404).json({ message: '資料夾不存在' })
   res.json(folder)
