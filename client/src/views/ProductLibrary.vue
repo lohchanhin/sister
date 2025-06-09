@@ -65,7 +65,10 @@
             <div class="flex items-center mb-2">
               <div class="flex-1 truncate" :title="a.title || a.filename">📄 {{ a.title || a.filename }}</div>
 
-              <span class="text-xs mr-2">{{ a.reviewStatus }}</span>
+              <span
+                v-if="a.reviewStatus && a.reviewStatus !== 'approved'"
+                class="text-xs mr-2"
+              >{{ a.reviewStatus }}</span>
 
               <el-button link size="small" @click.stop="showDetailFor(a, 'asset')"><el-icon>
                   <InfoFilled />
@@ -89,7 +92,7 @@
     </div>
 
     <!-- =============== 詳細資訊 Dialog =============== -->
-    <el-dialog v-model="showDetail" width="40%" top="10vh" :modal="true" append-to-body>
+    <el-dialog v-model="showDetail" width="60%" top="10vh" :modal="true" append-to-body>
       <template #header>
         <header class="panel-header" :style="{ '--panel-bg': sidebarBg }">
           <div class="title">
@@ -101,24 +104,42 @@
         </header>
       </template>
 
-      <el-scrollbar class="panel-body">
-        <el-form label-position="top" @submit.prevent>
-          <el-form-item label="名稱">
-            <el-input v-model="detail.title" />
-          </el-form-item>
-          <el-form-item label="描述">
-            <el-input v-model="detail.description" type="textarea" rows="4" resize="vertical" />
-          </el-form-item>
-          <el-form-item label="標籤">
-            <el-select v-model="detail.tags" multiple filterable allow-create>
-              <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
-            </el-select>
-          </el-form-item>
-          <el-form-item v-if="detailType === 'folder'" label="腳本需求">
-            <el-input v-model="detail.script" type="textarea" rows="4" resize="vertical" />
-          </el-form-item>
-        </el-form>
-      </el-scrollbar>
+      <div class="detail-wrapper">
+        <el-scrollbar class="panel-body flex-1">
+          <el-form label-position="top" @submit.prevent>
+            <el-form-item label="名稱">
+              <el-input v-model="detail.title" />
+            </el-form-item>
+            <el-form-item label="描述">
+              <el-input v-model="detail.description" type="textarea" rows="4" resize="vertical" />
+            </el-form-item>
+            <el-form-item label="標籤">
+              <el-select v-model="detail.tags" multiple filterable allow-create>
+                <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
+              </el-select>
+            </el-form-item>
+            <el-form-item v-if="detailType === 'folder'" label="腳本需求">
+              <el-input v-model="detail.script" type="textarea" rows="4" resize="vertical" />
+            </el-form-item>
+          </el-form>
+        </el-scrollbar>
+
+        <el-scrollbar
+          v-if="detailType === 'asset'"
+          class="panel-body stage-body"
+          style="max-width: 260px"
+        >
+          <el-form label-position="top">
+            <el-form-item
+              v-for="s in stageList"
+              :key="s._id"
+              :label="s.order + '. ' + s.name + ' (負責: ' + (s.responsible?.username || '') + ')'"
+            >
+              <el-checkbox v-model="s.completed" :disabled="!canModify(s)" @change="() => toggleStage(s)" />
+            </el-form-item>
+          </el-form>
+        </el-scrollbar>
+      </div>
 
       <template #footer>
         <div class="panel-footer">
@@ -126,23 +147,12 @@
             cancel-button-text="取消" confirm-button-type="danger" @confirm="handleDelete">
             <template #reference><el-button size="small" type="danger">刪除</el-button></template>
           </el-popconfirm>
-          <el-button
-            v-if="detailType === 'asset' && canReview"
-            size="small"
-            type="success"
-            @click="review('approved')"
-          >通過</el-button>
         <el-button
           v-if="detailType === 'asset' && canReview"
           size="small"
           type="warning"
           @click="review('rejected')"
         >退回</el-button>
-        <el-button
-          v-if="detailType === 'asset'"
-          size="small"
-          @click="openStageDialog(previewItem)"
-        >審查關卡</el-button>
 
         <el-button size="small" @click="showDetail = false">取消</el-button>
         <el-button size="small" type="primary" @click="saveDetail">儲存</el-button>
@@ -167,18 +177,6 @@
       </template>
     </el-dialog>
 
-    <!-- =============== 審查關卡 Dialog =============== -->
-    <el-dialog v-model="stageDialog" width="420px" :title="stageAsset?.title || stageAsset?.filename">
-      <el-form label-position="top">
-        <el-form-item
-          v-for="s in stageList"
-          :key="s._id"
-          :label="s.order + '. ' + s.name + ' (負責: ' + (s.responsible?.username || '') + ')'"
-        >
-          <el-checkbox v-model="s.completed" :disabled="!canModify(s)" @change="() => toggleStage(s)" />
-        </el-form-item>
-      </el-form>
-    </el-dialog>
 
 
   </section>
@@ -198,7 +196,7 @@ import {
 } from '../services/assets'
 import { useAuthStore } from '../stores/auth'
 import { ElMessage } from 'element-plus'
-import { Folder, InfoFilled, Close } from '@element-plus/icons-vue'
+import { Folder, InfoFilled } from '@element-plus/icons-vue'
 
 const folders = ref([])
 const assets = ref([])
@@ -220,8 +218,7 @@ const previewVisible = ref(false)
 const previewItem = ref(null)
 const isImage = a => /\.(png|jpe?g|gif|webp)$/i.test(a?.filename || '')
 
-/* 審查關卡 Dialog */
-const stageDialog = ref(false)
+/* 審查關卡 */
 const stageList = ref([])
 const stageAsset = ref(null)
 
@@ -245,7 +242,7 @@ watch(filterTags, () => loadData(currentFolder.value?._id || null))
 function openFolder(f) { loadData(f._id) }
 function goUp() { loadData(currentFolder.value?.parentId || null) }
 
-function showDetailFor(item, type) {
+async function showDetailFor(item, type) {
   detailType.value = type
   if (type === 'folder') editingFolder.value = item
 
@@ -255,6 +252,10 @@ function showDetailFor(item, type) {
   detail.value.tags = Array.isArray(item.tags) ? [...item.tags] : []
 
   previewItem.value = type === 'asset' ? item : null
+  if (type === 'asset') {
+    stageAsset.value = item
+    stageList.value = await fetchAssetStages(item._id)
+  }
   showDetail.value = true
 }
 
@@ -335,11 +336,6 @@ async function review(status) {
   loadData(currentFolder.value?._id)
 }
 
-async function openStageDialog(asset) {
-  stageAsset.value = asset
-  stageList.value = await fetchAssetStages(asset._id)
-  stageDialog.value = true
-}
 
 function canModify(stage) {
   return (
@@ -488,6 +484,15 @@ function previewAsset(a) {
 
 .panel-body :deep(.el-scrollbar__bar) {
   display: none;
+}
+
+.detail-wrapper {
+  display: flex;
+  gap: 1rem;
+}
+
+.stage-body {
+  min-width: 220px;
 }
 
 /* 預覽圖片 / 影片：限制寬高，保持比例 */
