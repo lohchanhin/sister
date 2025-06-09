@@ -41,6 +41,7 @@ import roleRoutes     from './routes/role.routes.js'
 import tagRoutes      from './routes/tag.routes.js'
 import healthRoutes   from './routes/health.routes.js'
 import permissionsRoutes from './routes/permissions.routes.js'
+import reviewStageRoutes from './routes/reviewStage.routes.js'
 // import analyticsRoutes from './routes/analytics.routes.js' // 未啟用
 
 app.use('/api/auth',     authRoutes)
@@ -53,6 +54,7 @@ app.use('/api/progress', progressRoutes)
 app.use('/api/roles',    roleRoutes)
 app.use('/api/tags',     tagRoutes)
 app.use('/api/permissions', permissionsRoutes)
+app.use('/api/review-stages', reviewStageRoutes)
 app.use('/api/health',   healthRoutes)
 // app.use('/api/analytics', analyticsRoutes)
 
