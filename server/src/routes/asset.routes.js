@@ -12,6 +12,10 @@ import {
     getRecentAssets,
     reviewAsset
 } from '../controllers/asset.controller.js'
+import {
+  getAssetStages,
+  updateStageStatus
+} from '../controllers/reviewRecord.controller.js'
 
 const router = Router()
 
@@ -35,6 +39,8 @@ router.get('/recent', protect, requirePerm(PERMISSIONS.ASSET_READ), getRecentAss
 
 router.put('/:id', protect, updateAsset)
 router.put('/:id/review', protect, reviewAsset)
+router.get('/:id/stages', protect, getAssetStages)
+router.put('/:id/stages/:stageId', protect, updateStageStatus)
 router.delete('/:id', protect, deleteAsset)    // assets
 
 
