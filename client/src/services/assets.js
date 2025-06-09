@@ -18,6 +18,22 @@ export const fetchAssets = (folderId, type, tags = []) => {
   )
 }
 
+export const fetchProducts = (folderId, tags = []) => {
+  const params = {}
+  if (folderId) params.folderId = folderId
+  if (tags.length) params.tags = tags
+
+  return api.get('/products', { params }).then(res =>
+    res.data.map(a => {
+      const hasStatic = /^\/static\//.test(a.url || '')
+      return {
+        ...a,
+        url: hasStatic ? a.url : `/static/${a.filename}`
+      }
+    })
+  )
+}
+
 export const uploadAsset = (file, folderId, extraData = null, onUploadProgress = null) => {
   const formData = new FormData()
   formData.append('file', file)
