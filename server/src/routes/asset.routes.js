@@ -37,7 +37,12 @@ router.get('/recent', protect, requirePerm(PERMISSIONS.ASSET_READ), getRecentAss
 
 /* ★ 新增：更新檔名／描述 */
 
-router.put('/:id', protect, updateAsset)
+router.put(
+  '/:id',
+  protect,
+  requirePerm(PERMISSIONS.ASSET_UPDATE),
+  updateAsset
+)
 router.put('/:id/review', protect, reviewAsset)
 router.get('/:id/stages', protect, getAssetStages)
 router.put('/:id/stages/:stageId', protect, updateStageStatus)
