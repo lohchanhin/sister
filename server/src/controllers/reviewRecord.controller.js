@@ -41,12 +41,14 @@ export const updateStageStatus = async (req, res) => {
 
   const total = await ReviewStage.countDocuments()
   const done = await ReviewRecord.countDocuments({ assetId, completed: true })
-  if (total && done === total) {
-    const asset = await Asset.findById(assetId)
-    if (asset) {
+  const asset = await Asset.findById(assetId)
+  if (asset) {
+    if (total && done === total) {
       asset.reviewStatus = 'approved'
-      await asset.save()
+    } else if (done < total && asset.reviewStatus === 'approved') {
+      asset.reviewStatus = 'pending'
     }
+    await asset.save()
   }
 
   res.json(record)
