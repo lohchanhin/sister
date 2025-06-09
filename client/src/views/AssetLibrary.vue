@@ -22,7 +22,6 @@
         <el-select v-model="filterTags" multiple placeholder="標籤篩選" style="min-width:150px">
           <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
         </el-select>
-        <el-button @click="loadData(currentFolder.value?._id || null)">套用</el-button>
 
       </div>
 
@@ -152,7 +151,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder } from '../services/folders'
 import { fetchAssets, uploadAsset, updateAsset, deleteAsset } from '../services/assets'
 import { ElMessage } from 'element-plus'
@@ -179,8 +178,8 @@ const sidebarBg = computed(() => getComputedStyle(document.querySelector('.sideb
 const detailTitle = computed(() => previewItem.value ? previewItem.value.filename : currentFolder.value?.name || '資訊')
 
 async function loadData(id = null) {
-  folders.value = await fetchFolders(id, filterTags.value, 'raw')
-  assets.value = id ? await fetchAssets(id, 'raw', filterTags.value) : []
+  folders.value = await fetchFolders(id, filterTags.value, 'raw', true)
+  assets.value = id ? await fetchAssets(id, 'raw', filterTags.value, true) : []
   allTags.value = Array.from(new Set([
     ...folders.value.flatMap(f => f.tags || []),
     ...assets.value.flatMap(a => a.tags || [])
@@ -189,6 +188,7 @@ async function loadData(id = null) {
 }
 
 onMounted(() => loadData())
+watch(filterTags, () => loadData(currentFolder.value?._id || null))
 
 function openFolder(f) { loadData(f._id) }
 function goUp() { loadData(currentFolder.value?.parentId || null) }
