@@ -31,7 +31,7 @@
 
         <!-- ===== 資料夾卡 ===== -->
         <el-card v-for="f in folders" :key="f._id" class="folder-card card-base cursor-pointer" shadow="hover"
-          @dblclick="openFolder(f)">
+          @click="openFolder(f)">
           <template #header>
             <div class="flex items-center mb-2">
               <div class="flex items-center gap-2 flex-1 truncate" @click.stop="openFolder(f)">
