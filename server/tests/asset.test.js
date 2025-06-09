@@ -58,3 +58,13 @@ describe('Asset review', () => {
     expect(res.body.reviewStatus).toBe('approved')
   })
 })
+
+describe('Asset update permission', () => {
+  it('should return 403 when no permission', async () => {
+    await request(app)
+      .put(`/api/assets/${assetId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ title: 'new title' })
+      .expect(403)
+  })
+})
