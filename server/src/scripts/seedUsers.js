@@ -9,9 +9,9 @@ import { PERMISSIONS } from '../config/permissions.js'
 dotenv.config()
 
 const users = [
-  { username: 'employee', password: '123456', email: 'employee@example.com', role: ROLES.EMPLOYEE },
-  { username: 'manager', password: '123456', email: 'manager@example.com', role: ROLES.MANAGER },
-  { username: 'outsource', password: '123456', email: 'outsource@example.com', role: ROLES.OUTSOURCE }
+  { username: 'employee', name: '員工', password: '123456', email: 'employee@example.com', role: ROLES.EMPLOYEE },
+  { username: 'manager', name: '經理', password: '123456', email: 'manager@example.com', role: ROLES.MANAGER },
+  { username: 'outsource', name: '外包', password: '123456', email: 'outsource@example.com', role: ROLES.OUTSOURCE }
 ]
 
 const seed = async () => {
