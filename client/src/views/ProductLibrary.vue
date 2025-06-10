@@ -63,12 +63,8 @@
           @click="previewAsset(a)">
           <template #header>
             <div class="flex items-center mb-2">
-              <div class="flex-1 truncate" :title="a.title || a.filename">📄 {{ a.title || a.filename }}</div>
-
-              <span
-                v-if="a.reviewStatus && a.reviewStatus !== 'approved'"
-                class="text-xs mr-2"
-              >{{ a.reviewStatus }}</span>
+              <div class="flex-1 truncate" :title="a.title || a.filename">{{ a.title || a.filename }}</div>
+                           
 
               <el-button link size="small" @click.stop="showDetailFor(a, 'asset')"><el-icon>
                   <InfoFilled />
