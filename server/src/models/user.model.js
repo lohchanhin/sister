@@ -9,6 +9,7 @@ import Role from './role.model.js'
 const userSchema = new mongoose.Schema(
   {
     username: { type: String, required: true, unique: true },
+    name: { type: String },
     password: { type: String, required: true, select: false },
     email: { type: String, required: true, unique: true },
     // 角色參照 Role 集合
