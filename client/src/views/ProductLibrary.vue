@@ -311,10 +311,8 @@ async function review(status) {
 
 
 function canModify(stage) {
-  return (
-    store.role === 'manager' ||
-    stage.responsible?._id === store.user?._id
-  )
+  if (stage.responsible?._id !== store.user?._id) return false
+  return !stageList.value.some(s => s.order < stage.order && !s.completed)
 }
 
 async function toggleStage(stage) {
