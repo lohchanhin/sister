@@ -10,14 +10,8 @@
         <el-button :disabled="!currentFolder" @click="goUp">返回上層</el-button>
         <el-input v-model="newFolderName" placeholder="新增資料夾名稱" class="w-56" @keyup.enter="createNewFolder" />
         <el-button type="primary" @click="createNewFolder">建立資料夾</el-button>
-        <el-upload
-          v-if="currentFolder"
-          :http-request="uploadRequest"
-          :on-progress="handleProgress"
-          :on-success="handleSuccess"
-          :on-error="handleError"
-          :show-file-list="false"
-        >
+        <el-upload v-if="currentFolder" :http-request="uploadRequest" :on-progress="handleProgress"
+          :on-success="handleSuccess" :on-error="handleError" :show-file-list="false">
           <el-button type="success">上傳檔案</el-button>
         </el-upload>
         <el-select v-model="filterTags" multiple placeholder="標籤篩選" style="min-width:150px">
@@ -49,12 +43,7 @@
             <div class="desc-line">{{ f.description || '—' }}</div>
           </el-scrollbar>
           <div v-if="f.tags?.length" class="tag-list mt-1">
-            <el-tag
-              v-for="tag in f.tags"
-              :key="tag"
-              size="small"
-              class="mr-1"
-            >{{ tag }}</el-tag>
+            <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
           </div>
         </el-card>
 
@@ -64,7 +53,6 @@
           <template #header>
             <div class="flex items-center mb-2">
               <div class="flex-1 truncate" :title="a.title || a.filename">{{ a.title || a.filename }}</div>
-                           
 
               <el-button link size="small" @click.stop="showDetailFor(a, 'asset')"><el-icon>
                   <InfoFilled />
@@ -75,12 +63,7 @@
             <div class="desc-line">{{ a.description || '—' }}</div>
           </el-scrollbar>
           <div v-if="a.tags?.length" class="tag-list mt-1">
-            <el-tag
-              v-for="tag in a.tags"
-              :key="tag"
-              size="small"
-              class="mr-1"
-            >{{ tag }}</el-tag>
+            <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
           </div>
         </el-card>
 
@@ -120,20 +103,18 @@
           </el-form>
         </el-scrollbar>
 
-        <el-scrollbar
-          v-if="detailType === 'asset'"
-          class="panel-body stage-body"
-          style="max-width: 260px"
-        >
-          <el-form label-position="top">
-            <el-form-item
-              v-for="s in stageList"
-              :key="s._id"
-              :label="s.order + '. ' + s.name + ' (負責: ' + (s.responsible?.username || '') + ')'"
-            >
+        <el-scrollbar v-if="detailType === 'asset'" class="panel-body stage-body" style="max-width:260px">
+          <div class="stage-list">
+            <div v-for="s in stageList" :key="s._id" class="stage-row">
+              <!-- 左側文字 -->
+              <span class="stage-label">
+                {{ s.order }}. {{ s.name }} (負責: {{ s.responsible?.username || '' }})
+              </span>
+
+              <!-- 右側勾選 -->
               <el-checkbox v-model="s.completed" :disabled="!canModify(s)" @change="() => toggleStage(s)" />
-            </el-form-item>
-          </el-form>
+            </div>
+          </div>
         </el-scrollbar>
       </div>
 
@@ -143,16 +124,12 @@
             cancel-button-text="取消" confirm-button-type="danger" @confirm="handleDelete">
             <template #reference><el-button size="small" type="danger">刪除</el-button></template>
           </el-popconfirm>
-        <el-button
-          v-if="detailType === 'asset' && canReview"
-          size="small"
-          type="warning"
-          @click="review('rejected')"
-        >退回</el-button>
+          <el-button v-if="detailType === 'asset' && canReview" size="small" type="warning"
+            @click="review('rejected')">退回</el-button>
 
-        <el-button size="small" @click="showDetail = false">取消</el-button>
-        <el-button size="small" type="primary" @click="saveDetail">儲存</el-button>
-      </div>
+          <el-button size="small" @click="showDetail = false">取消</el-button>
+          <el-button size="small" type="primary" @click="saveDetail">儲存</el-button>
+        </div>
       </template>
     </el-dialog>
 
@@ -495,7 +472,28 @@ function previewAsset(a) {
 .preview-media {
   max-width: 100%;
   max-height: 70vh;
-  object-fit: contain;  /* 影片、圖片皆等比縮放 */
+  object-fit: contain;
+  /* 影片、圖片皆等比縮放 */
+}
+
+/* -------- Stage 清單 -------- */
+.stage-list{
+  display: flex;
+  flex-direction: column;
+}
+
+.stage-row{
+  display: flex;
+  justify-content: space-between; /* 文字、checkbox 貼左右 */
+  align-items: center;
+  margin-bottom: 1rem;            /* 每列間隔 1rem */
+}
+
+.stage-label{
+  flex: 1;                        /* 佔滿可用寬度，讓 checkbox 永遠靠右 */
+  white-space: nowrap;            /* 不換行 */
+  overflow: hidden;               /* 超出省略 */
+  text-overflow: ellipsis;
 }
 
 </style>
