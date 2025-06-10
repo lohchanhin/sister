@@ -57,7 +57,9 @@ npm start                 # 啟動伺服器
 GET /api/assets/:id/stages
 ```
 
-更新某關卡的完成狀態（僅負責人或管理者可操作）：
+關卡需依序完成，必須完成上一關後才能更新下一關。
+
+更新某關卡的完成狀態（僅負責人可更新關卡狀態）：
 
 ```
 PUT /api/assets/:id/stages/:stageId { completed: true | false }
