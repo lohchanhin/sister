@@ -32,11 +32,11 @@ export const getAllUsers = async (req,res) => {
 
 /* 新增 */
 export const createUser = async (req,res) => {
-  const { name,email,role,password } = req.body
+  const { username, name, email, role, password } = req.body
   if (await User.findOne({ email })) return res.status(400).json({ message:'Email 已存在' })
   const hash = await bcrypt.hash(password,12)
   const roleDoc = await Role.findOne({ name: role })
-  const u = await User.create({ name,email,roleId: roleDoc?._id,password:hash })
+  const u = await User.create({ username, name, email, roleId: roleDoc?._id, password:hash })
   const populated = await u.populate('roleId')
   res.status(201).json({
     ...populated.toObject(),
@@ -46,11 +46,14 @@ export const createUser = async (req,res) => {
 
 /* 更新 */
 export const updateUser = async (req,res) => {
-  const { name,email,role,password } = req.body
+  const { username, name, email, role, password } = req.body
   const u = await User.findById(req.params.id)
   if (!u) return res.status(404).json({ message:'找不到使用者' })
+  if (username && username!==u.username && await User.findOne({ username }))
+    return res.status(400).json({ message:'使用者已存在' })
   if (email && email!==u.email && await User.findOne({ email }))
     return res.status(400).json({ message:'Email 已存在' })
+  if (username) u.username = username
   if (name)  u.name  = name
   if (email) u.email = email
   if (role) {
@@ -83,7 +86,7 @@ export const getProfile = async (req,res) => {
 
 /* 更新個人資料 */
 export const updateProfile = async (req,res) => {
-  const { username,email,password } = req.body
+  const { username, name, email, password } = req.body
   const u = await User.findById(req.user._id)
   if (!u) return res.status(404).json({ message:'找不到使用者' })
   if (username && username!==u.username && await User.findOne({ username }))
@@ -91,6 +94,7 @@ export const updateProfile = async (req,res) => {
   if (email && email!==u.email && await User.findOne({ email }))
     return res.status(400).json({ message:'Email 已存在' })
   if (username) u.username = username
+  if (name)     u.name     = name
   if (email)    u.email    = email
   if (password) u.password = await bcrypt.hash(password,12)
   await u.save()

@@ -26,6 +26,7 @@ const users = ref([])
 const dialog = ref(false)
 const editing = ref(false)        // true=編輯, false=新增
 const form = ref({
+  username: '',
   name: '',
   email: '',
   role: 'employee',
@@ -38,7 +39,7 @@ const loadUsers = async () => { users.value = await fetchUsers() }
 /* 開新增/編輯 Dialog */
 const openCreate = () => {
   editing.value = false
-  form.value = { name: '', email: '', role: 'employee', password: '' }
+  form.value = { username: '', name: '', email: '', role: 'employee', password: '' }
   dialog.value = true
 }
 const openEdit = u => {
@@ -49,7 +50,7 @@ const openEdit = u => {
 
 /* 送出 */
 const submit = async () => {
-  if (!form.value.name.trim() || !form.value.email.trim()) return
+  if (!form.value.username.trim() || !form.value.name.trim() || !form.value.email.trim()) return
   if (editing.value) {
     await updateUser(form.value._id, form.value)
     ElMessage.success('已更新帳號')
@@ -85,6 +86,7 @@ onMounted(() => {
 
     <!-- 使用者表格 -->
     <el-table :data="users" style="width:100%" stripe border>
+      <el-table-column prop="username" label="登入帳號" />
       <el-table-column prop="name" label="姓名" />
       <el-table-column prop="email" label="Email" />
       <el-table-column prop="role" label="角色" :formatter="(_, __, cell) => {
@@ -103,6 +105,7 @@ onMounted(() => {
     <!-- 新增 / 編輯 Dialog -->
     <el-dialog v-model="dialog" :title="editing ? '編輯帳號' : '新增帳號'" width="420px">
       <el-form label-position="top" @submit.prevent>
+        <el-form-item label="登入帳號"><el-input v-model="form.username" /></el-form-item>
         <el-form-item label="姓名"><el-input v-model="form.name" /></el-form-item>
         <el-form-item label="Email"><el-input v-model="form.email" /></el-form-item>
         <el-form-item label="角色">
