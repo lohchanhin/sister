@@ -16,6 +16,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'testsecret'
 let mongo
 let app
 let token
+let token2
 let assetId
 let stageId1
 let stageId2
@@ -32,6 +33,11 @@ beforeAll(async () => {
   const role = await Role.create({ name: 'manager' })
   const user = await User.create({ username: 'admin', password: 'pwd', email: 'a@test', roleId: role._id })
 
+  const role2 = await Role.create({ name: 'employee' })
+  await User.create({ username: 'user1', password: 'pwd', email: 'u@test', roleId: role2._id })
+  const res2 = await request(app).post('/api/auth/login').send({ username: 'user1', password: 'pwd' })
+  token2 = res2.body.token
+
   const res = await request(app)
     .post('/api/auth/login')
     .send({ username: 'admin', password: 'pwd' })
@@ -42,7 +48,7 @@ beforeAll(async () => {
   stageId1 = s1._id
   stageId2 = s2._id
 
-  const asset = await Asset.create({ filename: 'f.mp4', path: '/tmp/f.mp4', type: 'edited', reviewStatus: 'approved' })
+  const asset = await Asset.create({ filename: 'f.mp4', path: '/tmp/f.mp4', type: 'edited' })
   assetId = asset._id
 })
 
@@ -52,6 +58,21 @@ afterAll(async () => {
 })
 
 describe('updateStageStatus', () => {
+  it('should return 403 when user is not responsible', async () => {
+    await request(app)
+      .put(`/api/assets/${assetId}/stages/${stageId1}`)
+      .set('Authorization', `Bearer ${token2}`)
+      .send({ completed: true })
+      .expect(403)
+  })
+
+  it('should return 400 when previous stage not finished', async () => {
+    await request(app)
+      .put(`/api/assets/${assetId}/stages/${stageId2}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ completed: true })
+      .expect(400)
+  })
   it('should set reviewStatus to pending when not all stages done', async () => {
     await request(app)
       .put(`/api/assets/${assetId}/stages/${stageId1}`)
