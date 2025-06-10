@@ -52,6 +52,14 @@ afterAll(async () => {
 })
 
 describe('updateStageStatus', () => {
+  it('should fail when previous stages are incomplete', async () => {
+    await request(app)
+      .put(`/api/assets/${assetId}/stages/${stageId2}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ completed: true })
+      .expect(400)
+  })
+
   it('should set reviewStatus to pending when not all stages done', async () => {
     await request(app)
       .put(`/api/assets/${assetId}/stages/${stageId1}`)
