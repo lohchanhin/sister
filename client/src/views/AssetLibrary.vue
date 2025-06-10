@@ -178,8 +178,8 @@ const sidebarBg = computed(() => getComputedStyle(document.querySelector('.sideb
 const detailTitle = computed(() => previewItem.value ? previewItem.value.filename : currentFolder.value?.name || '資訊')
 
 async function loadData(id = null) {
-  folders.value = await fetchFolders(id, filterTags.value, 'raw', true)
-  assets.value = id ? await fetchAssets(id, 'raw', filterTags.value, true) : []
+  folders.value = await fetchFolders(id, filterTags.value, 'raw')
+  assets.value = id ? await fetchAssets(id, 'raw', filterTags.value) : []
   allTags.value = Array.from(new Set([
     ...folders.value.flatMap(f => f.tags || []),
     ...assets.value.flatMap(a => a.tags || [])
