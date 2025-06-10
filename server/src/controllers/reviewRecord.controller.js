@@ -25,8 +25,7 @@ export const updateStageStatus = async (req, res) => {
   const stage = await ReviewStage.findById(stageId).populate('responsible')
   if (!stage) return res.status(404).json({ message: '階段不存在' })
 
-  const isManager = req.user.roleId?.name === 'manager'
-  if (!isManager && String(stage.responsible._id) !== String(req.user._id)) {
+  if (String(stage.responsible._id) !== String(req.user._id)) {
     return res.status(403).json({ message: '無權審核此階段' })
   }
 
