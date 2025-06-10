@@ -5,6 +5,14 @@
 
     <!-- =============== 左側格線區 =============== -->
     <div class="flex-1">
+      <el-breadcrumb v-if="breadcrumb.length" separator="/" class="mb-2">
+        <el-breadcrumb-item
+          v-for="b in breadcrumb"
+          :key="b._id"
+          class="cursor-pointer"
+          @click="loadData(b._id)"
+        >{{ b.name }}</el-breadcrumb-item>
+      </el-breadcrumb>
       <!-- 工具列 -->
       <div class="tool-bar flex flex-wrap gap-4 items-end mb-8">
         <el-button :disabled="!currentFolder" @click="goUp">返回上層</el-button>
@@ -186,6 +194,19 @@ const newFolderName = ref('')
 const filterTags = ref([])
 const allTags = ref([])
 
+const breadcrumb = ref([])
+
+async function buildBreadcrumb(folder) {
+  const chain = []
+  let cur = folder
+  while (cur) {
+    chain.unshift({ _id: cur._id, name: cur.name })
+    if (!cur.parentId) break
+    cur = await getFolder(cur.parentId)
+  }
+  return chain
+}
+
 /* 預覽 Dialog */
 const previewVisible = ref(false)
 const previewItem = ref(null)
@@ -207,6 +228,9 @@ async function loadData(id = null) {
     ...assets.value.flatMap(a => a.tags || [])
   ]))
   currentFolder.value = id ? await getFolder(id) : null
+  breadcrumb.value = currentFolder.value
+    ? await buildBreadcrumb(currentFolder.value)
+    : []
 }
 
 onMounted(() => loadData())
