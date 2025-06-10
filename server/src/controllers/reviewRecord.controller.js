@@ -30,6 +30,22 @@ export const updateStageStatus = async (req, res) => {
     return res.status(403).json({ message: '無權審核此階段' })
   }
 
+  // 檢查前置審核是否完成
+  if (completed) {
+    const prevStages = await ReviewStage.find({ order: { $lt: stage.order } }, '_id')
+    if (prevStages.length) {
+      const prevIds = prevStages.map((s) => s._id)
+      const doneCount = await ReviewRecord.countDocuments({
+        assetId,
+        stageId: { $in: prevIds },
+        completed: true
+      })
+      if (doneCount < prevStages.length) {
+        return res.status(400).json({ message: '前置審核未完成' })
+      }
+    }
+  }
+
   let record = await ReviewRecord.findOne({ assetId, stageId })
   if (!record) {
     record = await ReviewRecord.create({ assetId, stageId, completed, updatedBy: req.user._id })
