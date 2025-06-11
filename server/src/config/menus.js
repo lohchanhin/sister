@@ -1,6 +1,5 @@
 export const MENUS = Object.freeze({
   DASHBOARD: 'dashboard',
-  PROGRESS: 'progress',
   ASSETS: 'assets',
   PRODUCTS: 'products',
   EMPLOYEES: 'employees',
