@@ -48,6 +48,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { MENU_NAMES } from '../menuNames'
 import { Menu, SwitchButton } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
@@ -59,34 +60,28 @@ const store = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
-/* 角色對應選單 */
-const menus = {
-  employee: [
-    { path: '/', icon: '🏠', label: '首頁' },
-    { path: '/progress', icon: '📈', label: '進度追踪' },
-    { path: '/assets', icon: '🎞️', label: '素材庫' },
-    { path: '/products', icon: '🎬', label: '成品區' },
-
-    { path: '/account', icon: '👤', label: '帳號資訊' }
-  ],
-  manager: [
-    { path: '/', icon: '🏠', label: '首頁' },
-    { path: '/progress', icon: '📈', label: '進度追踪' },
-    { path: '/assets', icon: '🎞️', label: '素材庫' },
-    { path: '/products', icon: '🎬', label: '成品區' },
-
-    { path: '/employees', icon: '👥', label: '人員管理' },
-    { path: '/roles', icon: '🛡️', label: '角色設定' },
-    { path: '/review-stages', icon: '✅', label: '審查關卡' },
-    { path: '/ad-data', icon: '📊', label: '廣告數據' },
-    { path: '/account', icon: '👤', label: '帳號資訊' }
-  ],
-  outsource: [
-    { path: '/assets', icon: '🎞️', label: '素材庫' },
-    { path: '/progress', icon: '📈', label: '任務追踪' }
-  ]
+/* 全部選單定義 */
+const allMenus = {
+  dashboard: { path: '/', icon: '🏠' },
+  progress: { path: '/progress', icon: '📈' },
+  assets: { path: '/assets', icon: '🎞️' },
+  products: { path: '/products', icon: '🎬' },
+  employees: { path: '/employees', icon: '👥' },
+  roles: { path: '/roles', icon: '🛡️' },
+  tags: { path: '/tags', icon: '🏷️' },
+  'review-stages': { path: '/review-stages', icon: '✅' },
+  'ad-data': { path: '/ad-data', icon: '📊' },
+  account: { path: '/account', icon: '👤' }
 }
-const navItems = computed(() => menus[store.role] || [])
+
+const navItems = computed(() => {
+  const codes = store.user?.menus || []
+  return codes.map(c => ({
+    path: allMenus[c]?.path || '/',
+    icon: allMenus[c]?.icon || '❓',
+    label: MENU_NAMES[c] || c
+  }))
+})
 
 /* 事件 */
 const toggleCollapse = () => (isCollapsed.value = !isCollapsed.value)

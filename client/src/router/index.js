@@ -26,17 +26,17 @@ const routes = [
     path: '/',
     component: DashboardLayout,
     children: [
-      { path: '', name: 'Dashboard', component: Dashboard },
-      { path: 'account', name: 'Account', component: Account },
-      { path: 'progress', name: 'Progress', component: Progress },
-      { path: 'assets', name: 'Assets', component: AssetLibrary },
-      { path: 'products', name: 'Products', component: ProductLibrary },
+      { path: '', name: 'Dashboard', component: Dashboard, meta: { menu: 'dashboard' } },
+      { path: 'account', name: 'Account', component: Account, meta: { menu: 'account' } },
+      { path: 'progress', name: 'Progress', component: Progress, meta: { menu: 'progress' } },
+      { path: 'assets', name: 'Assets', component: AssetLibrary, meta: { menu: 'assets' } },
+      { path: 'products', name: 'Products', component: ProductLibrary, meta: { menu: 'products' } },
 
-      { path: 'employees', name: 'EmployeeManager', component: EmployeeManager, meta: { role: 'manager' } },
-      { path: 'roles', name: 'RoleSettings', component: RoleSettings, meta: { role: 'manager' } },
-      { path: 'tags', name: 'TagManager', component: TagManager, meta: { role: 'manager' } },
-      { path: 'review-stages', name: 'ReviewSettings', component: ReviewSettings, meta: { role: 'manager' } },
-      { path: 'ad-data', name: 'AdData', component: AdData, meta: { role: 'manager' } }
+      { path: 'employees', name: 'EmployeeManager', component: EmployeeManager, meta: { menu: 'employees' } },
+      { path: 'roles', name: 'RoleSettings', component: RoleSettings, meta: { menu: 'roles' } },
+      { path: 'tags', name: 'TagManager', component: TagManager, meta: { menu: 'tags' } },
+      { path: 'review-stages', name: 'ReviewSettings', component: ReviewSettings, meta: { menu: 'review-stages' } },
+      { path: 'ad-data', name: 'AdData', component: AdData, meta: { menu: 'ad-data' } }
     ]
   },
   // 404
@@ -55,7 +55,8 @@ router.beforeEach((to) => {
 
   // 若尚未登入，導向 login
   if (!store.isAuthenticated) return '/login'
-  if (to.meta.role && store.role !== to.meta.role) return '/'
+  const menus = store.user?.menus || []
+  if (to.meta.menu && !menus.includes(to.meta.menu)) return '/'
   return true
 })
 

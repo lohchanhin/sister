@@ -5,6 +5,7 @@ import User from '../models/user.model.js'
 import Role from '../models/role.model.js'
 import { ROLES } from '../config/roles.js'
 import { PERMISSIONS } from '../config/permissions.js'
+import { MENUS } from '../config/menus.js'
 
 dotenv.config()
 
@@ -24,9 +25,25 @@ const seed = async () => {
 
     // 建立角色資料
     const roleDocs = await Role.insertMany([
-      { name: ROLES.EMPLOYEE },
-      { name: ROLES.MANAGER, permissions: Object.values(PERMISSIONS) },
-      { name: ROLES.OUTSOURCE }
+      {
+        name: ROLES.EMPLOYEE,
+        menus: [
+          MENUS.DASHBOARD,
+          MENUS.PROGRESS,
+          MENUS.ASSETS,
+          MENUS.PRODUCTS,
+          MENUS.ACCOUNT
+        ]
+      },
+      {
+        name: ROLES.MANAGER,
+        permissions: Object.values(PERMISSIONS),
+        menus: Object.values(MENUS)
+      },
+      {
+        name: ROLES.OUTSOURCE,
+        menus: [MENUS.ASSETS, MENUS.PROGRESS]
+      }
     ])
     const roleMap = {}
     for (const r of roleDocs) roleMap[r.name] = r._id
