@@ -1,17 +1,8 @@
 import User from '../models/user.model.js'
 import Role from '../models/role.model.js'
 
-const managerOnly = (req,res) => {
-  if (req.user.roleId?.name !== 'manager') {
-    res.status(403).json({ message:'僅限 Manager 操作' })
-    return true
-  }
-  return false
-}
-
 /* 取得所有使用者 */
 export const getAllUsers = async (req,res) => {
-  if (!req.query.role && managerOnly(req,res)) return
   let filter = {}
   if (req.query.role) {
     const roleDoc = await Role.findOne({ name: req.query.role })
