@@ -104,7 +104,7 @@
               <el-input v-model="detail.description" type="textarea" rows="4" resize="vertical" />
             </el-form-item>
             <el-form-item label="標籤">
-              <el-select v-model="detail.tags" multiple filterable allow-create>
+              <el-select v-model="detail.tags" multiple filterable>
                 <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
               </el-select>
             </el-form-item>
