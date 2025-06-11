@@ -64,3 +64,17 @@ GET /api/assets/:id/stages
 ```
 PUT /api/assets/:id/stages/:stageId { completed: true | false }
 ```
+
+## 客戶與廣告資料 API
+下列為常見操作範例：
+```bash
+# 取得使用者列表
+GET /api/user
+
+# 新增使用者
+POST /api/user { username, password }
+
+# 取得廣告成效摘要
+GET /api/analytics
+```
+目前不需額外的環境變數即可使用。

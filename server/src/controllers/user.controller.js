@@ -1,6 +1,5 @@
 import User from '../models/user.model.js'
 import Role from '../models/role.model.js'
-import bcrypt from 'bcryptjs'
 
 const managerOnly = (req,res) => {
   if (req.user.roleId?.name !== 'manager') {
@@ -34,9 +33,8 @@ export const getAllUsers = async (req,res) => {
 export const createUser = async (req,res) => {
   const { username, name, email, role, password } = req.body
   if (await User.findOne({ email })) return res.status(400).json({ message:'Email 已存在' })
-  const hash = await bcrypt.hash(password,12)
   const roleDoc = await Role.findOne({ name: role })
-  const u = await User.create({ username, name, email, roleId: roleDoc?._id, password:hash })
+  const u = await User.create({ username, name, email, roleId: roleDoc?._id, password })
   const populated = await u.populate('roleId')
   res.status(201).json({
     ...populated.toObject(),
@@ -60,7 +58,7 @@ export const updateUser = async (req,res) => {
     const roleDoc = await Role.findOne({ name: role })
     u.roleId = roleDoc?._id
   }
-  if (password) u.password = await bcrypt.hash(password,12)
+  if (password) u.password = password
   await u.save()
   const populated = await u.populate('roleId')
   res.json({
@@ -96,7 +94,7 @@ export const updateProfile = async (req,res) => {
   if (username) u.username = username
   if (name)     u.name     = name
   if (email)    u.email    = email
-  if (password) u.password = await bcrypt.hash(password,12)
+  if (password) u.password = password
   await u.save()
   const populated = await u.populate('roleId')
   res.json(populated)
