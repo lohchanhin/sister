@@ -24,7 +24,8 @@ export const getAllUsers = async (req,res) => {
   const result = users.map((u) => ({
     ...u.toObject(),
     role: u.roleId?.name,
-    menus: u.roleId?.menus || []
+    menus: u.roleId?.menus || [],
+    permissions: u.roleId?.permissions || []
   }))
 
   res.json(result)
@@ -40,7 +41,8 @@ export const createUser = async (req,res) => {
   res.status(201).json({
     ...populated.toObject(),
     role: populated.roleId?.name,
-    menus: populated.roleId?.menus || []
+    menus: populated.roleId?.menus || [],
+    permissions: populated.roleId?.permissions || []
   })
 }
 
@@ -66,7 +68,8 @@ export const updateUser = async (req,res) => {
   res.json({
     ...populated.toObject(),
     role: populated.roleId?.name,
-    menus: populated.roleId?.menus || []
+    menus: populated.roleId?.menus || [],
+    permissions: populated.roleId?.permissions || []
   })
 }
 
@@ -82,7 +85,8 @@ export const getProfile = async (req,res) => {
   res.json({
     ...user.toObject(),
     role: user.roleId?.name,
-    menus: user.roleId?.menus || []
+    menus: user.roleId?.menus || [],
+    permissions: user.roleId?.permissions || []
   })
 }
 
@@ -104,6 +108,7 @@ export const updateProfile = async (req,res) => {
   res.json({
     ...populated.toObject(),
     role: populated.roleId?.name,
-    menus: populated.roleId?.menus || []
+    menus: populated.roleId?.menus || [],
+    permissions: populated.roleId?.permissions || []
   })
 }

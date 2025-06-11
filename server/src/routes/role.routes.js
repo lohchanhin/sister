@@ -1,5 +1,7 @@
 import { Router } from 'express'
 import { protect } from '../middleware/auth.js'
+import { requirePerm } from '../middleware/permission.js'
+import { PERMISSIONS } from '../config/permissions.js'
 import {
   createRole,
   getRoles,
@@ -11,6 +13,7 @@ import {
 const router = Router()
 
 router.use(protect)
+router.use(requirePerm(PERMISSIONS.ROLE_MANAGE))
 
 router.route('/')
   .post(createRole)

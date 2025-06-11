@@ -36,7 +36,7 @@ const seed = async () => {
       },
       {
         name: ROLES.MANAGER,
-        permissions: Object.values(PERMISSIONS),
+        permissions: Object.values(PERMISSIONS), // 包含 ROLE_MANAGE
         menus: Object.values(MENUS)
       },
       {

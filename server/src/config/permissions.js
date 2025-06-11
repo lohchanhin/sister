@@ -8,5 +8,6 @@ export const PERMISSIONS = Object.freeze({
   TASK_MANAGE: 'task:manage',
   REVIEW_MANAGE: 'review:manage',
   TAG_MANAGE: 'tag:manage',
+  ROLE_MANAGE: 'role:manage',
   ANALYTICS_VIEW: 'analytics:view'
 })

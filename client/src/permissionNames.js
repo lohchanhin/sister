@@ -9,5 +9,6 @@ export const PERMISSION_NAMES = {
   'task:manage': '任務管理',
   'review:manage': '審查管理',
   'tag:manage': '標籤管理',
+  'role:manage': '角色管理',
   'analytics:view': '統計檢視'
 }

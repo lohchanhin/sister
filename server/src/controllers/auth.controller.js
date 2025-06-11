@@ -18,7 +18,8 @@ export const login = async (req, res) => {
       id: user._id,
       username: user.username,
       role: user.roleId?.name,
-      menus: user.roleId?.menus || []
+      menus: user.roleId?.menus || [],
+      permissions: user.roleId?.permissions || []
     }
   })
 }
@@ -40,7 +41,8 @@ export const register = async (req, res) => {
       id: newUser._id,
       username: newUser.username,
       role: roleDoc?.name,
-      menus: roleDoc?.menus || []
+      menus: roleDoc?.menus || [],
+      permissions: roleDoc?.permissions || []
     }
   })
 }
