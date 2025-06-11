@@ -20,7 +20,9 @@ export const createFolder = async (req, res) => {
     script: req.body.script,
     type: req.body.type || 'raw',
     tags: parseTags(req.body.tags),
-    allowedUsers: Array.isArray(req.body.allowedUsers) ? req.body.allowedUsers : []
+    allowedUsers: Array.isArray(req.body.allowedUsers)
+      ? Array.from(new Set([...req.body.allowedUsers, req.user._id]))
+      : [req.user._id]
   })
   res.status(201).json(folder)
 }
