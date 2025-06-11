@@ -2,12 +2,22 @@
 /* ───── imports ───── */
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  fetchTemplates, createTemplate as apiCreateTemplate,
-  updateTemplate as apiUpdateTemplate, deleteTemplate as apiDeleteTemplate,
-  fetchRecords, createRecord as apiCreateRecord,
-  updateRecord as apiUpdateRecord
-} from '../services/progress'
+import api from '../services/api'
+
+const fetchTemplates = () =>
+  api.get('/progress/templates').then(r => r.data)
+const apiCreateTemplate = data =>
+  api.post('/progress/templates', data).then(r => r.data)
+const apiUpdateTemplate = (id, data) =>
+  api.put(`/progress/templates/${id}`, data).then(r => r.data)
+const apiDeleteTemplate = id =>
+  api.delete(`/progress/templates/${id}`).then(r => r.data)
+const fetchRecords = tplId =>
+  api.get(`/progress/records/${tplId}`).then(r => r.data)
+const apiCreateRecord = data =>
+  api.post('/progress/records', data).then(r => r.data)
+const apiUpdateRecord = (id, data) =>
+  api.put(`/progress/records/${id}`, data).then(res => res.data)
 import { fetchUsers } from '../services/user'
 import { Check, Close, Edit, Delete, EditPen } from '@element-plus/icons-vue'
 
