@@ -61,3 +61,18 @@ server/  # 後端 API
 
 ## 廣告數據頁面
 此頁面匯集各廣告平台的曝光與點擊統計，路徑為 `/ads`。目前後端示範提供 `/api/analytics` 取得資料，未來可依需求串接第三方服務。
+
+## Heroku 部署
+以下為將專案部署至 **Heroku** 的基本流程：
+
+1. **設定環境變數**：在 Heroku 後台依序新增
+   `MONGODB_URI`、`JWT_SECRET`、`JWT_EXPIRES_IN` 及 `UPLOAD_DIR` 等欄位，
+   值可參考 `server/.env.example`。
+2. **部署程式碼**：登入後建立應用程式並執行
+   ```bash
+   heroku login
+   heroku create <app-name>
+   git push heroku main
+   ```
+   Heroku 會在部署後自動執行 `heroku-postbuild` 產生前端靜態檔，
+   接著根據 `Procfile` 內容啟動伺服器。
