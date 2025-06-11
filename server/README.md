@@ -4,10 +4,11 @@
 
 ## 安裝
 ```bash
-cp .env.example .env       # 修改 MongoDB、JWT 等設定
 npm install
 npm start                 # 啟動伺服器
 ```
+
+伺服器啟動前請在根目錄複製 `.env.example` 為 `.env`，並修改 MongoDB、JWT 等設定。
 
 執行 `npm run seed` 可建立預設帳號，方便初次測試。
 

@@ -4,7 +4,10 @@
 import multer from 'multer'
 import path from 'node:path'
 import dotenv from 'dotenv'
-dotenv.config()
+import { fileURLToPath } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
 const storage = multer.diskStorage({
   destination: (_, __, cb) => {

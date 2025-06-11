@@ -1,13 +1,16 @@
 import dotenv from 'dotenv'
 import mongoose from 'mongoose'
 import bcrypt from 'bcryptjs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import User from '../models/user.model.js'
 import Role from '../models/role.model.js'
 import { ROLES } from '../config/roles.js'
 import { PERMISSIONS } from '../config/permissions.js'
 import { MENUS } from '../config/menus.js'
 
-dotenv.config()
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
 const users = [
   { username: 'employee', name: '員工', password: '123456', email: 'employee@example.com', role: ROLES.EMPLOYEE },

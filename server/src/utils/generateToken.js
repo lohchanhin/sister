@@ -3,7 +3,11 @@
  */
 import jwt from 'jsonwebtoken'
 import dotenv from 'dotenv'
-dotenv.config()
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
 export const generateToken = (userId) =>
   jwt.sign({ id: userId }, process.env.JWT_SECRET, {
