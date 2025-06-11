@@ -26,7 +26,7 @@ beforeAll(async () => {
   app.use('/api/auth', authRoutes)
   app.use('/api/assets', assetRoutes)
 
-  const role = await Role.create({ name: 'manager' })
+  const role = await Role.create({ name: 'manager', permissions: ['review:manage'] })
   await User.create({
     username: 'admin',
     password: 'mypwd',
