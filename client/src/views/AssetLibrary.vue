@@ -121,6 +121,11 @@
           <el-form-item v-if="detailType === 'folder'" label="腳本需求">
             <el-input v-model="detail.script" type="textarea" rows="4" resize="vertical" />
           </el-form-item>
+          <el-form-item v-if="detailType === 'folder'" label="可存取使用者">
+            <el-select v-model="detail.allowedUsers" multiple filterable style="width:100%">
+              <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
+            </el-select>
+          </el-form-item>
         </el-form>
       </el-scrollbar>
 
@@ -161,6 +166,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder } from '../services/folders'
 import { fetchAssets, uploadAsset, updateAsset, deleteAsset } from '../services/assets'
+import { fetchUsers } from '../services/user'
 import { ElMessage } from 'element-plus'
 import { Folder, InfoFilled, Close } from '@element-plus/icons-vue'
 
@@ -169,12 +175,14 @@ const assets = ref([])
 const currentFolder = ref(null)
 const editingFolder = ref(null)
 
-const detail = ref({ title: '', description: '', script: '', tags: [] })
+const detail = ref({ title: '', description: '', script: '', tags: [], allowedUsers: [] })
 const showDetail = ref(false)
 const detailType = ref('folder')   // 'folder' | 'asset'
 const newFolderName = ref('')
 const filterTags = ref([])
 const allTags = ref([])
+
+const users = ref([])
 
 const breadcrumb = ref([])
 
@@ -187,6 +195,10 @@ async function buildBreadcrumb(folder) {
     cur = await getFolder(cur.parentId)
   }
   return chain
+}
+
+const loadUsers = async () => {
+  users.value = await fetchUsers()
 }
 
 /* 預覽 Dialog */
@@ -211,7 +223,10 @@ async function loadData(id = null) {
     : []
 }
 
-onMounted(() => loadData())
+onMounted(() => {
+  loadData()
+  loadUsers()
+})
 watch(filterTags, () => loadData(currentFolder.value?._id || null))
 
 function openFolder(f) { loadData(f._id) }
@@ -225,6 +240,7 @@ function showDetailFor(item, type) {
   detail.value.description = item.description || ''
   detail.value.script = item.script || ''
   detail.value.tags = Array.isArray(item.tags) ? [...item.tags] : []
+  detail.value.allowedUsers = Array.isArray(item.allowedUsers) ? [...item.allowedUsers] : []
 
   previewItem.value = type === 'asset' ? item : null
   showDetail.value = true
@@ -236,7 +252,8 @@ async function saveDetail() {
       name: detail.value.title,
       description: detail.value.description,
       script: detail.value.script,
-      tags: detail.value.tags
+      tags: detail.value.tags,
+      allowedUsers: detail.value.allowedUsers
     })
   } else if (detailType.value === 'asset' && previewItem.value) {
     await updateAsset(previewItem.value._id, {
