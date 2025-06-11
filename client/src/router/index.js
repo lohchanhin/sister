@@ -5,7 +5,6 @@ import Login from '../views/Login.vue'
 import DashboardLayout from '../layouts/DashboardLayout.vue'
 import Dashboard from '../views/Dashboard.vue'
 import Account from '../views/Account.vue'
-import Progress from '../views/Progress.vue'
 import AssetLibrary from '../views/AssetLibrary.vue'
 import ProductLibrary from '../views/ProductLibrary.vue'
 import EmployeeManager from '../views/EmployeeManager.vue'
@@ -28,7 +27,6 @@ const routes = [
     children: [
       { path: '', name: 'Dashboard', component: Dashboard, meta: { menu: 'dashboard' } },
       { path: 'account', name: 'Account', component: Account, meta: { menu: 'account' } },
-      { path: 'progress', name: 'Progress', component: Progress, meta: { menu: 'progress' } },
       { path: 'assets', name: 'Assets', component: AssetLibrary, meta: { menu: 'assets' } },
       { path: 'products', name: 'Products', component: ProductLibrary, meta: { menu: 'products' } },
 
