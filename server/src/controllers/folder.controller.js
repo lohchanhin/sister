@@ -19,7 +19,8 @@ export const createFolder = async (req, res) => {
     description: req.body.description,
     script: req.body.script,
     type: req.body.type || 'raw',
-    tags: parseTags(req.body.tags)
+    tags: parseTags(req.body.tags),
+    allowedUsers: Array.isArray(req.body.allowedUsers) ? req.body.allowedUsers : []
   })
   res.status(201).json(folder)
 }
@@ -43,7 +44,11 @@ export const getFolders = async (req, res) => {
     query.tags = { $all: tags }
   }
   const folders = await Folder.find(query)
-  res.json(folders)
+  let result = folders
+  if (req.user.roleId?.name !== 'manager') {
+    result = folders.filter(f => !f.allowedUsers?.length || f.allowedUsers.some(id => id.equals(req.user._id)))
+  }
+  res.json(result)
 }
 
 export const getFolder = async (req, res) => {
@@ -56,6 +61,9 @@ export const updateFolder = async (req, res) => {
   if (req.body.tags) req.body.tags = parseTags(req.body.tags)
   if (req.body.type && !['raw', 'edited'].includes(req.body.type)) {
     delete req.body.type
+  }
+  if (req.body.allowedUsers && !Array.isArray(req.body.allowedUsers)) {
+    delete req.body.allowedUsers
   }
   const folder = await Folder.findByIdAndUpdate(req.params.id, req.body, { new: true })
   if (!folder) return res.status(404).json({ message: '資料夾不存在' })

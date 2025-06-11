@@ -111,6 +111,11 @@
             <el-form-item v-if="detailType === 'folder'" label="腳本需求">
               <el-input v-model="detail.script" type="textarea" rows="4" resize="vertical" />
             </el-form-item>
+            <el-form-item v-if="detailType === 'folder'" label="可存取使用者">
+              <el-select v-model="detail.allowedUsers" multiple filterable style="width:100%">
+                <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
+              </el-select>
+            </el-form-item>
           </el-form>
         </el-scrollbar>
 
@@ -169,6 +174,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder } from '../services/folders'
+import { fetchUsers } from '../services/user'
 import {
   fetchProducts,
   uploadAsset,
@@ -190,12 +196,14 @@ const editingFolder = ref(null)
 const store = useAuthStore()
 const canReview = computed(() => store.role === 'manager')
 
-const detail = ref({ title: '', description: '', script: '', tags: [] })
+const detail = ref({ title: '', description: '', script: '', tags: [], allowedUsers: [] })
 const showDetail = ref(false)
 const detailType = ref('folder')   // 'folder' | 'asset'
 const newFolderName = ref('')
 const filterTags = ref([])
 const allTags = ref([])
+
+const users = ref([])
 
 const breadcrumb = ref([])
 
@@ -236,7 +244,14 @@ async function loadData(id = null) {
     : []
 }
 
-onMounted(() => loadData())
+const loadUsers = async () => {
+  users.value = await fetchUsers()
+}
+
+onMounted(() => {
+  loadData()
+  loadUsers()
+})
 watch(filterTags, () => loadData(currentFolder.value?._id || null))
 
 function openFolder(f) { loadData(f._id) }
@@ -250,6 +265,7 @@ async function showDetailFor(item, type) {
   detail.value.description = item.description || ''
   detail.value.script = item.script || ''
   detail.value.tags = Array.isArray(item.tags) ? [...item.tags] : []
+  detail.value.allowedUsers = Array.isArray(item.allowedUsers) ? [...item.allowedUsers] : []
 
   previewItem.value = type === 'asset' ? item : null
   if (type === 'asset') {
@@ -265,7 +281,8 @@ async function saveDetail() {
       name: detail.value.title,
       description: detail.value.description,
       script: detail.value.script,
-      tags: detail.value.tags
+      tags: detail.value.tags,
+      allowedUsers: detail.value.allowedUsers
     })
   } else if (detailType.value === 'asset' && previewItem.value) {
     await updateAsset(previewItem.value._id, {
