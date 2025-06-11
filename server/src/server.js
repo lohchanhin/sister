@@ -41,6 +41,7 @@ import roleRoutes     from './routes/role.routes.js'
 import tagRoutes      from './routes/tag.routes.js'
 import healthRoutes   from './routes/health.routes.js'
 import permissionsRoutes from './routes/permissions.routes.js'
+import menusRoutes from './routes/menus.routes.js'
 import reviewStageRoutes from './routes/reviewStage.routes.js'
 import clientRoutes     from './routes/client.routes.js'
 import adDailyRoutes    from './routes/adDaily.routes.js'
@@ -58,6 +59,7 @@ app.use('/api/tags',     tagRoutes)
 app.use('/api/clients',  clientRoutes)
 app.use('/api/clients/:clientId/ad-daily', adDailyRoutes)
 app.use('/api/permissions', permissionsRoutes)
+app.use('/api/menus', menusRoutes)
 app.use('/api/review-stages', reviewStageRoutes)
 app.use('/api/health',   healthRoutes)
 // app.use('/api/analytics', analyticsRoutes)

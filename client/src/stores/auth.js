@@ -5,7 +5,7 @@ import { login as loginService } from '../services/auth'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: null,          // 使用者資訊
+    user: { menus: [] },          // 使用者資訊
     token: Cookies.get('token') || null
   }),
   getters: {
@@ -23,7 +23,7 @@ export const useAuthStore = defineStore('auth', {
     /* ---------- 登出 ---------- */
     logout() {
       this.token = null
-      this.user = null
+      this.user = { menus: [] }
       Cookies.remove('token')
     },
     /* ---------- 讀取個人資料 ---------- */
