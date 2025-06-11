@@ -17,13 +17,6 @@ const parseTags = (t) => {
   }
 }
 
-const managerOnly = (req, res) => {
-  if (req.user.roleId?.name !== 'manager') {
-    res.status(403).json({ message: '僅限 Manager 操作' })
-    return true
-  }
-  return false
-}
 
 /* ---------- POST /api/assets/upload ---------- */
 export const uploadFile = async (req, res) => {
@@ -121,7 +114,6 @@ export const updateAsset = async (req, res) => {
 }
 
 export const reviewAsset = async (req, res) => {
-  if (managerOnly(req, res)) return
   const { reviewStatus } = req.body
   if (!['pending', 'approved', 'rejected'].includes(reviewStatus)) {
     return res.status(400).json({ message: '狀態錯誤' })

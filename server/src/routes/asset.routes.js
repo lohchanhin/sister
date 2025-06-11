@@ -43,7 +43,12 @@ router.put(
   requirePerm(PERMISSIONS.ASSET_UPDATE),
   updateAsset
 )
-router.put('/:id/review', protect, reviewAsset)
+router.put(
+  '/:id/review',
+  protect,
+  requirePerm(PERMISSIONS.REVIEW_MANAGE),
+  reviewAsset
+)
 router.get('/:id/stages', protect, getAssetStages)
 router.put('/:id/stages/:stageId', protect, updateStageStatus)
 router.delete('/:id', protect, deleteAsset)    // assets
