@@ -14,3 +14,6 @@ export const deleteRole = id =>
 
 export const fetchPermissions = () =>
   api.get('/permissions').then(r => r.data)
+
+export const fetchMenus = () =>
+  api.get('/menus').then(r => r.data)

@@ -23,7 +23,8 @@ export const getAllUsers = async (req,res) => {
 
   const result = users.map((u) => ({
     ...u.toObject(),
-    role: u.roleId?.name
+    role: u.roleId?.name,
+    menus: u.roleId?.menus || []
   }))
 
   res.json(result)
@@ -38,7 +39,8 @@ export const createUser = async (req,res) => {
   const populated = await u.populate('roleId')
   res.status(201).json({
     ...populated.toObject(),
-    role: populated.roleId?.name
+    role: populated.roleId?.name,
+    menus: populated.roleId?.menus || []
   })
 }
 
@@ -63,7 +65,8 @@ export const updateUser = async (req,res) => {
   const populated = await u.populate('roleId')
   res.json({
     ...populated.toObject(),
-    role: populated.roleId?.name
+    role: populated.roleId?.name,
+    menus: populated.roleId?.menus || []
   })
 }
 
@@ -78,7 +81,8 @@ export const getProfile = async (req,res) => {
   const user = await req.user.populate('roleId')
   res.json({
     ...user.toObject(),
-    role: user.roleId?.name
+    role: user.roleId?.name,
+    menus: user.roleId?.menus || []
   })
 }
 
@@ -97,5 +101,9 @@ export const updateProfile = async (req,res) => {
   if (password) u.password = password
   await u.save()
   const populated = await u.populate('roleId')
-  res.json(populated)
+  res.json({
+    ...populated.toObject(),
+    role: populated.roleId?.name,
+    menus: populated.roleId?.menus || []
+  })
 }
