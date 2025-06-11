@@ -21,8 +21,9 @@ export const createFolder = async (req, res) => {
     type: req.body.type || 'raw',
     tags: parseTags(req.body.tags),
     allowedUsers: Array.isArray(req.body.allowedUsers)
-      ? Array.from(new Set([...req.body.allowedUsers, req.user._id]))
-      : [req.user._id]
+      ? req.body.allowedUsers
+      : [],
+    createdBy: req.user._id
   })
   res.status(201).json(folder)
 }
@@ -67,8 +68,15 @@ export const updateFolder = async (req, res) => {
   if (req.body.allowedUsers && !Array.isArray(req.body.allowedUsers)) {
     delete req.body.allowedUsers
   }
-  const folder = await Folder.findByIdAndUpdate(req.params.id, req.body, { new: true })
+  const folder = await Folder.findById(req.params.id)
   if (!folder) return res.status(404).json({ message: '資料夾不存在' })
+
+  const isCreator = folder.createdBy?.equals(req.user._id)
+  const isManager = req.user.roleId?.name === 'manager'
+  if (!isCreator && !isManager) delete req.body.allowedUsers
+
+  Object.assign(folder, req.body)
+  await folder.save()
   res.json(folder)
 }
 
