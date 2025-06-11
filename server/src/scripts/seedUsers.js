@@ -29,7 +29,6 @@ const seed = async () => {
         name: ROLES.EMPLOYEE,
         menus: [
           MENUS.DASHBOARD,
-          MENUS.PROGRESS,
           MENUS.ASSETS,
           MENUS.PRODUCTS,
           MENUS.ACCOUNT
@@ -42,7 +41,7 @@ const seed = async () => {
       },
       {
         name: ROLES.OUTSOURCE,
-        menus: [MENUS.ASSETS, MENUS.PROGRESS]
+        menus: [MENUS.ASSETS]
       }
     ])
     const roleMap = {}
