@@ -228,7 +228,7 @@ function showDetailFor(item, type) {
   detailType.value = type
   if (type === 'folder') editingFolder.value = item
 
-  detail.value.title = item.title || item.filename || ''
+  detail.value.title = item.title || item.name || item.filename || ''
   detail.value.description = item.description || ''
   detail.value.script = item.script || ''
   detail.value.tags = Array.isArray(item.tags) ? [...item.tags] : []
