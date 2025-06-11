@@ -117,19 +117,6 @@
           </el-form>
         </el-scrollbar>
 
-        <el-scrollbar v-if="detailType === 'asset'" class="panel-body stage-body" style="max-width:260px">
-          <div class="stage-list">
-            <div v-for="s in stageList" :key="s._id" class="stage-row">
-              <!-- 左側文字 -->
-              <span class="stage-label">
-                {{ s.order }}. {{ s.name }} (負責: {{ s.responsible?.username || '' }})
-              </span>
-
-              <!-- 右側勾選 -->
-              <el-checkbox v-model="s.completed" :disabled="!canModify(s)" @change="() => toggleStage(s)" />
-            </div>
-          </div>
-        </el-scrollbar>
       </div>
 
       <template #footer>
@@ -179,8 +166,6 @@ import {
   updateAsset,
   deleteAsset,
   reviewAsset,
-  fetchAssetStages,
-  updateAssetStage
 } from '../services/assets'
 import { useAuthStore } from '../stores/auth'
 import { ElMessage } from 'element-plus'
@@ -221,9 +206,6 @@ const previewVisible = ref(false)
 const previewItem = ref(null)
 const isImage = a => /\.(png|jpe?g|gif|webp)$/i.test(a?.filename || '')
 
-/* 審查關卡 */
-const stageList = ref([])
-const stageAsset = ref(null)
 
 /* 主題色 */
 const sidebarBg = computed(() => getComputedStyle(document.querySelector('.sidebar')).backgroundColor || '#1f2937')
@@ -266,10 +248,6 @@ async function showDetailFor(item, type) {
   detail.value.allowedUsers = Array.isArray(item.allowedUsers) ? [...item.allowedUsers] : []
 
   previewItem.value = type === 'asset' ? item : null
-  if (type === 'asset') {
-    stageAsset.value = item
-    stageList.value = await fetchAssetStages(item._id)
-  }
   showDetail.value = true
 }
 
@@ -352,15 +330,6 @@ async function review(status) {
 }
 
 
-function canModify(stage) {
-  if (stage.responsible?._id !== store.user?._id) return false
-  return !stageList.value.some(s => s.order < stage.order && !s.completed)
-}
-
-async function toggleStage(stage) {
-  await updateAssetStage(stageAsset.value._id, stage._id, stage.completed)
-  if (stage.completed) ElMessage.success('已完成階段')
-}
 
 
 function previewAsset(a) {
@@ -504,11 +473,6 @@ function previewAsset(a) {
   gap: 1rem;
 }
 
-.stage-body {
-  min-width: 220px;
-}
-
-/* 預覽圖片 / 影片：限制寬高，保持比例 */
 .preview-media {
   max-width: 100%;
   max-height: 70vh;
@@ -516,25 +480,6 @@ function previewAsset(a) {
   /* 影片、圖片皆等比縮放 */
 }
 
-/* -------- Stage 清單 -------- */
-.stage-list{
-  display: flex;
-  flex-direction: column;
-}
-
-.stage-row{
-  display: flex;
-  justify-content: space-between; /* 文字、checkbox 貼左右 */
-  align-items: center;
-  margin-bottom: 1rem;            /* 每列間隔 1rem */
-}
-
-.stage-label{
-  flex: 1;                        /* 佔滿可用寬度，讓 checkbox 永遠靠右 */
-  white-space: nowrap;            /* 不換行 */
-  overflow: hidden;               /* 超出省略 */
-  text-overflow: ellipsis;
-}
 
 .approved {
   border-color: var(--el-color-success);
