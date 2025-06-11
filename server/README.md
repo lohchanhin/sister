@@ -50,20 +50,6 @@ npm start                 # 啟動伺服器
 ## 審查關卡 API
 管理者可自 `/api/review-stages` 建立或管理審查關卡，每個關卡包含 `name`、`order` 與 `responsible` 等欄位。
 
-### 成品審查進度
-取得某成品的所有審查關卡與完成狀態：
-
-```
-GET /api/assets/:id/stages
-```
-
-關卡需依序完成，必須完成上一關後才能更新下一關。
-
-更新某關卡的完成狀態（僅負責人可更新關卡狀態）：
-
-```
-PUT /api/assets/:id/stages/:stageId { completed: true | false }
-```
 
 ## 客戶與廣告資料 API
 下列為常見操作範例：

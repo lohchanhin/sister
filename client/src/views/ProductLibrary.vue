@@ -69,9 +69,7 @@
             </div>
           </template>
           <el-scrollbar max-height="60">
-            <div class="desc-line">
-              {{ a.progress ? `${a.progress.done} / ${a.progress.total} 步驟完成` : '—' }}
-            </div>
+            <div class="desc-line">{{ a.description || '—' }}</div>
           </el-scrollbar>
           <div v-if="a.tags?.length" class="tag-list mt-1">
             <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
@@ -233,7 +231,7 @@ const detailTitle = computed(() => previewItem.value ? previewItem.value.filenam
 
 async function loadData(id = null) {
   folders.value = await fetchFolders(id, filterTags.value, 'edited')
-  assets.value = id ? await fetchProducts(id, filterTags.value, false, true) : []
+  assets.value = id ? await fetchProducts(id, filterTags.value, false) : []
   allTags.value = Array.from(new Set([
     ...folders.value.flatMap(f => f.tags || []),
     ...assets.value.flatMap(a => a.tags || [])
