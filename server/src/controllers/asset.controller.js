@@ -2,6 +2,7 @@
  * Asset Controller  (完整)
  */
 import Asset from '../models/asset.model.js'
+import Folder from '../models/folder.model.js'
 import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import { getDescendantFolderIds } from '../utils/folderTree.js'
@@ -36,6 +37,12 @@ export const uploadFile = async (req, res) => {
     description: req.body.description || '',
     tags: parseTags(req.body.tags)
   })
+
+  if (asset.folderId) {
+    await Folder.findByIdAndUpdate(asset.folderId, {
+      $addToSet: { allowedUsers: req.user._id }
+    })
+  }
 
   res.status(201).json(asset)
 }
