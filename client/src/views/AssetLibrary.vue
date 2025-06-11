@@ -152,6 +152,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder } from '../services/folders'
 import { fetchAssets, uploadAsset, updateAsset, deleteAsset } from '../services/assets'
 import { fetchUsers } from '../services/user'
+import { fetchTags } from '../services/tags'
 import { ElMessage } from 'element-plus'
 import { Folder, InfoFilled, Close } from '@element-plus/icons-vue'
 
@@ -186,6 +187,11 @@ const loadUsers = async () => {
   users.value = await fetchUsers()
 }
 
+const loadTags = async () => {
+  const list = await fetchTags()
+  allTags.value = list.map(t => t.name)
+}
+
 /* 預覽 Dialog */
 const previewVisible = ref(false)
 const previewItem = ref(null)
@@ -198,10 +204,6 @@ const detailTitle = computed(() => previewItem.value ? previewItem.value.filenam
 async function loadData(id = null) {
   folders.value = await fetchFolders(id, filterTags.value, 'raw')
   assets.value = id ? await fetchAssets(id, 'raw', filterTags.value) : []
-  allTags.value = Array.from(new Set([
-    ...folders.value.flatMap(f => f.tags || []),
-    ...assets.value.flatMap(a => a.tags || [])
-  ]))
   currentFolder.value = id ? await getFolder(id) : null
   breadcrumb.value = currentFolder.value
     ? await buildBreadcrumb(currentFolder.value)
@@ -210,6 +212,7 @@ async function loadData(id = null) {
 
 onMounted(() => {
   loadData()
+  loadTags()
   loadUsers()
 })
 watch(filterTags, () => loadData(currentFolder.value?._id || null))
