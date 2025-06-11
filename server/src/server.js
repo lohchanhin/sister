@@ -62,6 +62,11 @@ app.use('/api/review-stages', reviewStageRoutes)
 app.use('/api/health',   healthRoutes)
 // app.use('/api/analytics', analyticsRoutes)
 
+/* ---------- 前端靜態檔案 ---------- */
+const clientDist = path.resolve(process.cwd(), 'client/dist')
+app.use(express.static(clientDist))
+app.get('*', (_, res) => res.sendFile(path.join(clientDist, 'index.html')))
+
 /* ---------- 404 與錯誤處理 ---------- */
 app.use(notFound)
 app.use(errorHandler)
