@@ -35,6 +35,16 @@
    ```
    這會在 `server` 目錄執行 Jest 測試，模擬 POST `/api/auth/login`。
 
+### 雲端資料庫
+若需要在雲端部署 MongoDB，可考慮使用 MongoDB Atlas：
+1. 造訪 <https://www.mongodb.com/cloud/atlas> 註冊帳號並建立專案與 Cluster。
+2. 在 Cluster 頁面選擇 **Connect → Drivers**，複製連線字串。
+3. 編輯 `server/.env`，將 `MONGODB_URI` 改為取得的 Atlas URI：
+   ```bash
+   MONGODB_URI=mongodb+srv://<user>:<password>@cluster0.xxxxx.mongodb.net/mydb
+   ```
+4. 上傳資料或執行遷移前，請務必先備份現有資料。
+
 
 ## 根目錄一鍵啟動
 根目錄已新增 `package.json`，安裝相依套件後即可同時啟動前後端。
