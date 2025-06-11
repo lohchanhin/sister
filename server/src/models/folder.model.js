@@ -12,7 +12,9 @@ const folderSchema = new mongoose.Schema(
     allowedUsers: { type: [mongoose.Schema.Types.ObjectId], ref: 'User', default: [] },
 
     /* 標籤 */
-    tags: { type: [String], default: [] }
+    tags: { type: [String], default: [] },
+    /* 建立者 */
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
   },
   { timestamps: true }
 )

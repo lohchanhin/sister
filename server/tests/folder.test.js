@@ -19,6 +19,7 @@ let token3
 let folderId
 let user1Id
 let user2Id
+let adminId
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create()
@@ -32,12 +33,13 @@ beforeAll(async () => {
   const managerRole = await Role.create({ name: 'manager', permissions: ['folder:manage'] })
   const empRole = await Role.create({ name: 'employee', permissions: ['folder:manage'] })
 
-  await User.create({
+  const admin = await User.create({
     username: 'admin',
     password: 'mypwd',
     email: 'admin@example.com',
     roleId: managerRole._id
   })
+  adminId = admin._id
   const u1 = await User.create({
     username: 'user1',
     password: 'pwd',
@@ -78,11 +80,12 @@ describe('Folder type', () => {
   it('create edited folder', async () => {
     const res = await request(app)
       .post('/api/folders')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Authorization', `Bearer ${token2}`)
       .send({ name: 'f1', type: 'edited', allowedUsers: [user1Id] })
       .expect(201)
     folderId = res.body._id
     expect(res.body.type).toBe('edited')
+    expect(res.body.createdBy).toBe(String(user1Id))
   })
 
   it('default query should return 0', async () => {
@@ -129,5 +132,44 @@ describe('Folder access control', () => {
       .set('Authorization', `Bearer ${token3}`)
       .expect(200)
     expect(res.body.length).toBe(0)
+  })
+})
+
+describe('Folder allowedUsers update permission', () => {
+  it('creator can update allowedUsers', async () => {
+    const res = await request(app)
+      .put(`/api/folders/${folderId}`)
+      .set('Authorization', `Bearer ${token2}`)
+      .send({ allowedUsers: [user1Id, user2Id] })
+      .expect(200)
+    expect(res.body.allowedUsers.length).toBe(2)
+  })
+
+  it('manager can update allowedUsers', async () => {
+    const res = await request(app)
+      .put(`/api/folders/${folderId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ allowedUsers: [user1Id] })
+      .expect(200)
+    expect(res.body.allowedUsers.length).toBe(1)
+  })
+
+  it('other user cannot update allowedUsers', async () => {
+    const before = await request(app)
+      .get(`/api/folders/${folderId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+
+    await request(app)
+      .put(`/api/folders/${folderId}`)
+      .set('Authorization', `Bearer ${token3}`)
+      .send({ allowedUsers: [user2Id] })
+      .expect(200)
+
+    const after = await request(app)
+      .get(`/api/folders/${folderId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    expect(after.body.allowedUsers).toEqual(before.body.allowedUsers)
   })
 })
