@@ -1,10 +1,14 @@
 /**
  * 驗證 JWT，並把登入者寫入 req.user
  */
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
-import User from '../models/user.model.js';
-dotenv.config();
+import jwt from 'jsonwebtoken'
+import dotenv from 'dotenv'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import User from '../models/user.model.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
 export const protect = async (req, res, next) => {
   const authHeader = req.headers.authorization;

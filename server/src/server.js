@@ -7,12 +7,14 @@ import cookieParser   from 'cookie-parser'
 import dotenv         from 'dotenv'
 import path           from 'node:path'
 import fs             from 'node:fs'
+import { fileURLToPath } from 'node:url'
 
 import connectDB                    from './config/db.js'
 import { notFound, errorHandler }   from './utils/handleError.js'
 
 /* ---------- 初始化 ---------- */
-dotenv.config()
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 connectDB()
 
 const app = express()

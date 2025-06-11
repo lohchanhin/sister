@@ -18,11 +18,11 @@
    會被加入 `FormData`；剪輯師上傳成品時可傳入 `{ type: 'edited' }`。
 
 ## 後端 (server)
-1. 進入 `server` 目錄安裝依賴並設定環境：
+1. 進入 `server` 目錄安裝依賴：
    ```bash
-   cp .env.example .env     # 調整 MongoDB、JWT 等設定
    npm install
    ```
+   伺服器啟動前，請在根目錄複製 `.env.example` 為 `.env`，並依需求調整 MongoDB、JWT 等設定。
 2. 啟動 API：
    ```bash
    npm start
