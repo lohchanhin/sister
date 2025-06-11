@@ -56,8 +56,9 @@
         </el-card>
 
         <!-- ===== 素材卡 ===== -->
-        <el-card v-for="a in assets" :key="a._id" class="asset-card card-base cursor-pointer" shadow="never"
-          @click="previewAsset(a)">
+        <el-card v-for="a in assets" :key="a._id"
+          :class="['asset-card', 'card-base', 'cursor-pointer', { approved: a.reviewStatus === 'approved' }]"
+          shadow="never" @click="previewAsset(a)">
           <template #header>
             <div class="flex items-center mb-2">
               <div class="flex-1 truncate" :title="a.title || a.filename">{{ a.title || a.filename }}</div>
@@ -68,7 +69,9 @@
             </div>
           </template>
           <el-scrollbar max-height="60">
-            <div class="desc-line">{{ a.description || '—' }}</div>
+            <div class="desc-line">
+              {{ a.progress ? `${a.progress.done} / ${a.progress.total} 步驟完成` : '—' }}
+            </div>
           </el-scrollbar>
           <div v-if="a.tags?.length" class="tag-list mt-1">
             <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
@@ -222,7 +225,7 @@ const detailTitle = computed(() => previewItem.value ? previewItem.value.filenam
 
 async function loadData(id = null) {
   folders.value = await fetchFolders(id, filterTags.value, 'edited')
-  assets.value = id ? await fetchProducts(id, filterTags.value) : []
+  assets.value = id ? await fetchProducts(id, filterTags.value, false, true) : []
   allTags.value = Array.from(new Set([
     ...folders.value.flatMap(f => f.tags || []),
     ...assets.value.flatMap(a => a.tags || [])
@@ -516,6 +519,14 @@ function previewAsset(a) {
   white-space: nowrap;            /* 不換行 */
   overflow: hidden;               /* 超出省略 */
   text-overflow: ellipsis;
+}
+
+.approved {
+  border-color: var(--el-color-success);
+}
+
+.approved :deep(.el-card__body) {
+  background-color: var(--el-color-success-light-9, #f0f9eb);
 }
 
 </style>
