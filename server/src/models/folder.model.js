@@ -8,6 +8,9 @@ const folderSchema = new mongoose.Schema(
     script: { type: String },
     type: { type: String, enum: ['raw', 'edited'], default: 'raw' },
 
+    /* 可存取使用者 */
+    allowedUsers: { type: [mongoose.Schema.Types.ObjectId], ref: 'User', default: [] },
+
     /* 標籤 */
     tags: { type: [String], default: [] }
   },
