@@ -1,7 +1,11 @@
 import Role from '../models/role.model.js'
 
 export const createRole = async (req, res) => {
-  const role = await Role.create({ name: req.body.name, permissions: req.body.permissions })
+  const role = await Role.create({
+    name: req.body.name,
+    permissions: req.body.permissions,
+    menus: req.body.menus
+  })
   res.status(201).json(role)
 }
 
@@ -17,7 +21,15 @@ export const getRole = async (req, res) => {
 }
 
 export const updateRole = async (req, res) => {
-  const role = await Role.findByIdAndUpdate(req.params.id, req.body, { new: true })
+  const role = await Role.findByIdAndUpdate(
+    req.params.id,
+    {
+      name: req.body.name,
+      permissions: req.body.permissions,
+      menus: req.body.menus
+    },
+    { new: true }
+  )
   if (!role) return res.status(404).json({ message: '\u89d2\u8272\u4e0d\u5b58\u5728' })
   res.json(role)
 }

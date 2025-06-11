@@ -2,8 +2,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { fetchRoles, createRole, updateRole, deleteRole, fetchPermissions } from '../services/roles'
+import { fetchRoles, createRole, updateRole, deleteRole, fetchPermissions, fetchMenus } from '../services/roles'
 import { PERMISSION_NAMES } from '../permissionNames'
+import { MENU_NAMES } from '../menuNames'
 import { useAuthStore } from '../stores/auth'
 
 const store = useAuthStore()
@@ -15,9 +16,11 @@ const roles = ref([])
 const dialog = ref(false)
 const editing = ref(false)
 const permissionList = ref([])
+const menuList = ref([])
 const form = ref({
   name: '',
-  permissions: []
+  permissions: [],
+  menus: []
 })
 
 const loadRoles = async () => {
@@ -29,22 +32,32 @@ const loadPermissions = async () => {
   permissionList.value = codes.map(code => ({ value: code, label: PERMISSION_NAMES[code] }))
 }
 
+const loadMenus = async () => {
+  const codes = await fetchMenus()
+  menuList.value = codes.map(code => ({ value: code, label: MENU_NAMES[code] }))
+}
+
 const openCreate = () => {
   editing.value = false
-  form.value = { name: '', permissions: [] }
+  form.value = { name: '', permissions: [], menus: [] }
   dialog.value = true
 }
 
 const openEdit = r => {
   editing.value = true
-  form.value = { ...r, permissions: Array.isArray(r.permissions) ? [...r.permissions] : [] }
+  form.value = {
+    ...r,
+    permissions: Array.isArray(r.permissions) ? [...r.permissions] : [],
+    menus: Array.isArray(r.menus) ? [...r.menus] : []
+  }
   dialog.value = true
 }
 
 const submit = async () => {
   const data = {
     name: form.value.name,
-    permissions: form.value.permissions
+    permissions: form.value.permissions,
+    menus: form.value.menus
   }
   if (editing.value) {
     await updateRole(form.value._id, data)
@@ -71,6 +84,7 @@ const removeRole = async r => {
 onMounted(() => {
   loadRoles()
   loadPermissions()
+  loadMenus()
 })
 </script>
 
@@ -106,6 +120,17 @@ onMounted(() => {
               :label="p.value"
             >
               {{ p.label }}
+            </el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
+        <el-form-item label="選單">
+          <el-checkbox-group v-model="form.menus">
+            <el-checkbox
+              v-for="m in menuList"
+              :key="m.value"
+              :label="m.value"
+            >
+              {{ m.label }}
             </el-checkbox>
           </el-checkbox-group>
         </el-form-item>
