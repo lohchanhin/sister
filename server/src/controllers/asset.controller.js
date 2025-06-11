@@ -6,6 +6,7 @@ import Folder from '../models/folder.model.js'
 import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import { getDescendantFolderIds } from '../utils/folderTree.js'
+import { formatAsset } from '../utils/formatAsset.js'
 
 const parseTags = (t) => {
   if (!t) return []
@@ -44,7 +45,7 @@ export const uploadFile = async (req, res) => {
     })
   }
 
-  res.status(201).json(asset)
+  res.status(201).json(formatAsset(asset))
 }
 
 /* ---------- GET /api/assets ---------- */
@@ -84,13 +85,13 @@ export const getAssets = async (req, res) => {
     records.forEach(r => { map[r._id.toString()] = r.done })
     return res.json(
       assets.map(a => ({
-        ...a.toObject(),
+        ...formatAsset(a),
         progress: { done: map[a._id.toString()] || 0, total }
       }))
     )
   }
 
-  res.json(assets)
+  res.json(assets.map(a => formatAsset(a)))
 }
 
 /* ---------- POST /api/assets/:id/comment ---------- */
@@ -100,7 +101,7 @@ export const addComment = async (req, res) => {
 
   asset.comments.push({ userId: req.user._id, message: req.body.message })
   await asset.save()
-  res.json(asset)
+  res.json(formatAsset(asset))
 }
 
 /* ---------- PUT /api/assets/:id ---------- */
@@ -117,7 +118,7 @@ export const updateAsset = async (req, res) => {
   // filename 不可修改，故不處理
 
   await asset.save()
-  res.json(asset)
+  res.json(formatAsset(asset))
 }
 
 export const reviewAsset = async (req, res) => {
@@ -129,7 +130,7 @@ export const reviewAsset = async (req, res) => {
   if (!asset) return res.status(404).json({ message: '找不到素材' })
   asset.reviewStatus = reviewStatus
   await asset.save()
-  res.json(asset)
+  res.json(formatAsset(asset))
 }
 
 export const deleteAsset = async (req, res) => {
@@ -144,5 +145,5 @@ export const getRecentAssets = async (req, res) => {
   const assets = await Asset.find(query)
     .sort({ createdAt: -1 })
     .limit(limit)
-  res.json(assets)
+  res.json(assets.map(a => formatAsset(a)))
 }
