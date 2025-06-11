@@ -71,3 +71,16 @@ server/  # 後端 API
 
 ## 廣告數據頁面
 此頁面匯集各廣告平台的曝光與點擊統計，路徑為 `/ads`。目前後端示範提供 `/api/analytics` 取得資料，未來可依需求串接第三方服務。
+
+## 部署
+前端建置後將輸出至 `client/dist`，可透過下列指令產生靜態檔案：
+
+```bash
+npm --prefix client run build
+```
+
+完成後啟動後端即可同時提供 API 與前端頁面：
+
+```bash
+npm --prefix server start
+```
