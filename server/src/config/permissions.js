@@ -4,7 +4,6 @@ export const PERMISSIONS = Object.freeze({
   ASSET_UPDATE: 'asset:update',
   ASSET_DELETE: 'asset:delete',
   FOLDER_MANAGE: 'folder:manage',
-  PROGRESS_MANAGE: 'progress:manage',
   USER_MANAGE: 'user:manage',
   TASK_MANAGE: 'task:manage',
   REVIEW_MANAGE: 'review:manage',
