@@ -72,6 +72,7 @@ export const getAssets = async (req, res) => {
   }
 
   const assets = await Asset.find(query)
+    .populate('uploadedBy', 'username name')
 
   if (req.query.progress === 'true') {
     const total = await ReviewStage.countDocuments()
@@ -85,12 +86,22 @@ export const getAssets = async (req, res) => {
     return res.json(
       assets.map(a => ({
         ...a.toObject(),
+        fileName: a.filename,
+        fileType: a.type,
+        uploaderName: a.uploadedBy?.name || a.uploadedBy?.username,
         progress: { done: map[a._id.toString()] || 0, total }
       }))
     )
   }
 
-  res.json(assets)
+  res.json(
+    assets.map(a => ({
+      ...a.toObject(),
+      fileName: a.filename,
+      fileType: a.type,
+      uploaderName: a.uploadedBy?.name || a.uploadedBy?.username
+    }))
+  )
 }
 
 /* ---------- POST /api/assets/:id/comment ---------- */
@@ -144,5 +155,14 @@ export const getRecentAssets = async (req, res) => {
   const assets = await Asset.find(query)
     .sort({ createdAt: -1 })
     .limit(limit)
-  res.json(assets)
+    .populate('uploadedBy', 'username name')
+
+  res.json(
+    assets.map(a => ({
+      ...a.toObject(),
+      fileName: a.filename,
+      fileType: a.type,
+      uploaderName: a.uploadedBy?.name || a.uploadedBy?.username
+    }))
+  )
 }
