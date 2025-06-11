@@ -192,7 +192,7 @@ const currentFolder = ref(null)
 const editingFolder = ref(null)
 
 const store = useAuthStore()
-const canReview = computed(() => store.role === 'manager')
+const canReview = computed(() => store.user.permissions.includes('review:manage'))
 
 const detail = ref({ title: '', description: '', script: '', tags: [], allowedUsers: [] })
 const showDetail = ref(false)

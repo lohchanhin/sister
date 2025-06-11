@@ -6,7 +6,7 @@ import { fetchUsers } from '../services/user'
 import { useAuthStore } from '../stores/auth'
 
 const store = useAuthStore()
-if (store.role !== 'manager') {
+if (!store.user.permissions.includes('review:manage')) {
   window.location.href = '/'
 }
 

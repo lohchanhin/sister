@@ -15,9 +15,9 @@ const loadRoles = async () => {
   roleOptions.value = roles.map(r => ({ label: r.name, value: r.name }))
 }
 
-/* ---------- 權限檢查：非 manager 直接跳回首頁 ---------- */
+/* ---------- 權限檢查：無權限直接跳回首頁 ---------- */
 const store = useAuthStore()
-if (store.role !== 'manager') {
+if (!store.user.permissions.includes('user:manage')) {
   window.location.href = '/'   // 或用 router.replace('/')
 }
 

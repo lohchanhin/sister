@@ -8,7 +8,7 @@ import { MENU_NAMES } from '../menuNames'
 import { useAuthStore } from '../stores/auth'
 
 const store = useAuthStore()
-if (store.role !== 'manager') {
+if (!store.user.permissions.includes('user:manage')) {
   window.location.href = '/'
 }
 
