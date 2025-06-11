@@ -65,7 +65,7 @@ app.use('/api/health',   healthRoutes)
 // app.use('/api/analytics', analyticsRoutes)
 
 /* ---------- 前端靜態檔案 ---------- */
-const clientDist = path.resolve(process.cwd(), '../../client/dist')
+const clientDist = path.resolve(__dirname, '../../client/dist')
 app.use(express.static(clientDist))
 app.get('*', (_, res) => res.sendFile(path.join(clientDist, 'index.html')))
 
