@@ -47,9 +47,6 @@ npm start                 # 啟動伺服器
 更新審核狀態。前端可依 `GET /api/assets?type=edited&reviewStatus=pending`
 取得待審成品。
 
-## 審查關卡 API
-管理者可自 `/api/review-stages` 建立或管理審查關卡，每個關卡包含 `name`、`order` 與 `responsible` 等欄位。
-
 
 ## 客戶與廣告資料 API
 下列為常見操作範例：

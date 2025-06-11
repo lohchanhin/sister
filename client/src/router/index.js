@@ -10,7 +10,6 @@ import ProductLibrary from '../views/ProductLibrary.vue'
 import EmployeeManager from '../views/EmployeeManager.vue'
 import RoleSettings from '../views/RoleSettings.vue'
 import TagManager from '../views/TagManager.vue'
-import ReviewSettings from '../views/ReviewSettings.vue'
 import AdData from '../views/AdData.vue'
 
 
@@ -33,7 +32,6 @@ const routes = [
       { path: 'employees', name: 'EmployeeManager', component: EmployeeManager, meta: { menu: 'employees' } },
       { path: 'roles', name: 'RoleSettings', component: RoleSettings, meta: { menu: 'roles' } },
       { path: 'tags', name: 'TagManager', component: TagManager, meta: { menu: 'tags' } },
-      { path: 'review-stages', name: 'ReviewSettings', component: ReviewSettings, meta: { menu: 'review-stages' } },
       { path: 'ad-data', name: 'AdData', component: AdData, meta: { menu: 'ad-data' } }
     ]
   },

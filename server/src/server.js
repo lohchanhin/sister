@@ -41,7 +41,6 @@ import tagRoutes      from './routes/tag.routes.js'
 import healthRoutes   from './routes/health.routes.js'
 import permissionsRoutes from './routes/permissions.routes.js'
 import menusRoutes from './routes/menus.routes.js'
-import reviewStageRoutes from './routes/reviewStage.routes.js'
 import clientRoutes     from './routes/client.routes.js'
 import adDailyRoutes    from './routes/adDaily.routes.js'
 // import analyticsRoutes from './routes/analytics.routes.js' // 未啟用
@@ -58,7 +57,6 @@ app.use('/api/clients',  clientRoutes)
 app.use('/api/clients/:clientId/ad-daily', adDailyRoutes)
 app.use('/api/permissions', permissionsRoutes)
 app.use('/api/menus', menusRoutes)
-app.use('/api/review-stages', reviewStageRoutes)
 app.use('/api/health',   healthRoutes)
 // app.use('/api/analytics', analyticsRoutes)
 

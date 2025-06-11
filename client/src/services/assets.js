@@ -61,9 +61,4 @@ export const deleteAsset = id =>
 export const reviewAsset = (id, status) =>
   api.put(`/assets/${id}/review`, { reviewStatus: status }).then(res => res.data)
 
-export const fetchAssetStages = id =>
-  api.get(`/assets/${id}/stages`).then(res => res.data)
-
-export const updateAssetStage = (assetId, stageId, completed) =>
-  api.put(`/assets/${assetId}/stages/${stageId}`, { completed }).then(res => res.data)
 

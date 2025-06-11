@@ -5,7 +5,6 @@ export const MENU_NAMES = {
   employees: '人員管理',
   roles: '角色設定',
   tags: '標籤管理',
-  'review-stages': '審查關卡',
   'ad-data': '廣告數據',
   account: '帳號資訊'
 }
