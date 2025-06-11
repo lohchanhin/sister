@@ -63,7 +63,6 @@ const route = useRoute()
 /* 全部選單定義 */
 const allMenus = {
   dashboard: { path: '/', icon: '🏠' },
-  progress: { path: '/progress', icon: '📈' },
   assets: { path: '/assets', icon: '🎞️' },
   products: { path: '/products', icon: '🎬' },
   employees: { path: '/employees', icon: '👥' },
