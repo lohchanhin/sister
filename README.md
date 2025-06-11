@@ -35,6 +35,16 @@
    ```
    這會在 `server` 目錄執行 Jest 測試，模擬 POST `/api/auth/login`。
 
+### 雲端資料庫
+若需要在雲端部署 MongoDB，可考慮使用 MongoDB Atlas：
+1. 造訪 <https://www.mongodb.com/cloud/atlas> 註冊帳號並建立專案與 Cluster。
+2. 在 Cluster 頁面選擇 **Connect → Drivers**，複製連線字串。
+3. 編輯 `server/.env`，將 `MONGODB_URI` 改為取得的 Atlas URI：
+   ```bash
+   MONGODB_URI=mongodb+srv://<user>:<password>@cluster0.xxxxx.mongodb.net/mydb
+   ```
+4. 上傳資料或執行遷移前，請務必先備份現有資料。
+
 
 ## 根目錄一鍵啟動
 根目錄已新增 `package.json`，安裝相依套件後即可同時啟動前後端。
@@ -62,6 +72,7 @@ server/  # 後端 API
 ## 廣告數據頁面
 此頁面匯集各廣告平台的曝光與點擊統計，路徑為 `/ads`。目前後端示範提供 `/api/analytics` 取得資料，未來可依需求串接第三方服務。
 
+
 ## Heroku 部署
 以下為將專案部署至 **Heroku** 的基本流程：
 
@@ -76,3 +87,16 @@ server/  # 後端 API
    ```
    Heroku 會在部署後自動執行 `heroku-postbuild` 產生前端靜態檔，
    接著根據 `Procfile` 內容啟動伺服器。
+
+## 部署
+前端建置後將輸出至 `client/dist`，可透過下列指令產生靜態檔案：
+
+```bash
+npm --prefix client run build
+```
+
+完成後啟動後端即可同時提供 API 與前端頁面：
+
+```bash
+npm --prefix server start
+```
