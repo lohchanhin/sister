@@ -25,7 +25,7 @@ const routes = [
     path: '/',
     component: DashboardLayout,
     children: [
-      { path: '', name: 'Dashboard', component: Dashboard, meta: { menu: 'dashboard' } },
+      { path: 'dashboard', name: 'Dashboard', component: Dashboard, meta: { menu: 'dashboard' } },
       { path: 'account', name: 'Account', component: Account, meta: { menu: 'account' } },
       { path: 'assets', name: 'Assets', component: AssetLibrary, meta: { menu: 'assets' } },
       { path: 'products', name: 'Products', component: ProductLibrary, meta: { menu: 'products' } },
