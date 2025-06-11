@@ -67,7 +67,7 @@ const allMenus = {
   products: { path: '/products', icon: '🎬' },
   employees: { path: '/employees', icon: '👥' },
   roles: { path: '/roles', icon: '🛡️' },
-  tags: { path: '/tags', icon: '🏷️' },  
+  tags: { path: '/tags', icon: '🏷️' },
   'review-stages': { path: '/review-stages', icon: '✅' },
   'ad-data': { path: '/ad-data', icon: '📊' },
   account: { path: '/account', icon: '👤' }
