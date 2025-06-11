@@ -1,6 +1,5 @@
 export const MENU_NAMES = {
   dashboard: '首頁',
-  progress: '進度追踪',
   assets: '素材庫',
   products: '成品區',
   employees: '人員管理',
