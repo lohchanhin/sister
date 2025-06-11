@@ -75,11 +75,14 @@ const allMenus = {
 
 const navItems = computed(() => {
   const codes = store.user?.menus || []
-  return codes.map(c => ({
-    path: allMenus[c]?.path || '/',
-    icon: allMenus[c]?.icon || '❓',
-    label: MENU_NAMES[c] || c
-  }))
+  const perms = store.user?.permissions || []
+  return codes
+    .filter(c => (c !== 'roles' || perms.includes('role:manage')))
+    .map(c => ({
+      path: allMenus[c]?.path || '/',
+      icon: allMenus[c]?.icon || '❓',
+      label: MENU_NAMES[c] || c
+    }))
 })
 
 /* 事件 */
