@@ -42,7 +42,11 @@ export const getFolders = async (req, res) => {
       : req.query.tags.split(',')
     query.tags = { $all: tags }
   }
-  const folders = await Folder.find(query)
+  let queryBuilder = Folder.find(query)
+  if (parentId === null && type === 'edited') {
+    queryBuilder = queryBuilder.sort({ createdAt: -1 })
+  }
+  const folders = await queryBuilder
   res.json(folders)
 }
 
