@@ -36,7 +36,6 @@ import assetRoutes    from './routes/asset.routes.js'
 import productRoutes  from './routes/product.routes.js'
 import folderRoutes   from './routes/folder.routes.js'
 import taskRoutes     from './routes/task.routes.js'
-import progressRoutes from './routes/progress.routes.js'
 import roleRoutes     from './routes/role.routes.js'
 import tagRoutes      from './routes/tag.routes.js'
 import healthRoutes   from './routes/health.routes.js'
@@ -53,7 +52,6 @@ app.use('/api/assets',   assetRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/folders',  folderRoutes)
 app.use('/api/tasks',    taskRoutes)
-app.use('/api/progress', progressRoutes)
 app.use('/api/roles',    roleRoutes)
 app.use('/api/tags',     tagRoutes)
 app.use('/api/clients',  clientRoutes)
