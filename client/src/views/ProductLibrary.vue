@@ -181,6 +181,7 @@ import {
   fetchAssetStages,
   updateAssetStage
 } from '../services/assets'
+import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
 import { ElMessage } from 'element-plus'
 import { Folder, InfoFilled } from '@element-plus/icons-vue'
@@ -231,10 +232,6 @@ const detailTitle = computed(() => previewItem.value ? previewItem.value.filenam
 async function loadData(id = null) {
   folders.value = await fetchFolders(id, filterTags.value, 'edited')
   assets.value = id ? await fetchProducts(id, filterTags.value, false, true) : []
-  allTags.value = Array.from(new Set([
-    ...folders.value.flatMap(f => f.tags || []),
-    ...assets.value.flatMap(a => a.tags || [])
-  ]))
   currentFolder.value = id ? await getFolder(id) : null
   breadcrumb.value = currentFolder.value
     ? await buildBreadcrumb(currentFolder.value)
@@ -245,8 +242,14 @@ const loadUsers = async () => {
   users.value = await fetchUsers()
 }
 
+const loadTags = async () => {
+  const list = await fetchTags()
+  allTags.value = list.map(t => t.name)
+}
+
 onMounted(() => {
   loadData()
+  loadTags()
   loadUsers()
 })
 watch(filterTags, () => loadData(currentFolder.value?._id || null))
