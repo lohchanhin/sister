@@ -73,23 +73,6 @@ export const getAssets = async (req, res) => {
 
   const assets = await Asset.find(query)
 
-  if (req.query.progress === 'true') {
-    const total = await ReviewStage.countDocuments()
-    const ids = assets.map(a => a._id)
-    const records = await ReviewRecord.aggregate([
-      { $match: { assetId: { $in: ids }, completed: true } },
-      { $group: { _id: '$assetId', done: { $sum: 1 } } }
-    ])
-    const map = {}
-    records.forEach(r => { map[r._id.toString()] = r.done })
-    return res.json(
-      assets.map(a => ({
-        ...a.toObject(),
-        progress: { done: map[a._id.toString()] || 0, total }
-      }))
-    )
-  }
-
   res.json(assets)
 }
 
