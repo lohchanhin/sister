@@ -4,27 +4,13 @@
 
     <!-- =============== 左側格線區 =============== -->
     <div class="flex-1">
-      <el-breadcrumb v-if="breadcrumb.length" separator="/" class="mb-2">
-        <el-breadcrumb-item
-          v-for="b in breadcrumb"
-          :key="b._id"
-          class="cursor-pointer"
-          @click="loadData(b._id)"
-        >{{ b.name }}</el-breadcrumb-item>
-      </el-breadcrumb>
       <!-- 工具列 -->
       <div class="tool-bar flex flex-wrap gap-4 items-end mb-8">
         <el-button :disabled="!currentFolder" @click="goUp">返回上層</el-button>
         <el-input v-model="newFolderName" placeholder="新增資料夾名稱" class="w-56" @keyup.enter="createNewFolder" />
         <el-button type="primary" @click="createNewFolder">建立資料夾</el-button>
-        <el-upload
-          v-if="currentFolder"
-          :http-request="uploadRequest"
-          :on-progress="handleProgress"
-          :on-success="handleSuccess"
-          :on-error="handleError"
-          :show-file-list="false"
-        >
+        <el-upload v-if="currentFolder" :http-request="uploadRequest" :on-progress="handleProgress"
+          :on-success="handleSuccess" :on-error="handleError" :show-file-list="false">
           <el-button type="success">上傳檔案</el-button>
         </el-upload>
         <el-select v-model="filterTags" multiple placeholder="標籤篩選" style="min-width:150px">
@@ -32,6 +18,11 @@
         </el-select>
 
       </div>
+
+      <el-breadcrumb  separator="/" class="mb-2" style="font-size: larger;margin: 1rem;">
+        <el-breadcrumb-item v-for="b in breadcrumb" :key="b._id" class="cursor-pointer" @click="loadData(b._id)">{{
+          b.name }}</el-breadcrumb-item>
+      </el-breadcrumb>
 
       <!-- 卡片格線 -->
       <transition-group name="fade-slide" tag="div" class="flex flex-wrap gap-5">
@@ -56,12 +47,7 @@
             <div class="desc-line">{{ f.description || '—' }}</div>
           </el-scrollbar>
           <div v-if="f.tags?.length" class="tag-list mt-1">
-            <el-tag
-              v-for="tag in f.tags"
-              :key="tag"
-              size="small"
-              class="mr-1"
-            >{{ tag }}</el-tag>
+            <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
           </div>
         </el-card>
 
@@ -80,17 +66,14 @@
             <div class="desc-line">{{ a.description || '—' }}</div>
           </el-scrollbar>
           <div v-if="a.tags?.length" class="tag-list mt-1">
-            <el-tag
-              v-for="tag in a.tags"
-              :key="tag"
-              size="small"
-              class="mr-1"
-            >{{ tag }}</el-tag>
+            <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
           </div>
         </el-card>
 
       </transition-group>
     </div>
+
+
 
     <!-- =============== 詳細資訊 Dialog =============== -->
     <el-dialog v-model="showDetail" width="40%" top="10vh" :modal="true" append-to-body>
@@ -104,6 +87,8 @@
           </div>
         </header>
       </template>
+
+
 
       <el-scrollbar class="panel-body">
         <el-form label-position="top" @submit.prevent>
@@ -453,7 +438,7 @@ function previewAsset(a) {
 .preview-media {
   max-width: 100%;
   max-height: 70vh;
-  object-fit: contain;  /* 影片、圖片皆等比縮放 */
+  object-fit: contain;
+  /* 影片、圖片皆等比縮放 */
 }
-
 </style>

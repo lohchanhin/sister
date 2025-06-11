@@ -5,14 +5,6 @@
 
     <!-- =============== 左側格線區 =============== -->
     <div class="flex-1">
-      <el-breadcrumb v-if="breadcrumb.length" separator="/" class="mb-2">
-        <el-breadcrumb-item
-          v-for="b in breadcrumb"
-          :key="b._id"
-          class="cursor-pointer"
-          @click="loadData(b._id)"
-        >{{ b.name }}</el-breadcrumb-item>
-      </el-breadcrumb>
       <!-- 工具列 -->
       <div class="tool-bar flex flex-wrap gap-4 items-end mb-8">
         <el-button :disabled="!currentFolder" @click="goUp">返回上層</el-button>
@@ -27,6 +19,11 @@
         </el-select>
 
       </div>
+
+      <el-breadcrumb  separator="/" class="mb-2" style="font-size: larger;margin: 1rem;">
+        <el-breadcrumb-item v-for="b in breadcrumb" :key="b._id" class="cursor-pointer" @click="loadData(b._id)">{{
+          b.name }}</el-breadcrumb-item>
+      </el-breadcrumb>
 
       <!-- 卡片格線 -->
       <transition-group name="fade-slide" tag="div" class="flex flex-wrap gap-5">
@@ -519,22 +516,27 @@ function previewAsset(a) {
 }
 
 /* -------- Stage 清單 -------- */
-.stage-list{
+.stage-list {
   display: flex;
   flex-direction: column;
 }
 
-.stage-row{
+.stage-row {
   display: flex;
-  justify-content: space-between; /* 文字、checkbox 貼左右 */
+  justify-content: space-between;
+  /* 文字、checkbox 貼左右 */
   align-items: center;
-  margin-bottom: 1rem;            /* 每列間隔 1rem */
+  margin-bottom: 1rem;
+  /* 每列間隔 1rem */
 }
 
-.stage-label{
-  flex: 1;                        /* 佔滿可用寬度，讓 checkbox 永遠靠右 */
-  white-space: nowrap;            /* 不換行 */
-  overflow: hidden;               /* 超出省略 */
+.stage-label {
+  flex: 1;
+  /* 佔滿可用寬度，讓 checkbox 永遠靠右 */
+  white-space: nowrap;
+  /* 不換行 */
+  overflow: hidden;
+  /* 超出省略 */
   text-overflow: ellipsis;
 }
 
@@ -545,5 +547,4 @@ function previewAsset(a) {
 .approved :deep(.el-card__body) {
   background-color: var(--el-color-success-light-9, #f0f9eb);
 }
-
 </style>
