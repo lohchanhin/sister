@@ -23,6 +23,7 @@ const assetSchema = new mongoose.Schema(
     filename:   { type: String, required: true },
 
     path:       { type: String, required: true },
+    url:        { type: String },
     type:         { type: String, enum: ['raw', 'edited'], default: 'raw' },
     reviewStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     description:  { type: String, default: '' },
