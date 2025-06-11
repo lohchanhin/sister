@@ -60,6 +60,9 @@
             <div class="flex items-center mb-2">
               <div class="flex-1 truncate" :title="a.title || a.filename">{{ a.title || a.filename }}</div>
 
+              <el-button link size="small" @click.stop="downloadAsset(a)"><el-icon>
+                  <Download />
+                </el-icon>下載</el-button>
               <el-button link size="small" @click.stop="showDetailFor(a, 'asset')"><el-icon>
                   <InfoFilled />
                 </el-icon></el-button>
@@ -159,6 +162,7 @@
       </div>
 
       <template #footer>
+        <el-button type="primary" @click="downloadAsset(previewItem)">下載</el-button>
         <el-button @click="previewVisible = false">關閉</el-button>
       </template>
     </el-dialog>
@@ -184,7 +188,7 @@ import {
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
 import { ElMessage } from 'element-plus'
-import { Folder, InfoFilled } from '@element-plus/icons-vue'
+import { Folder, InfoFilled, Download } from '@element-plus/icons-vue'
 
 const folders = ref([])
 const assets = ref([])
@@ -371,6 +375,18 @@ function previewAsset(a) {
   previewItem.value = { ...a, url }
   console.log('[預覽素材]', url)
   previewVisible.value = true
+}
+
+function downloadAsset(asset) {
+  const url = /^\/static\//.test(asset.url)
+    ? asset.url
+    : `/static/${asset.filename}`
+  const link = document.createElement('a')
+  link.href = url
+  link.download = asset.title || asset.filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
 }
 
 
