@@ -111,7 +111,7 @@
             <el-form-item v-if="detailType === 'folder'" label="腳本需求">
               <el-input v-model="detail.script" type="textarea" rows="4" resize="vertical" />
             </el-form-item>
-            <el-form-item v-if="detailType === 'folder'" label="可存取使用者">
+            <el-form-item v-if="detailType === 'folder' && isManager" label="可存取使用者">
               <el-select v-model="detail.allowedUsers" multiple filterable style="width:100%">
                 <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
               </el-select>
@@ -194,6 +194,7 @@ const currentFolder = ref(null)
 const editingFolder = ref(null)
 
 const store = useAuthStore()
+const isManager = computed(() => store.role === 'manager')
 const canReview = computed(() => store.role === 'manager')
 
 const detail = ref({ title: '', description: '', script: '', tags: [], allowedUsers: [] })
