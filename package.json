@@ -1,16 +1,28 @@
 {
   "name": "sister-root",
   "private": true,
+
+  "engines": {
+    "node": "18.x"
+  },
+
   "scripts": {
+    
     "client": "npm --prefix client run dev",
     "server": "npm --prefix server run dev",
     "dev": "concurrently \"npm --prefix client run dev\" \"npm --prefix server run dev\"",
-    "heroku-postbuild": "npm --prefix client install && npm --prefix client run build"
+
+    
+    "heroku-prebuild": "npm install --prefix server --omit=dev",
+
+    
+    "heroku-postbuild": "npm install --prefix client --omit=dev && npm run build --prefix client",
+
+    
+    "start": "echo \"Use Procfile to start\""
   },
+
   "devDependencies": {
     "concurrently": "^8.2.0"
-  },
-  "engines": {
-    "node": "18.x"
   }
 }
