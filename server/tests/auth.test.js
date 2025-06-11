@@ -43,5 +43,6 @@ describe('POST /api/auth/login', () => {
 
     expect(res.body).toHaveProperty('token')
     expect(res.body).toHaveProperty('user.role')
+    expect(res.body.user).toHaveProperty('permissions')
   })
 })
