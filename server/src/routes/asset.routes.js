@@ -39,6 +39,12 @@ router.get('/recent', protect, requirePerm(PERMISSIONS.ASSET_READ), getRecentAss
 /* ★ 新增：更新檔名／描述 */
 
 router.put(
+  '/viewers',
+  protect,
+  requirePerm(PERMISSIONS.ASSET_UPDATE),
+  updateAssetsViewers
+)
+router.put(
   '/:id',
   protect,
   requirePerm(PERMISSIONS.ASSET_UPDATE),
@@ -49,12 +55,6 @@ router.put(
   protect,
   requirePerm(PERMISSIONS.REVIEW_MANAGE),
   reviewAsset
-)
-router.put(
-  '/viewers',
-  protect,
-  requirePerm(PERMISSIONS.ASSET_UPDATE),
-  updateAssetsViewers
 )
 router.get('/:id/stages', protect, getAssetStages)
 router.put('/:id/stages/:stageId', protect, updateStageStatus)
