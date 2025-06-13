@@ -20,6 +20,7 @@ let assetId
 let assetOnlyManager
 let assetByUser
 let assetEmployee
+let empId
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create()
@@ -45,6 +46,7 @@ beforeAll(async () => {
     email: 'emp@example.com',
     roleId: empRole._id
   })
+  empId = emp._id
 
   const res = await request(app)
     .post('/api/auth/login')
@@ -112,5 +114,27 @@ describe('Asset access control', () => {
     expect(ids).toContain(assetByUser._id.toString())
     expect(ids).toContain(assetEmployee._id.toString())
     expect(ids).not.toContain(assetOnlyManager._id.toString())
+  })
+})
+
+describe('Batch update viewers', () => {
+  it('should update allowedUsers for multiple assets', async () => {
+    const newUser = await User.create({
+      username: 'view',
+      password: 'pwd',
+      email: 'view@example.com',
+      roleId: (await Role.findOne({ name: 'employee' }))._id
+    })
+
+    await request(app)
+      .put('/api/assets/viewers')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ids: [assetId.toString(), assetEmployee._id.toString()], allowedUsers: [newUser._id.toString()] })
+      .expect(200)
+
+    const a1 = await Asset.findById(assetId)
+    const a2 = await Asset.findById(assetEmployee._id)
+    expect(a1.allowedUsers.map(id => id.toString())).toEqual([newUser._id.toString()])
+    expect(a2.allowedUsers.map(id => id.toString())).toEqual([newUser._id.toString()])
   })
 })
