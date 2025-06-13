@@ -10,7 +10,8 @@ import {
     updateAsset,
     deleteAsset,
     getRecentAssets,
-    reviewAsset
+    reviewAsset,
+    updateAssetsViewers
 } from '../controllers/asset.controller.js'
 import {
   getAssetStages,
@@ -48,6 +49,12 @@ router.put(
   protect,
   requirePerm(PERMISSIONS.REVIEW_MANAGE),
   reviewAsset
+)
+router.put(
+  '/viewers',
+  protect,
+  requirePerm(PERMISSIONS.ASSET_UPDATE),
+  updateAssetsViewers
 )
 router.get('/:id/stages', protect, getAssetStages)
 router.put('/:id/stages/:stageId', protect, updateStageStatus)
