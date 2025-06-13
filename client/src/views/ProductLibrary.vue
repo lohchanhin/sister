@@ -21,7 +21,7 @@
 
       </div>
 
-      <el-breadcrumb  separator="/" class="mb-2" style="font-size: larger;margin: 1rem;">
+      <el-breadcrumb separator="/" class="mb-2" style="font-size: larger;margin: 1rem;">
         <el-breadcrumb-item v-for="b in breadcrumb" :key="b._id" class="cursor-pointer" @click="loadData(b._id)">{{
           b.name }}</el-breadcrumb-item>
       </el-breadcrumb>
@@ -34,16 +34,19 @@
           @click="openFolder(f)">
           <template #header>
             <div class="flex items-center mb-2">
-              <el-checkbox v-model="selectedItems" :label="f._id" @click.stop class="mr-1" />
-              <div class="flex items-center gap-2 flex-1 truncate" @click.stop="openFolder(f)">
-                <el-icon>
-                  <Folder />
-                </el-icon>
-                <span class="font-medium">{{ f.name }}</span>
-              </div>
-              <el-button link size="small" @click.stop="showDetailFor(f, 'folder')"><el-icon>
+              <el-checkbox v-model="selectedItems" :label="f._id" @click.stop class="mr-1">
+                <span class="font-medium flex items-center gap-2 truncate">
+                  <el-icon style="font-size: 24px;">
+                    <Folder />
+                  </el-icon>
+                  {{ f.name }}
+                </span>
+              </el-checkbox>
+              <el-button link size="small" @click.stop="showDetailFor(f, 'folder')">
+                <el-icon style="font-size: 24px;">
                   <InfoFilled />
-                </el-icon></el-button>
+                </el-icon>
+              </el-button>
             </div>
           </template>
           <el-scrollbar max-height="60">
@@ -57,15 +60,17 @@
         <!-- ===== 素材卡 ===== -->
         <el-card v-for="a in assets" :key="a._id"
           :class="['asset-card', 'card-base', 'cursor-pointer', { approved: a.reviewStatus === 'approved' }]"
-          shadow="never" @click="previewAsset(a)">
+          shadow="hover" @click="previewAsset(a)">
           <template #header>
             <div class="flex items-center mb-2">
-              <el-checkbox v-model="selectedItems" :label="a._id" @click.stop class="mr-1" />
-              <div class="flex-1 truncate" :title="a.title || a.filename">{{ a.title || a.filename }}</div>
-              
-              <el-button link size="small" @click.stop="showDetailFor(a, 'asset')"><el-icon>
+              <el-checkbox v-model="selectedItems" :label="a._id" @click.stop class="mr-1">
+                <span class="font-medium truncate">{{ a.title || a.filename }}</span>
+              </el-checkbox>
+              <el-button link size="small" @click.stop="showDetailFor(a, 'asset')">
+                <el-icon style="font-size: 24px;">
                   <InfoFilled />
-                </el-icon></el-button>
+                </el-icon>
+              </el-button>
             </div>
           </template>
           <el-scrollbar max-height="60">
@@ -78,6 +83,8 @@
           </div>
         </el-card>
 
+
+
       </transition-group>
     </div>
 
@@ -86,7 +93,7 @@
       <template #header>
         <header class="panel-header" :style="{ '--panel-bg': sidebarBg }">
           <div class="title">
-            <el-icon>
+            <el-icon class="text-[24px]">
               <InfoFilled />
             </el-icon>
             <span class="text">{{ detail.title || detail.name || detailTitle }}</span>
