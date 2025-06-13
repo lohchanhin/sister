@@ -222,7 +222,10 @@ const isImage = a => /\.(png|jpe?g|gif|webp)$/i.test(a?.filename || '')
 
 /* 主題色 */
 const sidebarBg = computed(() => getComputedStyle(document.querySelector('.sidebar')).backgroundColor || '#1f2937')
-const detailTitle = computed(() => previewItem.value ? previewItem.value.filename : currentFolder.value?.name || '資訊')
+const detailTitle = computed(() =>
+  previewItem.value
+    ? (previewItem.value.title || previewItem.value.filename)
+    : currentFolder.value?.name || '資訊')
 
 async function loadData(id = null) {
   folders.value = await fetchFolders(id, filterTags.value, 'raw')
@@ -248,7 +251,9 @@ function showDetailFor(item, type) {
   detailType.value = type
   if (type === 'folder') editingFolder.value = item
 
-  detail.value.title = item.title || item.name || item.filename || ''
+  if (type === 'asset') detail.value.title = item.title || ''
+  else if (type === 'folder') detail.value.title = item.name || ''
+  else detail.value.title = item.title || item.name || ''
   detail.value.description = item.description || ''
   detail.value.script = item.script || ''
   detail.value.tags = Array.isArray(item.tags) ? [...item.tags] : []
