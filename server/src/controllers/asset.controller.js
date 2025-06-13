@@ -7,6 +7,7 @@ import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import { getDescendantFolderIds } from '../utils/folderTree.js'
 import { ROLES } from '../config/roles.js'
+import path from 'node:path'
 
 const parseTags = (t) => {
   if (!t) return []
@@ -29,8 +30,12 @@ export const uploadFile = async (req, res) => {
   const asset = await Asset.create({
     title: req.file.originalname,     // 顯示用標題
     filename: req.file.filename,         // 實際檔名
-    path: req.file.path,
-    url: `/static/${req.file.filename}`,
+    path: req.body.folderId
+      ? path.join(process.env.UPLOAD_DIR || 'uploads', req.body.folderId, req.file.filename)
+      : path.join(process.env.UPLOAD_DIR || 'uploads', req.file.filename),
+    url: req.body.folderId
+      ? `/static/${req.body.folderId}/${req.file.filename}`
+      : `/static/${req.file.filename}`,
     type: req.body.type || 'raw',
     reviewStatus: req.body.type === 'edited' ? 'pending' : undefined,
     uploadedBy: req.user._id,

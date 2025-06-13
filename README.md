@@ -14,8 +14,9 @@
    ```
    預設服務於 `http://localhost:5173`。
 3. 如需連接後端，可在 `.env` 檔中設定 `VITE_API_BASE`，預設為 `http://localhost:3000/api`。
-4. 上傳檔案可呼叫 `uploadAsset(file, folderId, extraData)`，其中 `extraData`
-   會被加入 `FormData`；剪輯師上傳成品時可傳入 `{ type: 'edited' }`。
+4. 上傳檔案可呼叫 `uploadAsset(file, folderId, extraData)`，`folderId` 會決定
+   儲存的資料夾，`extraData` 會被加入 `FormData`；剪輯師上傳成品時可傳入
+   `{ type: 'edited' }`。
 
 ## 後端 (server)
 1. 進入 `server` 目錄安裝依賴：
@@ -28,7 +29,7 @@
    npm start
    ```
    伺服器啟動後，API 根路徑為 `http://localhost:3000/api`，
-   靜態檔案可自 `/static/<檔名>` 存取。
+   靜態檔案可自 `/static/<資料夾>/<檔名>` 存取，若未指定資料夾則直接放在根目錄。
 3. 進行登入測試：
    ```bash
    npm test
