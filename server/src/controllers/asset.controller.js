@@ -6,6 +6,7 @@ import Folder from '../models/folder.model.js'
 import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import { getDescendantFolderIds } from '../utils/folderTree.js'
+import { ROLES } from '../config/roles.js'
 
 const parseTags = (t) => {
   if (!t) return []
@@ -35,7 +36,10 @@ export const uploadFile = async (req, res) => {
     uploadedBy: req.user._id,
     folderId: req.body.folderId || null,
     description: req.body.description || '',
-    tags: parseTags(req.body.tags)
+    tags: parseTags(req.body.tags),
+    allowedUsers: Array.isArray(req.body.allowedUsers)
+      ? Array.from(new Set([...req.body.allowedUsers, req.user._id]))
+      : [req.user._id]
   })
 
   if (asset.folderId) {
@@ -74,9 +78,13 @@ export const getAssets = async (req, res) => {
   const assets = await Asset.find(query)
     .populate('uploadedBy', 'username name')
 
+  const filtered = assets.filter(a =>
+    !a.allowedUsers?.length || a.allowedUsers.some(id => id.equals(req.user._id))
+  )
+
   if (req.query.progress === 'true') {
     const total = await ReviewStage.countDocuments()
-    const ids = assets.map(a => a._id)
+    const ids = filtered.map(a => a._id)
     const records = await ReviewRecord.aggregate([
       { $match: { assetId: { $in: ids }, completed: true } },
       { $group: { _id: '$assetId', done: { $sum: 1 } } }
@@ -84,7 +92,7 @@ export const getAssets = async (req, res) => {
     const map = {}
     records.forEach(r => { map[r._id.toString()] = r.done })
     return res.json(
-      assets.map(a => ({
+      filtered.map(a => ({
         ...a.toObject(),
         fileName: a.filename,
         fileType: a.type,
@@ -95,7 +103,7 @@ export const getAssets = async (req, res) => {
   }
 
   res.json(
-    assets.map(a => ({
+    filtered.map(a => ({
       ...a.toObject(),
       fileName: a.filename,
       fileType: a.type,
@@ -117,7 +125,7 @@ export const addComment = async (req, res) => {
 /* ---------- PUT /api/assets/:id ---------- */
 /* 允許更新：title、description */
 export const updateAsset = async (req, res) => {
-  const { title, description } = req.body
+  const { title, description, allowRoles, allowedUsers } = req.body
 
   const asset = await Asset.findById(req.params.id)
   if (!asset) return res.status(404).json({ message: '找不到素材' })
@@ -125,6 +133,12 @@ export const updateAsset = async (req, res) => {
   if (title) asset.title = title
   if (description) asset.description = description
   if (req.body.tags) asset.tags = parseTags(req.body.tags)
+  if (Array.isArray(allowRoles)) {
+    asset.allowRoles = allowRoles.filter(r => Object.values(ROLES).includes(r))
+  }
+  if (Array.isArray(allowedUsers)) {
+    asset.allowedUsers = allowedUsers
+  }
   // filename 不可修改，故不處理
 
   await asset.save()
@@ -157,8 +171,12 @@ export const getRecentAssets = async (req, res) => {
     .limit(limit)
     .populate('uploadedBy', 'username name')
 
+  const filtered = assets.filter(a =>
+    !a.allowedUsers?.length || a.allowedUsers.some(id => id.equals(req.user._id))
+  )
+
   res.json(
-    assets.map(a => ({
+    filtered.map(a => ({
       ...a.toObject(),
       fileName: a.filename,
       fileType: a.type,
