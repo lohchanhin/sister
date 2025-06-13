@@ -17,7 +17,7 @@
         <el-select v-model="filterTags" multiple placeholder="標籤篩選" style="min-width:150px">
           <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
         </el-select>
-        <el-button type="warning" :disabled="!selectedItems.length" @click="openBatch">批量設定可查看者</el-button>
+        <el-button v-if="canBatch" type="warning" :disabled="!selectedItems.length" @click="openBatch">批量設定可查看者</el-button>
 
       </div>
 
@@ -134,7 +134,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="batchDialog" width="30%" top="20vh">
+    <el-dialog v-if="canBatch" v-model="batchDialog" width="30%" top="20vh">
       <template #header>批量設定可查看者</template>
       <el-select v-model="batchUsers" multiple filterable style="width:100%" class="mb-4">
         <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
@@ -184,6 +184,7 @@ const editingFolder = ref(null)
 
 const store = useAuthStore()
 const isManager = computed(() => store.role === 'manager')
+const canBatch = computed(() => store.user.permissions?.includes('asset:update'))
 
 const detail = ref({ title: '', description: '', script: '', tags: [], allowedUsers: [] })
 const showDetail = ref(false)
@@ -244,7 +245,7 @@ async function loadData(id = null) {
 onMounted(() => {
   loadData()
   loadTags()
-  if (isManager.value) loadUsers()
+  if (canBatch.value) loadUsers()
 })
 watch(filterTags, () => loadData(currentFolder.value?._id || null))
 

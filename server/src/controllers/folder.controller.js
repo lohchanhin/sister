@@ -1,5 +1,6 @@
 import Folder from '../models/folder.model.js'
 import { getDescendantFolderIds } from '../utils/folderTree.js'
+import { includeManagers } from '../utils/includeManagers.js'
 
 const parseTags = (t) => {
   if (!t) return []
@@ -13,6 +14,9 @@ const parseTags = (t) => {
 }
 
 export const createFolder = async (req, res) => {
+  const baseUsers = Array.isArray(req.body.allowedUsers)
+    ? Array.from(new Set([...req.body.allowedUsers, req.user._id]))
+    : [req.user._id]
   const folder = await Folder.create({
     name: req.body.name,
     parentId: req.body.parentId || null,
@@ -20,9 +24,7 @@ export const createFolder = async (req, res) => {
     script: req.body.script,
     type: req.body.type || 'raw',
     tags: parseTags(req.body.tags),
-    allowedUsers: Array.isArray(req.body.allowedUsers)
-      ? Array.from(new Set([...req.body.allowedUsers, req.user._id]))
-      : [req.user._id]
+    allowedUsers: await includeManagers(baseUsers)
   })
   res.status(201).json(folder)
 }
@@ -66,6 +68,8 @@ export const updateFolder = async (req, res) => {
   }
   if (req.body.allowedUsers && !Array.isArray(req.body.allowedUsers)) {
     delete req.body.allowedUsers
+  } else if (Array.isArray(req.body.allowedUsers)) {
+    req.body.allowedUsers = await includeManagers(req.body.allowedUsers)
   }
   const folder = await Folder.findByIdAndUpdate(req.params.id, req.body, { new: true })
   if (!folder) return res.status(404).json({ message: '資料夾不存在' })

@@ -7,6 +7,7 @@ import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import { getDescendantFolderIds } from '../utils/folderTree.js'
 import { ROLES } from '../config/roles.js'
+import { includeManagers } from '../utils/includeManagers.js'
 
 const parseTags = (t) => {
   if (!t) return []
@@ -26,6 +27,9 @@ export const uploadFile = async (req, res) => {
     return res.status(400).json({ message: '未上傳檔案' })
   }
 
+  const baseUsers = Array.isArray(req.body.allowedUsers)
+    ? Array.from(new Set([...req.body.allowedUsers, req.user._id]))
+    : [req.user._id]
   const asset = await Asset.create({
     title: req.file.originalname,     // 顯示用標題
     filename: req.file.filename,         // 實際檔名
@@ -37,9 +41,7 @@ export const uploadFile = async (req, res) => {
     folderId: req.body.folderId || null,
     description: req.body.description || '',
     tags: parseTags(req.body.tags),
-    allowedUsers: Array.isArray(req.body.allowedUsers)
-      ? Array.from(new Set([...req.body.allowedUsers, req.user._id]))
-      : [req.user._id]
+    allowedUsers: await includeManagers(baseUsers)
   })
 
   if (asset.folderId) {
@@ -137,7 +139,7 @@ export const updateAsset = async (req, res) => {
     asset.allowRoles = allowRoles.filter(r => Object.values(ROLES).includes(r))
   }
   if (Array.isArray(allowedUsers)) {
-    asset.allowedUsers = allowedUsers
+    asset.allowedUsers = await includeManagers(allowedUsers)
   }
   // filename 不可修改，故不處理
 
@@ -192,6 +194,7 @@ export const updateAssetsViewers = async (req, res) => {
     return res.status(400).json({ message: '參數錯誤' })
   }
 
-  await Asset.updateMany({ _id: { $in: ids } }, { allowedUsers })
+  const users = await includeManagers(allowedUsers)
+  await Asset.updateMany({ _id: { $in: ids } }, { allowedUsers: users })
   res.json({ message: '已更新' })
 }
