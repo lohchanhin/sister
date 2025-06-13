@@ -17,6 +17,7 @@
 4. 上傳檔案可呼叫 `uploadAsset(file, folderId, extraData)`，其中 `extraData`
    會被加入 `FormData`；剪輯師上傳成品時可傳入 `{ type: 'edited' }`。
 5. 批量修改素材可查看者：`updateAssetsViewers(ids, users)`，參數為素材 `_id` 陣列與使用者 `_id` 陣列。
+6. 批量修改資料夾可查看者：`updateFoldersViewers(ids, users)`，參數為資料夾 `_id` 陣列與使用者 `_id` 陣列。
 
 ## 後端 (server)
 1. 進入 `server` 目錄安裝依賴：
@@ -69,7 +70,7 @@ server/  # 後端 API
 前端路徑為 `/products`，員工與管理者皆可瀏覽。
 相對地，素材庫 `/assets` 只會呈現 `type=raw` 的素材。
 若有設定審查關卡，點擊成品資訊中的「審查關卡」按鈕可檢視並勾選各階段。
-素材庫工具列新增「批量設定可查看者」，可勾選多筆素材後一次變更其 `allowedUsers`，對應 API 為 `PUT /api/assets/viewers`。
+素材庫工具列新增「批量設定可查看者」，可勾選多筆素材或資料夾後一次變更其 `allowedUsers`，對應 API 為 `PUT /api/assets/viewers` 與 `PUT /api/folders/viewers`。
 
 ## 廣告數據頁面
 此頁面匯集各廣告平台的曝光與點擊統計，路徑為 `/ads`。目前後端示範提供 `/api/analytics` 取得資料，未來可依需求串接第三方服務。

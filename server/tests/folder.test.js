@@ -6,6 +6,7 @@ import folderRoutes from '../src/routes/folder.routes.js'
 import authRoutes from '../src/routes/auth.routes.js'
 import User from '../src/models/user.model.js'
 import Role from '../src/models/role.model.js'
+import Folder from '../src/models/folder.model.js'
 import dotenv from 'dotenv'
 
 dotenv.config({ override: true })
@@ -129,5 +130,26 @@ describe('Folder access control', () => {
       .set('Authorization', `Bearer ${token3}`)
       .expect(200)
     expect(res.body.length).toBe(0)
+  })
+})
+
+describe('Batch update folder viewers', () => {
+  it('should update allowedUsers for multiple folders', async () => {
+    const newUser = await User.create({
+      username: 'viewf',
+      password: 'pwd',
+      email: 'viewf@example.com',
+      roleId: (await Role.findOne({ name: 'employee' }))._id
+    })
+
+    await request(app)
+      .put('/api/folders/viewers')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ids: [folderId.toString()], allowedUsers: [newUser._id.toString()] })
+      .expect(200)
+
+  const f = await Folder.findById(folderId)
+  const ids = f.allowedUsers.map(id => id.toString())
+  expect(ids).toContain(newUser._id.toString())
   })
 })
