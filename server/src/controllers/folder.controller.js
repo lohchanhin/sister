@@ -80,3 +80,13 @@ export const deleteFolder = async (req, res) => {
   await Folder.findByIdAndDelete(req.params.id)
   res.json({ message: '資料夾已刪除' })
 }
+
+export const updateFoldersViewers = async (req, res) => {
+  const { ids, allowedUsers } = req.body
+  if (!Array.isArray(ids) || !Array.isArray(allowedUsers)) {
+    return res.status(400).json({ message: '參數錯誤' })
+  }
+  const users = await includeManagers(allowedUsers)
+  await Folder.updateMany({ _id: { $in: ids } }, { allowedUsers: users })
+  res.json({ message: '已更新' })
+}
