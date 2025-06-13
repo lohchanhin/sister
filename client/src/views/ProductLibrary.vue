@@ -116,6 +116,11 @@
                 <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
               </el-select>
             </el-form-item>
+            <el-form-item v-if="detailType === 'asset' && isManager" label="可查看者">
+              <el-select v-model="detail.allowedUsers" multiple filterable style="width:100%">
+                <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
+              </el-select>
+            </el-form-item>
           </el-form>
         </el-scrollbar>
 
@@ -293,7 +298,8 @@ async function saveDetail() {
     await updateAsset(previewItem.value._id, {
       title: detail.value.title,
       description: detail.value.description,
-      tags: detail.value.tags
+      tags: detail.value.tags,
+      ...(isManager.value ? { allowedUsers: detail.value.allowedUsers } : {})
     })
   }
   ElMessage.success('已儲存')
