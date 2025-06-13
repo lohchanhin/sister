@@ -184,3 +184,14 @@ export const getRecentAssets = async (req, res) => {
     }))
   )
 }
+
+/* ---------- PUT /api/assets/viewers ---------- */
+export const updateAssetsViewers = async (req, res) => {
+  const { ids, allowedUsers } = req.body
+  if (!Array.isArray(ids) || !Array.isArray(allowedUsers)) {
+    return res.status(400).json({ message: '參數錯誤' })
+  }
+
+  await Asset.updateMany({ _id: { $in: ids } }, { allowedUsers })
+  res.json({ message: '已更新' })
+}
