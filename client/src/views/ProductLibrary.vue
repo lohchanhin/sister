@@ -194,7 +194,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder } from '../services/folders'
+import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers } from '../services/folders'
 import { fetchUsers } from '../services/user'
 import {
   fetchProducts,
@@ -219,7 +219,10 @@ const editingFolder = ref(null)
 const store = useAuthStore()
 const canReview = computed(() => store.role === 'manager')
 const isManager = computed(() => store.role === 'manager')
-const canBatch = computed(() => store.user.permissions?.includes('asset:update'))
+const canBatch = computed(() =>
+  store.user.permissions?.includes('asset:update') ||
+  store.user.permissions?.includes('folder:manage')
+)
 
 const detail = ref({ title: '', description: '', script: '', tags: [], allowedUsers: [] })
 const showDetail = ref(false)
@@ -378,14 +381,18 @@ function openBatch() {
 }
 
 async function applyBatch() {
-  const ids = selectedItems.value.filter(id =>
+  const assetIds = selectedItems.value.filter(id =>
     assets.value.some(a => a._id === id)
   )
-  if (!ids.length) {
+  const folderIds = selectedItems.value.filter(id =>
+    folders.value.some(f => f._id === id)
+  )
+  if (!assetIds.length && !folderIds.length) {
     batchDialog.value = false
     return
   }
-  await updateAssetsViewers(ids, batchUsers.value)
+  if (assetIds.length) await updateAssetsViewers(assetIds, batchUsers.value)
+  if (folderIds.length) await updateFoldersViewers(folderIds, batchUsers.value)
   batchDialog.value = false
   selectedItems.value = []
   loadData(currentFolder.value?._id)
