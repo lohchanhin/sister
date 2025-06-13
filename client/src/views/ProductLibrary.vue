@@ -17,6 +17,7 @@
         <el-select v-model="filterTags" multiple placeholder="標籤篩選" style="min-width:150px">
           <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
         </el-select>
+        <el-button type="warning" :disabled="!selectedItems.length" @click="openBatch">批量設定可查看者</el-button>
 
       </div>
 
@@ -33,6 +34,7 @@
           @click="openFolder(f)">
           <template #header>
             <div class="flex items-center mb-2">
+              <el-checkbox v-model="selectedItems" :label="f._id" @click.stop class="mr-1" />
               <div class="flex items-center gap-2 flex-1 truncate" @click.stop="openFolder(f)">
                 <el-icon>
                   <Folder />
@@ -58,8 +60,9 @@
           shadow="never" @click="previewAsset(a)">
           <template #header>
             <div class="flex items-center mb-2">
+              <el-checkbox v-model="selectedItems" :label="a._id" @click.stop class="mr-1" />
               <div class="flex-1 truncate" :title="a.title || a.filename">{{ a.title || a.filename }}</div>
-
+              
               <el-button link size="small" @click.stop="downloadAsset(a)"><el-icon>
                   <Download />
                 </el-icon>下載</el-button>
@@ -171,8 +174,16 @@
         <el-button @click="previewVisible = false">關閉</el-button>
       </template>
     </el-dialog>
-
-
+    <el-dialog v-model="batchDialog" width="30%" top="20vh">
+      <template #header>批量設定可查看者</template>
+      <el-select v-model="batchUsers" multiple filterable style="width:100%" class="mb-4">
+        <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
+      </el-select>
+      <template #footer>
+        <el-button @click="batchDialog = false">取消</el-button>
+        <el-button type="primary" @click="applyBatch">套用</el-button>
+      </template>
+    </el-dialog>
 
   </section>
 </template>
@@ -188,7 +199,8 @@ import {
   deleteAsset,
   reviewAsset,
   fetchAssetStages,
-  updateAssetStage
+  updateAssetStage,
+  updateAssetsViewers
 } from '../services/assets'
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
@@ -212,6 +224,9 @@ const filterTags = ref([])
 const allTags = ref([])
 
 const users = ref([])
+const selectedItems = ref([])
+const batchDialog = ref(false)
+const batchUsers = ref([])
 
 const breadcrumb = ref([])
 
@@ -246,6 +261,7 @@ async function loadData(id = null) {
   breadcrumb.value = currentFolder.value
     ? await buildBreadcrumb(currentFolder.value)
     : []
+  selectedItems.value = []
 }
 
 const loadUsers = async () => {
@@ -344,6 +360,25 @@ function handleSuccess(_, file) {
 
 function handleError(_, file) {
   delete progressList.value[file.uid]
+}
+
+function openBatch() {
+  batchUsers.value = []
+  batchDialog.value = true
+}
+
+async function applyBatch() {
+  const ids = selectedItems.value.filter(id =>
+    assets.value.some(a => a._id === id)
+  )
+  if (!ids.length) {
+    batchDialog.value = false
+    return
+  }
+  await updateAssetsViewers(ids, batchUsers.value)
+  batchDialog.value = false
+  selectedItems.value = []
+  loadData(currentFolder.value?._id)
 }
 
 async function uploadRequest({ file, onProgress, onSuccess, onError }) {
