@@ -61,9 +61,6 @@
             <div class="flex items-center mb-2">
               <el-checkbox v-model="selectedItems" :label="a._id" @click.stop class="mr-1" />
               <div class="flex-1 truncate" :title="a.title || a.filename">📄 {{ a.title || a.filename }}</div>
-              <el-button link size="small" @click.stop="downloadAsset(a)"><el-icon>
-                  <Download />
-                </el-icon>下載</el-button>
               <el-button link size="small" @click.stop="showDetailFor(a, 'asset')"><el-icon>
                   <InfoFilled />
                 </el-icon></el-button>
