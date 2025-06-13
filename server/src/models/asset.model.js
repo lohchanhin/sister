@@ -41,6 +41,9 @@ const assetSchema = new mongoose.Schema(
       default: [ROLES.MANAGER, ROLES.EMPLOYEE]
     },
 
+    /* 可查看使用者 */
+    allowedUsers: { type: [mongoose.Schema.Types.ObjectId], ref: 'User', default: [] },
+
     /* 留言 */
     comments: [commentSchema]
   },

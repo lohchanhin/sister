@@ -15,7 +15,11 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'testsecret'
 let mongo
 let app
 let token
+let tokenEmp
 let assetId
+let assetOnlyManager
+let assetByUser
+let assetEmployee
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create()
@@ -26,12 +30,20 @@ beforeAll(async () => {
   app.use('/api/auth', authRoutes)
   app.use('/api/assets', assetRoutes)
 
-  const role = await Role.create({ name: 'manager', permissions: ['review:manage'] })
+  const managerRole = await Role.create({ name: 'manager', permissions: ['review:manage', 'asset:read'] })
+  const empRole = await Role.create({ name: 'employee', permissions: ['asset:read'] })
+
   await User.create({
     username: 'admin',
     password: 'mypwd',
     email: 'admin@example.com',
-    roleId: role._id
+    roleId: managerRole._id
+  })
+  const emp = await User.create({
+    username: 'emp',
+    password: 'pwd',
+    email: 'emp@example.com',
+    roleId: empRole._id
   })
 
   const res = await request(app)
@@ -39,8 +51,16 @@ beforeAll(async () => {
     .send({ username: 'admin', password: 'mypwd' })
   token = res.body.token
 
+  const res2 = await request(app)
+    .post('/api/auth/login')
+    .send({ username: 'emp', password: 'pwd' })
+  tokenEmp = res2.body.token
+
   const a = await Asset.create({ filename: 'file.mp4', path: '/tmp/file.mp4', type: 'edited' })
   assetId = a._id
+  assetOnlyManager = await Asset.create({ filename: 'm.mp4', path: '/tmp/m.mp4', type: 'edited', allowRoles: ['manager'] })
+  assetByUser = await Asset.create({ filename: 'u.mp4', path: '/tmp/u.mp4', type: 'edited', allowRoles: [], allowedUsers: [emp._id] })
+  assetEmployee = await Asset.create({ filename: 'e.mp4', path: '/tmp/e.mp4', type: 'edited', allowRoles: ['employee'] })
 })
 
 afterAll(async () => {
@@ -66,5 +86,31 @@ describe('Asset update permission', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ title: 'new title' })
       .expect(403)
+  })
+})
+
+describe('Asset access control', () => {
+  it('manager should only see permitted assets', async () => {
+    const res = await request(app)
+      .get('/api/assets')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    const ids = res.body.map(a => a._id)
+    expect(ids).toContain(assetId.toString())
+    expect(ids).toContain(assetOnlyManager._id.toString())
+    expect(ids).not.toContain(assetByUser._id.toString())
+    expect(ids).not.toContain(assetEmployee._id.toString())
+  })
+
+  it('employee should see allowed assets', async () => {
+    const res = await request(app)
+      .get('/api/assets')
+      .set('Authorization', `Bearer ${tokenEmp}`)
+      .expect(200)
+    const ids = res.body.map(a => a._id)
+    expect(ids).toContain(assetId.toString())
+    expect(ids).toContain(assetByUser._id.toString())
+    expect(ids).toContain(assetEmployee._id.toString())
+    expect(ids).not.toContain(assetOnlyManager._id.toString())
   })
 })
