@@ -247,6 +247,9 @@ onMounted(() => {
   loadTags()
   if (canBatch.value) loadUsers()
 })
+watch(canBatch, (val) => {
+  if (val && !users.value.length) loadUsers()
+})
 watch(filterTags, () => loadData(currentFolder.value?._id || null))
 
 function openFolder(f) { loadData(f._id) }
@@ -329,19 +332,26 @@ function handleError(_, file) {
 }
 
 function openBatch() {
+  if (!users.value.length) loadUsers()
   batchUsers.value = []
   batchDialog.value = true
 }
 
 async function applyBatch() {
-  const ids = selectedItems.value.filter(id =>
+  const assetIds = selectedItems.value.filter(id =>
     assets.value.some(a => a._id === id)
   )
-  if (!ids.length) {
+  const folderIds = selectedItems.value.filter(id =>
+    folders.value.some(f => f._id === id)
+  )
+  if (!assetIds.length && !folderIds.length) {
     batchDialog.value = false
     return
   }
-  await updateAssetsViewers(ids, batchUsers.value)
+  if (assetIds.length) await updateAssetsViewers(assetIds, batchUsers.value)
+  for (const fid of folderIds) {
+    await updateFolder(fid, { allowedUsers: batchUsers.value })
+  }
   batchDialog.value = false
   selectedItems.value = []
   loadData(currentFolder.value?._id)
