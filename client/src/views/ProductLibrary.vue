@@ -375,8 +375,9 @@ function handleError(_, file) {
   delete progressList.value[file.uid]
 }
 
-function openBatch() {
-  batchUsers.value = []
+async function openBatch() {
+  if (!users.value.length) await loadUsers()
+  batchUsers.value = users.value.filter(u => u.role === 'manager').map(u => u._id)
   batchDialog.value = true
 }
 
