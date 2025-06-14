@@ -20,6 +20,25 @@ npm start                 # 啟動伺服器
 | manager   | 123456 | manager  |
 | outsource | 123456 | outsource |
 
+## 權限對應表
+系統操作皆需賦予相應權限，下表列出各權限代碼及其用途：
+
+| 權限代碼 | 功能說明 |
+|-----------|---------|
+| `asset:create`  | 上傳新檔案 |
+| `asset:read`    | 讀取素材或成品 |
+| `asset:update`  | 編輯素材與設定檔案可查看者 |
+| `asset:delete`  | 刪除素材 |
+| `folder:manage` | 新增、編輯或刪除資料夾，包含設定資料夾可查看者 |
+| `user:manage`   | 管理使用者帳號 |
+| `task:manage`   | 任務管理 |
+| `review:manage` | 成品審查流程 |
+| `tag:manage`    | 標籤管理 |
+| `role:manage`   | 角色與權限管理 |
+| `analytics:view`| 查看統計資訊 |
+
+若要讓某角色具備設定檔案或資料夾「可查看者」的能力，請分別為其啟用 `asset:update` 或 `folder:manage` 權限。
+
 啟動後，可透過 `/static/<檔名>` 存取上傳檔案，API 根路徑為 `/api/*`。
 亦可執行 `GET /api/health` 測試伺服器是否正常連線。
 
