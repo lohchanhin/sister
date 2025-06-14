@@ -33,5 +33,12 @@ export const getWeeklyData = async (req, res) => {
     },
     { $sort: { '_id.year': 1, '_id.week': 1 } }
   ])
-  res.json(data)
+  const result = data.map(d => ({
+    week: `${d._id.year}-W${d._id.week}`,
+    spent: d.spent,
+    reach: d.reach,
+    impressions: d.impressions,
+    clicks: d.clicks
+  }))
+  res.json(result)
 }
