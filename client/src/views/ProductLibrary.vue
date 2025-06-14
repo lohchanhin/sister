@@ -17,7 +17,7 @@
         <el-select v-model="filterTags" multiple placeholder="標籤篩選" style="min-width:150px">
           <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
         </el-select>
-        <el-button v-if="canBatch" type="warning" :disabled="!selectedItems.length" @click="openBatch">批量設定可查看者</el-button>
+        <el-button v-if="canBatch" type="warning" :disabled="!selectedItems.length" @click="openRoleBatch">批量設定角色</el-button>
 
       </div>
 
@@ -118,16 +118,6 @@
             <el-form-item v-if="detailType === 'folder'" label="腳本需求">
               <el-input v-model="detail.script" type="textarea" rows="4" resize="vertical" />
             </el-form-item>
-            <el-form-item v-if="detailType === 'folder' && isManager" label="可存取使用者">
-              <el-select v-model="detail.allowedUsers" multiple filterable style="width:100%">
-                <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
-              </el-select>
-            </el-form-item>
-            <el-form-item v-if="detailType === 'asset' && isManager" label="可查看者">
-              <el-select v-model="detail.allowedUsers" multiple filterable style="width:100%">
-                <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
-              </el-select>
-            </el-form-item>
             <el-form-item v-if="detailType === 'asset' && isManager" label="可查看角色">
               <el-select v-model="detail.allowRoles" multiple style="width:100%">
                 <el-option v-for="r in roleOptions" :key="r.value" :label="r.label" :value="r.value" />
@@ -184,13 +174,13 @@
       </template>
     </el-dialog>
     <el-dialog v-if="canBatch" v-model="batchDialog" width="30%" top="20vh">
-      <template #header>批量設定可查看者</template>
-      <el-select v-model="batchUsers" multiple filterable style="width:100%" class="mb-4">
-        <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
+      <template #header>批量設定角色</template>
+      <el-select v-model="batchRoles" multiple style="width:100%" class="mb-4">
+        <el-option v-for="r in roleOptions" :key="r.value" :label="r.label" :value="r.value" />
       </el-select>
       <template #footer>
         <el-button @click="batchDialog = false">取消</el-button>
-        <el-button type="primary" @click="applyBatch">套用</el-button>
+        <el-button type="primary" @click="applyRoleBatch">套用</el-button>
       </template>
     </el-dialog>
 
@@ -199,8 +189,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers } from '../services/folders'
-import { fetchUsers } from '../services/user'
+import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder } from '../services/folders'
 import {
   fetchProducts,
   uploadAsset,
@@ -209,7 +198,7 @@ import {
   reviewAsset,
   fetchAssetStages,
   updateAssetStage,
-  updateAssetsViewers
+  updateAssetsRoles
 } from '../services/assets'
 import { fetchTags } from '../services/tags'
 import { fetchRoles } from '../services/roles'
@@ -230,17 +219,16 @@ const canBatch = computed(() =>
   store.user.permissions?.includes('folder:manage')
 )
 
-const detail = ref({ title: '', description: '', script: '', tags: [], allowedUsers: [], allowRoles: [] })
+const detail = ref({ title: '', description: '', script: '', tags: [], allowRoles: [] })
 const showDetail = ref(false)
 const detailType = ref('folder')   // 'folder' | 'asset'
 const newFolderName = ref('')
 const filterTags = ref([])
 const allTags = ref([])
 
-const users = ref([])
 const selectedItems = ref([])
 const batchDialog = ref(false)
-const batchUsers = ref([])
+const batchRoles = ref([])
 const roleOptions = ref([])
 
 const breadcrumb = ref([])
@@ -282,9 +270,6 @@ async function loadData(id = null) {
   selectedItems.value = []
 }
 
-const loadUsers = async () => {
-  users.value = await fetchUsers()
-}
 
 const loadTags = async () => {
   const list = await fetchTags()
@@ -299,7 +284,6 @@ const loadRoles = async () => {
 onMounted(() => {
   loadData()
   loadTags()
-  if (canBatch.value) loadUsers()
   if (isManager.value) loadRoles()
 })
 watch(filterTags, () => loadData(currentFolder.value?._id || null))
@@ -318,7 +302,6 @@ async function showDetailFor(item, type) {
   detail.value.description = item.description || ''
   detail.value.script = item.script || ''
   detail.value.tags = Array.isArray(item.tags) ? [...item.tags] : []
-  detail.value.allowedUsers = Array.isArray(item.allowedUsers) ? [...item.allowedUsers] : []
   detail.value.allowRoles = Array.isArray(item.allowRoles) ? [...item.allowRoles] : []
 
   previewItem.value = type === 'asset' ? item : null
@@ -335,8 +318,7 @@ async function saveDetail() {
       name: detail.value.title,
       description: detail.value.description,
       script: detail.value.script,
-      tags: detail.value.tags,
-      allowedUsers: detail.value.allowedUsers
+      tags: detail.value.tags
     })
   } else if (detailType.value === 'asset' && previewItem.value) {
     await updateAsset(previewItem.value._id, {
@@ -344,7 +326,6 @@ async function saveDetail() {
       description: detail.value.description,
       tags: detail.value.tags,
       ...(isManager.value ? {
-        allowedUsers: detail.value.allowedUsers,
         allowRoles: detail.value.allowRoles
       } : {})
     })
@@ -393,25 +374,21 @@ function handleError(_, file) {
   delete progressList.value[file.uid]
 }
 
-async function openBatch() {
-  if (!users.value.length) await loadUsers()
-  batchUsers.value = users.value.filter(u => u.role === 'manager').map(u => u._id)
+function openRoleBatch() {
+  batchRoles.value = []
+  if (!roleOptions.value.length) loadRoles()
   batchDialog.value = true
 }
 
-async function applyBatch() {
+async function applyRoleBatch() {
   const assetIds = selectedItems.value.filter(id =>
     assets.value.some(a => a._id === id)
   )
-  const folderIds = selectedItems.value.filter(id =>
-    folders.value.some(f => f._id === id)
-  )
-  if (!assetIds.length && !folderIds.length) {
+  if (!assetIds.length) {
     batchDialog.value = false
     return
   }
-  if (assetIds.length) await updateAssetsViewers(assetIds, batchUsers.value)
-  if (folderIds.length) await updateFoldersViewers(folderIds, batchUsers.value)
+  await updateAssetsRoles(assetIds, batchRoles.value)
   batchDialog.value = false
   selectedItems.value = []
   loadData(currentFolder.value?._id)
