@@ -18,6 +18,7 @@ let token
 let token2
 let token3
 let folderId
+let folderEmployeeId
 let user1Id
 let user2Id
 
@@ -157,5 +158,29 @@ describe('Batch update folder viewers', () => {
   const f = await Folder.findById(folderId)
   const ids = f.allowedUsers.map(id => id.toString())
   expect(ids).toContain(newUser._id.toString())
+  })
+})
+
+describe('Batch update folder roles', () => {
+  beforeAll(async () => {
+    const f = await Folder.create({
+      name: 'femp',
+      type: 'edited',
+      allowRoles: ['employee']
+    })
+    folderEmployeeId = f._id
+  })
+
+  it('should update allowRoles for multiple folders', async () => {
+    await request(app)
+      .put('/api/folders/roles')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ids: [folderId.toString(), folderEmployeeId.toString()], allowRoles: ['manager'] })
+      .expect(200)
+
+    const f1 = await Folder.findById(folderId)
+    const f2 = await Folder.findById(folderEmployeeId)
+    expect(f1.allowRoles).toEqual(['manager'])
+    expect(f2.allowRoles).toEqual(['manager'])
   })
 })
