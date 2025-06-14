@@ -68,7 +68,13 @@ export const fetchAssetStages = id =>
 export const updateAssetStage = (assetId, stageId, completed) =>
   api.put(`/assets/${assetId}/stages/${stageId}`, { completed }).then(res => res.data)
 
-export const updateAssetsViewers = (ids, users) =>
-  api.put('/assets/viewers', { ids, allowedUsers: users }).then(res => res.data)
+export const updateAssetsViewers = async (ids, users) => {
+  try {
+    const res = await api.put('/assets/viewers', { ids, allowedUsers: users })
+    return res.data
+  } catch (e) {
+    throw e.response?.data?.message || '更新失敗'
+  }
+}
 
 

@@ -17,6 +17,7 @@
 4. 上傳檔案可呼叫 `uploadAsset(file, folderId, extraData)`，其中 `extraData`
    會被加入 `FormData`；剪輯師上傳成品時可傳入 `{ type: 'edited' }`。
 5. 素材庫詳情視窗可設定可查看使用者，管理者可指定具有瀏覽權限的帳號。
+6. 於素材庫與成品區可批次設定可查看者，選取多項後點擊「批次設定可查看者」。
 
 ## 後端 (server)
 1. 進入 `server` 目錄安裝依賴：

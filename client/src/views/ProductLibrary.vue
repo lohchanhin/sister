@@ -18,6 +18,10 @@
           <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
         </el-select>
 
+        <el-button v-if="selectedItems.length && isManager" @click="openBatchDialog">
+          批次設定可查看者
+        </el-button>
+
       </div>
 
       <el-breadcrumb separator="/" class="mb-2" style="font-size: larger;margin: 1rem;">
@@ -177,13 +181,22 @@
         <el-button @click="previewVisible = false">關閉</el-button>
       </template>
     </el-dialog>
+    <el-dialog v-model="batchDialog" title="批次設定可查看者" width="30%" append-to-body>
+      <el-select v-model="batchUsers" multiple filterable style="width:100%">
+        <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
+      </el-select>
+      <template #footer>
+        <el-button @click="batchDialog = false">取消</el-button>
+        <el-button type="primary" @click="applyBatch">確定</el-button>
+      </template>
+    </el-dialog>
 
   </section>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder } from '../services/folders'
+import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers } from '../services/folders'
 import { fetchUsers } from '../services/user'
 import {
   fetchProducts,
@@ -192,7 +205,8 @@ import {
   deleteAsset,
   reviewAsset,
   fetchAssetStages,
-  updateAssetStage
+  updateAssetStage,
+  updateAssetsViewers
 } from '../services/assets'
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
@@ -217,6 +231,8 @@ const allTags = ref([])
 
 const users = ref([])
 const selectedItems = ref([])
+const batchDialog = ref(false)
+const batchUsers = ref([])
 const breadcrumb = ref([])
 
 async function buildBreadcrumb(folder) {
@@ -275,6 +291,23 @@ watch(filterTags, () => loadData(currentFolder.value?._id || null))
 
 function openFolder(f) { loadData(f._id) }
 function goUp() { loadData(currentFolder.value?.parentId || null) }
+
+function openBatchDialog() {
+  if (!users.value.length) loadUsers()
+  batchUsers.value = []
+  batchDialog.value = true
+}
+
+async function applyBatch() {
+  const assetIds = selectedItems.value.filter(id => assets.value.some(a => a._id === id))
+  const folderIds = selectedItems.value.filter(id => folders.value.some(f => f._id === id))
+  if (assetIds.length) await updateAssetsViewers(assetIds, batchUsers.value)
+  if (folderIds.length) await updateFoldersViewers(folderIds, batchUsers.value)
+  ElMessage.success('已更新可查看者')
+  batchDialog.value = false
+  selectedItems.value = []
+  loadData(currentFolder.value?._id)
+}
 
 async function showDetailFor(item, type) {
   detailType.value = type
