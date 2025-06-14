@@ -29,6 +29,7 @@ npm start                 # 啟動伺服器
 | `asset:read`    | 讀取素材或成品 |
 | `asset:update`  | 編輯素材與設定檔案可查看者 |
 | `asset:delete`  | 刪除素材 |
+| `folder:read`   | 瀏覽資料夾內容 |
 | `folder:manage` | 新增、編輯或刪除資料夾，包含設定資料夾可查看者 |
 | `user:manage`   | 管理使用者帳號 |
 | `task:manage`   | 任務管理 |
