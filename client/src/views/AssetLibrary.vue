@@ -251,6 +251,9 @@ onMounted(() => {
   if (canBatch.value) loadUsers()
 })
 watch(filterTags, () => loadData(currentFolder.value?._id || null))
+watch(canBatch, val => {
+  if (val && !users.value.length) loadUsers()
+})
 
 function openFolder(f) { loadData(f._id) }
 function goUp() { loadData(currentFolder.value?.parentId || null) }
@@ -332,6 +335,7 @@ function handleError(_, file) {
 }
 
 function openBatch() {
+  if (!users.value.length) loadUsers()
   batchUsers.value = []
   batchDialog.value = true
 }
