@@ -11,14 +11,14 @@ const weeklyData = ref([])
 
 const clientDialog = ref(false)
 const editingClient = ref(false)
-const clientForm = ref({ name: '' })
+const clientForm = ref({ name: '', platforms: [] })
 
 const recordForm = ref({
   date: '',
-  cost: '',
+  spent: '',
+  reach: '',
   impressions: '',
-  clicks: '',
-  conversions: ''
+  clicks: ''
 })
 const activeTab = ref('daily')
 
@@ -45,7 +45,7 @@ onMounted(loadClients)
 
 const openCreateClient = () => {
   editingClient.value = false
-  clientForm.value = { name: '' }
+  clientForm.value = { name: '', platforms: [] }
   clientDialog.value = true
 }
 
@@ -69,9 +69,9 @@ const submitClient = async () => {
 
 const submitRecord = async () => {
   if (!selected.value) return
-  await createDaily({ ...recordForm.value, clientId: selected.value })
+  await createDaily(selected.value, { ...recordForm.value })
   ElMessage.success('已新增記錄')
-  recordForm.value = { date: '', cost: '', impressions: '', clicks: '', conversions: '' }
+  recordForm.value = { date: '', spent: '', reach: '', impressions: '', clicks: '' }
   await loadDaily()
   await loadWeekly()
 }
@@ -100,6 +100,10 @@ const submitRecord = async () => {
     <el-dialog v-model="clientDialog" :title="editingClient ? '編輯客戶' : '新增客戶'" width="420px">
       <el-form label-position="top" @submit.prevent>
         <el-form-item label="客戶名稱"><el-input v-model="clientForm.name" /></el-form-item>
+        <el-form-item label="平台">
+          <el-select v-model="clientForm.platforms" multiple allow-create filterable placeholder="新增平台">
+          </el-select>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="clientDialog=false">取消</el-button>
@@ -111,18 +115,18 @@ const submitRecord = async () => {
       <el-tab-pane label="每日記錄" name="daily">
         <el-table :data="dailyData" stripe style="width:100%" empty-text="尚無資料">
           <el-table-column prop="date" label="日期" />
-          <el-table-column prop="cost" label="花費" />
+          <el-table-column prop="spent" label="花費" />
+          <el-table-column prop="reach" label="觸及" />
           <el-table-column prop="impressions" label="曝光" />
           <el-table-column prop="clicks" label="點擊" />
-          <el-table-column prop="conversions" label="轉換" />
         </el-table>
         <el-form label-position="top" class="mt-4" @submit.prevent="submitRecord">
           <div class="flex flex-wrap gap-4 items-end">
             <el-date-picker v-model="recordForm.date" type="date" placeholder="日期" />
-            <el-input v-model.number="recordForm.cost" placeholder="花費" class="w-28" />
+            <el-input v-model.number="recordForm.spent" placeholder="花費" class="w-28" />
+            <el-input v-model.number="recordForm.reach" placeholder="觸及" class="w-28" />
             <el-input v-model.number="recordForm.impressions" placeholder="曝光" class="w-28" />
             <el-input v-model.number="recordForm.clicks" placeholder="點擊" class="w-28" />
-            <el-input v-model.number="recordForm.conversions" placeholder="轉換" class="w-28" />
             <el-button type="primary" native-type="submit">新增記錄</el-button>
           </div>
         </el-form>
@@ -130,10 +134,10 @@ const submitRecord = async () => {
       <el-tab-pane label="週報表" name="weekly">
         <el-table :data="weeklyData" stripe style="width:100%" empty-text="尚無資料">
           <el-table-column prop="week" label="週" />
-          <el-table-column prop="cost" label="總花費" />
+          <el-table-column prop="spent" label="總花費" />
+          <el-table-column prop="reach" label="總觸及" />
           <el-table-column prop="impressions" label="總曝光" />
           <el-table-column prop="clicks" label="總點擊" />
-          <el-table-column prop="conversions" label="總轉換" />
         </el-table>
       </el-tab-pane>
     </el-tabs>
