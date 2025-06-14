@@ -8,7 +8,8 @@ import {
   getFolder,
   updateFolder,
   deleteFolder,
-  updateFoldersViewers
+  updateFoldersViewers,
+  updateFoldersRoles
 } from '../controllers/folder.controller.js'
 
 const router = Router()
@@ -21,6 +22,12 @@ router.put(
   protect,
   requirePerm(PERMISSIONS.FOLDER_MANAGE),
   updateFoldersViewers
+)
+router.put(
+  '/roles',
+  protect,
+  requirePerm(PERMISSIONS.FOLDER_MANAGE),
+  updateFoldersRoles
 )
 router.put('/:id', protect, requirePerm(PERMISSIONS.FOLDER_MANAGE), updateFolder)
 router.delete(
