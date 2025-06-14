@@ -32,7 +32,6 @@ const routes = [
 
       { path: 'employees', name: 'EmployeeManager', component: EmployeeManager, meta: { menu: 'employees' } },
       { path: 'roles', name: 'RoleSettings', component: RoleSettings, meta: { menu: 'roles' } },
-      { path: 'role-setting', name: 'RoleSetting', component: RoleSettings, meta: { menu: 'roles' } },
       { path: 'tags', name: 'TagManager', component: TagManager, meta: { menu: 'tags' } },
       { path: 'review-stages', name: 'ReviewSettings', component: ReviewSettings, meta: { menu: 'review-stages' } },
       { path: 'ad-data', name: 'AdData', component: AdData, meta: { menu: 'ad-data' } }
