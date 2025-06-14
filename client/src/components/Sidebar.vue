@@ -69,7 +69,7 @@ const allMenus = {
   roles: { path: '/roles', icon: '🛡️' },
   tags: { path: '/tags', icon: '🏷️' },
   'review-stages': { path: '/review-stages', icon: '✅' },
-  'ad-data': { path: '/ad-data', icon: '📊' },
+  'ad-data': { path: '/ad-clients', icon: '📊' },
   account: { path: '/account', icon: '👤' }
 }
 
