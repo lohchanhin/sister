@@ -1,9 +1,17 @@
 import mongoose from 'mongoose'
 import AdDaily from '../models/adDaily.model.js'
 
+const sanitizeNumber = val =>
+  parseFloat(String(val).replace(/[^\d.]/g, '')) || 0
+
 export const createAdDaily = async (req, res) => {
   const rec = await AdDaily.create({
     ...req.body,
+    spent: sanitizeNumber(req.body.spent),
+    enquiries: sanitizeNumber(req.body.enquiries),
+    reach: sanitizeNumber(req.body.reach),
+    impressions: sanitizeNumber(req.body.impressions),
+    clicks: sanitizeNumber(req.body.clicks),
     clientId: req.params.clientId,
     platformId: req.params.platformId
   })
