@@ -17,7 +17,7 @@
         <el-select v-model="filterTags" multiple placeholder="標籤篩選" style="min-width:150px">
           <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
         </el-select>
-        <el-button v-if="canBatch" type="warning" :disabled="!selectedItems.length" @click="openBatch">批量設定可查看者</el-button>
+        <el-button v-if="canBatch" type="warning" :disabled="!selectedItems.length" @click="openBatch">批量設定可查看角色</el-button>
 
       </div>
 
@@ -184,9 +184,9 @@
       </template>
     </el-dialog>
     <el-dialog v-if="canBatch" v-model="batchDialog" width="30%" top="20vh">
-      <template #header>批量設定可查看者</template>
-      <el-select v-model="batchUsers" multiple filterable style="width:100%" class="mb-4">
-        <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
+      <template #header>批量設定可查看角色</template>
+      <el-select v-model="batchRoles" multiple style="width:100%" class="mb-4">
+        <el-option v-for="r in roleOptions" :key="r.value" :label="r.label" :value="r.value" />
       </el-select>
       <template #footer>
         <el-button @click="batchDialog = false">取消</el-button>
@@ -199,7 +199,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers } from '../services/folders'
+import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersRoles } from '../services/folders'
 import { fetchUsers } from '../services/user'
 import {
   fetchProducts,
@@ -209,7 +209,7 @@ import {
   reviewAsset,
   fetchAssetStages,
   updateAssetStage,
-  updateAssetsViewers
+  updateAssetsRoles
 } from '../services/assets'
 import { fetchTags } from '../services/tags'
 import { fetchRoles } from '../services/roles'
@@ -240,7 +240,7 @@ const allTags = ref([])
 const users = ref([])
 const selectedItems = ref([])
 const batchDialog = ref(false)
-const batchUsers = ref([])
+const batchRoles = ref([])
 const roleOptions = ref([])
 
 const breadcrumb = ref([])
@@ -394,8 +394,8 @@ function handleError(_, file) {
 }
 
 async function openBatch() {
-  if (!users.value.length) await loadUsers()
-  batchUsers.value = users.value.filter(u => u.role === 'manager').map(u => u._id)
+  if (!roleOptions.value.length) await loadRoles()
+  batchRoles.value = []
   batchDialog.value = true
 }
 
@@ -410,8 +410,8 @@ async function applyBatch() {
     batchDialog.value = false
     return
   }
-  if (assetIds.length) await updateAssetsViewers(assetIds, batchUsers.value)
-  if (folderIds.length) await updateFoldersViewers(folderIds, batchUsers.value)
+  if (assetIds.length) await updateAssetsRoles(assetIds, batchRoles.value)
+  if (folderIds.length) await updateFoldersRoles(folderIds, batchRoles.value)
   batchDialog.value = false
   selectedItems.value = []
   loadData(currentFolder.value?._id)
