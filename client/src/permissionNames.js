@@ -1,14 +1,14 @@
 export const PERMISSION_NAMES = {
-  'asset:create': '資源建立',
-  'asset:read': '資源讀取',
-  'asset:update': '資源更新',
-  'asset:delete': '資源刪除',
+  'asset:create': '素材庫/成品區上傳素材',
+  'asset:read': '素材查看',
+  'asset:update': '編輯素材資訊或設定可查看者',
+  'asset:delete': '刪除素材',
   'folder:read': '資料夾瀏覽',
-  'folder:manage': '資料夾管理',
-  'user:manage': '使用者管理',
-  'task:manage': '任務管理',
-  'review:manage': '審查管理',
+  'folder:manage': '新增、編輯或刪除資料夾及設定可查看者',
+  'user:manage': '管理使用者帳號',
+  'task:manage': '任務建立與追蹤',
+  'review:manage': '成品審查流程',
   'tag:manage': '標籤管理',
-  'role:manage': '角色管理',
-  'analytics:view': '統計檢視'
+  'role:manage': '角色權限設定',
+  'analytics:view': '查看統計資料'
 }
