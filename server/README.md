@@ -86,6 +86,14 @@ GET /api/assets/:id/stages
 PUT /api/assets/:id/stages/:stageId { completed: true | false }
 ```
 
+## 批次設定可查看者
+一次更新多個素材或資料夾的 `allowedUsers`：
+
+```bash
+PUT /api/assets/viewers  { ids: [id], allowedUsers: [userId] }
+PUT /api/folders/viewers { ids: [id], allowedUsers: [userId] }
+```
+
 ## 客戶與廣告資料 API
 下列為常見操作範例：
 ```bash
