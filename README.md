@@ -18,6 +18,7 @@
    會被加入 `FormData`；剪輯師上傳成品時可傳入 `{ type: 'edited' }`。
 5. 批量修改素材可查看者：`updateAssetsViewers(ids, users)`，參數為素材 `_id` 陣列與使用者 `_id` 陣列。
 6. 批量修改資料夾可查看者：`updateFoldersViewers(ids, users)`，參數為資料夾 `_id` 陣列與使用者 `_id` 陣列。
+7. 素材庫詳情視窗可設定「可查看者」，管理者可指定可瀏覽的使用者。
 
 ## 後端 (server)
 1. 進入 `server` 目錄安裝依賴：
