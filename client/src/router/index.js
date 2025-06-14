@@ -11,6 +11,8 @@ import EmployeeManager from '../views/EmployeeManager.vue'
 import RoleSettings from '../views/RoleSettings.vue'
 import TagManager from '../views/TagManager.vue'
 import ReviewSettings from '../views/ReviewSettings.vue'
+import AdClients from '../views/AdClients.vue'
+import AdPlatforms from '../views/AdPlatforms.vue'
 import AdData from '../views/AdData.vue'
 
 
@@ -34,7 +36,9 @@ const routes = [
       { path: 'roles', name: 'RoleSettings', component: RoleSettings, meta: { menu: 'roles' } },
       { path: 'tags', name: 'TagManager', component: TagManager, meta: { menu: 'tags' } },
       { path: 'review-stages', name: 'ReviewSettings', component: ReviewSettings, meta: { menu: 'review-stages' } },
-      { path: 'ad-data', name: 'AdData', component: AdData, meta: { menu: 'ad-data' } }
+      { path: 'ad-clients', name: 'AdClients', component: AdClients, meta: { menu: 'ad-data' } },
+      { path: 'clients/:clientId/platforms', name: 'AdPlatforms', component: AdPlatforms },
+      { path: 'clients/:clientId/platforms/:platformId/data', name: 'AdData', component: AdData }
     ]
   },
   // 404
