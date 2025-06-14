@@ -6,7 +6,8 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "test": "jest --experimental-vm-modules",
-    "seed": "node src/scripts/seedUsers.js"
+    "seed": "node src/scripts/seedUsers.js",
+    "migrate:roles": "node src/scripts/addUploaderRole.js"
   },
   "dependencies": {
     "express": "^4.19.2",
