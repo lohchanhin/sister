@@ -11,7 +11,8 @@ import {
     deleteAsset,
     getRecentAssets,
     reviewAsset,
-    updateAssetsViewers
+    updateAssetsViewers,
+    updateAssetsRoles
 } from '../controllers/asset.controller.js'
 import {
   getAssetStages,
@@ -43,6 +44,12 @@ router.put(
   protect,
   requirePerm(PERMISSIONS.ASSET_UPDATE),
   updateAssetsViewers
+)
+router.put(
+  '/roles',
+  protect,
+  requirePerm(PERMISSIONS.ASSET_UPDATE),
+  updateAssetsRoles
 )
 router.put(
   '/:id',
