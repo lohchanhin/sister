@@ -73,7 +73,9 @@ server/  # 後端 API
 若有設定審查關卡，點擊成品資訊中的「審查關卡」按鈕可檢視並勾選各階段。
 
 ## 廣告數據頁面
-此頁面匯集各廣告平台的曝光與點擊統計，路徑為 `/ads`。目前後端示範提供 `/api/analytics` 取得資料，未來可依需求串接第三方服務。
+此頁面分為「客戶管理 → 平台管理 → 數據管理」三層。路徑分別為：
+`/ad-clients`、`/clients/:clientId/platforms`、`/clients/:clientId/platforms/:platformId/data`。
+後端對應 `/api/clients/:clientId/platforms/:platformId/ad-daily`，`/weekly` 回傳週統計。
 
 
 ## Heroku 部署
