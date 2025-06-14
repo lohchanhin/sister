@@ -119,6 +119,11 @@
               <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
             </el-select>
           </el-form-item>
+          <el-form-item v-if="detailType === 'asset' && isManager" label="可查看者">
+            <el-select v-model="detail.allowedUsers" multiple filterable style="width:100%">
+              <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
+            </el-select>
+          </el-form-item>
         </el-form>
       </el-scrollbar>
 
@@ -255,8 +260,9 @@ watch(filterTags, () => loadData(currentFolder.value?._id || null))
 function openFolder(f) { loadData(f._id) }
 function goUp() { loadData(currentFolder.value?.parentId || null) }
 
-function showDetailFor(item, type) {
+async function showDetailFor(item, type) {
   detailType.value = type
+  if (isManager.value && !users.value.length) await loadUsers()
   if (type === 'folder') editingFolder.value = item
 
   if (type === 'asset') detail.value.title = item.title || ''
@@ -284,7 +290,8 @@ async function saveDetail() {
     await updateAsset(previewItem.value._id, {
       title: detail.value.title,
       description: detail.value.description,
-      tags: detail.value.tags
+      tags: detail.value.tags,
+      ...(isManager.value ? { allowedUsers: detail.value.allowedUsers } : {})
     })
   }
   ElMessage.success('已儲存')
