@@ -25,11 +25,11 @@ npm start                 # 啟動伺服器
 
 | 權限代碼 | 功能說明 |
 |-----------|---------|
-| `asset:create`  | 上傳新檔案 |
-| `asset:read`    | 讀取素材或成品 |
-| `asset:update`  | 編輯素材與設定檔案可查看者 |
-| `asset:delete`  | 刪除素材 |
-| `folder:manage` | 新增、編輯或刪除資料夾，包含設定資料夾可查看者 |
+| `asset:create`  | 素材庫上傳素材 |
+| `asset:read`    | 素材庫下載素材 |
+| `asset:update`  | 素材庫編輯素材與設定可查看者 |
+| `asset:delete`  | 素材庫刪除資源 |
+| `folder:manage` | 素材庫建立、編輯或刪除文件夾 |
 | `user:manage`   | 管理使用者帳號 |
 | `task:manage`   | 任務管理 |
 | `review:manage` | 成品審查流程 |
