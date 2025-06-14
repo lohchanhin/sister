@@ -119,7 +119,11 @@
               <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
             </el-select>
           </el-form-item>
-          <el-form-item v-if="detailType === 'asset' && isManager" label="可查看者">
+          <el-form-item v-if="detailType === 'asset' && isManager" label="可查看角色">
+            <template #label>
+              <span>可查看角色</span>
+              <span class="text-xs text-gray-500 ml-1">(可指定個別使用者)</span>
+            </template>
             <el-select v-model="detail.allowedUsers" multiple filterable style="width:100%">
               <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
             </el-select>
