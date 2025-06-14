@@ -1,6 +1,7 @@
 import Folder from '../models/folder.model.js'
 import { getDescendantFolderIds } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
+import { ROLES } from '../config/roles.js'
 
 const parseTags = (t) => {
   if (!t) return []
@@ -88,5 +89,15 @@ export const updateFoldersViewers = async (req, res) => {
   }
   const users = await includeManagers(allowedUsers)
   await Folder.updateMany({ _id: { $in: ids } }, { allowedUsers: users })
+  res.json({ message: '已更新' })
+}
+
+export const updateFoldersRoles = async (req, res) => {
+  const { ids, allowRoles } = req.body
+  if (!Array.isArray(ids) || !Array.isArray(allowRoles)) {
+    return res.status(400).json({ message: '參數錯誤' })
+  }
+  const roles = allowRoles.filter(r => Object.values(ROLES).includes(r))
+  await Folder.updateMany({ _id: { $in: ids } }, { allowRoles: roles })
   res.json({ message: '已更新' })
 }
