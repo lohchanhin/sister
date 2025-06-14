@@ -21,6 +21,7 @@ let assetOnlyManager
 let assetByUser
 let assetEmployee
 let empId
+let adminId
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create()
@@ -34,12 +35,13 @@ beforeAll(async () => {
   const managerRole = await Role.create({ name: 'manager', permissions: ['review:manage', 'asset:read'] })
   const empRole = await Role.create({ name: 'employee', permissions: ['asset:read'] })
 
-  await User.create({
+  const admin = await User.create({
     username: 'admin',
     password: 'mypwd',
     email: 'admin@example.com',
     roleId: managerRole._id
   })
+  adminId = admin._id
   const emp = await User.create({
     username: 'emp',
     password: 'pwd',
@@ -60,9 +62,9 @@ beforeAll(async () => {
 
   const a = await Asset.create({ filename: 'file.mp4', path: '/tmp/file.mp4', type: 'edited' })
   assetId = a._id
-  assetOnlyManager = await Asset.create({ filename: 'm.mp4', path: '/tmp/m.mp4', type: 'edited', allowRoles: ['manager'] })
-  assetByUser = await Asset.create({ filename: 'u.mp4', path: '/tmp/u.mp4', type: 'edited', allowRoles: [], allowedUsers: [emp._id] })
-  assetEmployee = await Asset.create({ filename: 'e.mp4', path: '/tmp/e.mp4', type: 'edited', allowRoles: ['employee'] })
+  assetOnlyManager = await Asset.create({ filename: 'm.mp4', path: '/tmp/m.mp4', type: 'edited', allowedUsers: [adminId] })
+  assetByUser = await Asset.create({ filename: 'u.mp4', path: '/tmp/u.mp4', type: 'edited', allowedUsers: [emp._id] })
+  assetEmployee = await Asset.create({ filename: 'e.mp4', path: '/tmp/e.mp4', type: 'edited', allowedUsers: [emp._id] })
 })
 
 afterAll(async () => {
@@ -139,17 +141,3 @@ describe('Batch update viewers', () => {
   })
 })
 
-describe('Batch update roles', () => {
-  it('should update allowRoles for multiple assets', async () => {
-    await request(app)
-      .put('/api/assets/roles')
-      .set('Authorization', `Bearer ${token}`)
-      .send({ ids: [assetId.toString(), assetEmployee._id.toString()], allowRoles: ['manager'] })
-      .expect(200)
-
-    const a1 = await Asset.findById(assetId)
-    const a2 = await Asset.findById(assetEmployee._id)
-    expect(a1.allowRoles).toEqual(['manager'])
-    expect(a2.allowRoles).toEqual(['manager'])
-  })
-})
