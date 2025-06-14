@@ -45,6 +45,7 @@ export const getWeeklyData = async (req, res) => {
     week: `${d._id.year}-W${d._id.week}`,
     spent: d.spent,
     enquiries: d.enquiries,
+
     reach: d.reach,
     impressions: d.impressions,
     clicks: d.clicks
