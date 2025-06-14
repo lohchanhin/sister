@@ -50,4 +50,21 @@ const assetSchema = new mongoose.Schema(
   { timestamps: true }
 )
 
+assetSchema.pre('save', async function (next) {
+  if (this.isNew && this.uploadedBy) {
+    try {
+      const user = await this.model('User')
+        .findById(this.uploadedBy)
+        .populate('roleId', 'name')
+      const role = user?.roleId?.name
+      if (role && !this.allowRoles.includes(role)) {
+        this.allowRoles.push(role)
+      }
+    } catch (e) {
+      // ignore errors and continue
+    }
+  }
+  next()
+})
+
 export default mongoose.model('Asset', assetSchema)
