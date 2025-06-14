@@ -29,5 +29,3 @@ export const deleteFolder = id =>
 export const updateFoldersViewers = (ids, users) =>
   api.put('/folders/viewers', { ids, allowedUsers: users }).then(res => res.data)
 
-export const updateFoldersRoles = (ids, roles) =>
-  api.put('/folders/roles', { ids, allowRoles: roles }).then(res => res.data)
