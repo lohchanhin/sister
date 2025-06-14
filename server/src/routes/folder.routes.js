@@ -14,8 +14,8 @@ import {
 const router = Router()
 
 router.post('/', protect, requirePerm(PERMISSIONS.FOLDER_MANAGE), createFolder)
-router.get('/', protect, requirePerm(PERMISSIONS.FOLDER_MANAGE), getFolders)
-router.get('/:id', protect, requirePerm(PERMISSIONS.FOLDER_MANAGE), getFolder)
+router.get('/', protect, requirePerm(PERMISSIONS.FOLDER_READ), getFolders)
+router.get('/:id', protect, requirePerm(PERMISSIONS.FOLDER_READ), getFolder)
 router.put(
   '/viewers',
   protect,

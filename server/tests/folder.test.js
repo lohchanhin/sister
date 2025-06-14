@@ -30,8 +30,14 @@ beforeAll(async () => {
   app.use('/api/auth', authRoutes)
   app.use('/api/folders', folderRoutes)
 
-  const managerRole = await Role.create({ name: 'manager', permissions: ['folder:manage'] })
-  const empRole = await Role.create({ name: 'employee', permissions: ['folder:manage'] })
+  const managerRole = await Role.create({
+    name: 'manager',
+    permissions: ['folder:manage', 'folder:read']
+  })
+  const empRole = await Role.create({
+    name: 'employee',
+    permissions: ['folder:read']
+  })
 
   await User.create({
     username: 'admin',
