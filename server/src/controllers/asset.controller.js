@@ -6,7 +6,6 @@ import Folder from '../models/folder.model.js'
 import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import { getDescendantFolderIds } from '../utils/folderTree.js'
-import { ROLES } from '../config/roles.js'
 import { includeManagers } from '../utils/includeManagers.js'
 
 const parseTags = (t) => {
@@ -56,7 +55,7 @@ export const uploadFile = async (req, res) => {
 /* ---------- GET /api/assets ---------- */
 export const getAssets = async (req, res) => {
   const deep = req.query.deep === 'true'
-  const query = { allowRoles: req.user.roleId?.name }
+  const query = {}
   let folderId = req.query.folderId ? req.query.folderId : null
 
   if (deep) {
@@ -127,7 +126,7 @@ export const addComment = async (req, res) => {
 /* ---------- PUT /api/assets/:id ---------- */
 /* 允許更新：title、description */
 export const updateAsset = async (req, res) => {
-  const { title, description, allowRoles, allowedUsers } = req.body
+  const { title, description, allowedUsers } = req.body
 
   const asset = await Asset.findById(req.params.id)
   if (!asset) return res.status(404).json({ message: '找不到素材' })
@@ -135,9 +134,6 @@ export const updateAsset = async (req, res) => {
   if (title) asset.title = title
   if (description) asset.description = description
   if (req.body.tags) asset.tags = parseTags(req.body.tags)
-  if (Array.isArray(allowRoles)) {
-    asset.allowRoles = allowRoles.filter(r => Object.values(ROLES).includes(r))
-  }
   if (Array.isArray(allowedUsers)) {
     asset.allowedUsers = await includeManagers(allowedUsers)
   }
@@ -167,7 +163,7 @@ export const deleteAsset = async (req, res) => {
 /* ---------- 依 limit 取得最新素材 ---------- */
 export const getRecentAssets = async (req, res) => {
   const limit = Number(req.query.limit) || 5
-  const query = { allowRoles: req.user.roleId?.name }
+  const query = {}
   const assets = await Asset.find(query)
     .sort({ createdAt: -1 })
     .limit(limit)
@@ -200,12 +196,3 @@ export const updateAssetsViewers = async (req, res) => {
 }
 
 /* ---------- PUT /api/assets/roles ---------- */
-export const updateAssetsRoles = async (req, res) => {
-  const { ids, allowRoles } = req.body
-  if (!Array.isArray(ids) || !Array.isArray(allowRoles)) {
-    return res.status(400).json({ message: '參數錯誤' })
-  }
-  const roles = allowRoles.filter(r => Object.values(ROLES).includes(r))
-  await Asset.updateMany({ _id: { $in: ids } }, { allowRoles: roles })
-  res.json({ message: '已更新' })
-}

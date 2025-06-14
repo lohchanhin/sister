@@ -1,5 +1,4 @@
 import mongoose from 'mongoose'
-import { ROLES } from '../config/roles.js'
 
 const folderSchema = new mongoose.Schema(
   {
@@ -11,13 +10,6 @@ const folderSchema = new mongoose.Schema(
 
     /* 可存取使用者 */
     allowedUsers: { type: [mongoose.Schema.Types.ObjectId], ref: 'User', default: [] },
-
-    /* 允許查看角色 */
-    allowRoles: {
-      type: [String],
-      enum: Object.values(ROLES),
-      default: [ROLES.MANAGER, ROLES.EMPLOYEE]
-    },
 
     /* 標籤 */
     tags: { type: [String], default: [] }
