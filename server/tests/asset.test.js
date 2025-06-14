@@ -138,3 +138,18 @@ describe('Batch update viewers', () => {
     expect(a2.allowedUsers.map(id => id.toString())).toEqual([newUser._id.toString()])
   })
 })
+
+describe('Batch update roles', () => {
+  it('should update allowRoles for multiple assets', async () => {
+    await request(app)
+      .put('/api/assets/roles')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ids: [assetId.toString(), assetEmployee._id.toString()], allowRoles: ['manager'] })
+      .expect(200)
+
+    const a1 = await Asset.findById(assetId)
+    const a2 = await Asset.findById(assetEmployee._id)
+    expect(a1.allowRoles).toEqual(['manager'])
+    expect(a2.allowRoles).toEqual(['manager'])
+  })
+})
