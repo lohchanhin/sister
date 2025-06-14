@@ -332,11 +332,19 @@ function handleError(_, file) {
 }
 
 function openBatch() {
+  if (!canBatch.value) {
+    ElMessage.error('沒有權限執行此操作')
+    return
+  }
   batchUsers.value = []
   batchDialog.value = true
 }
 
 async function applyBatch() {
+  if (!canBatch.value) {
+    ElMessage.error('沒有權限執行此操作')
+    return
+  }
   const assetIds = selectedItems.value.filter(id =>
     assets.value.some(a => a._id === id)
   )
