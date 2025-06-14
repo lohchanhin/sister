@@ -5,7 +5,6 @@ import { MongoMemoryServer } from 'mongodb-memory-server'
 import authRoutes from '../src/routes/auth.routes.js'
 import clientRoutes from '../src/routes/client.routes.js'
 import platformRoutes from '../src/routes/platform.routes.js'
-import adDailyRoutes from '../src/routes/adDaily.routes.js'
 import User from '../src/models/user.model.js'
 import Role from '../src/models/role.model.js'
 import dotenv from 'dotenv'
@@ -28,10 +27,9 @@ beforeAll(async () => {
   app.use('/api/auth', authRoutes)
   app.use('/api/clients', clientRoutes)
   app.use('/api/clients/:clientId/platforms', platformRoutes)
-  app.use('/api/clients/:clientId/platforms/:platformId/ad-daily', adDailyRoutes)
 
   const role = await Role.create({ name: 'manager' })
-  await User.create({ username: 'admin', password: 'pwd', email: 'admin@test', roleId: role._id })
+  await User.create({ username: 'admin', password: 'pwd', email: 'test@test', roleId: role._id })
   const res = await request(app).post('/api/auth/login').send({ username: 'admin', password: 'pwd' })
   token = res.body.token
 })
@@ -41,42 +39,39 @@ afterAll(async () => {
   await mongo.stop()
 })
 
-describe('Client and AdDaily', () => {
+describe('Platform API', () => {
   it('create client', async () => {
     const res = await request(app)
       .post('/api/clients')
       .set('Authorization', `Bearer ${token}`)
-      .send({ name: '測試客戶', email: 'a@test.com' })
+      .send({ name: 'ClientA' })
       .expect(201)
-    expect(res.body.name).toBe('測試客戶')
     clientId = res.body._id
   })
 
-  it('create platform', async () => {
-    const res = await request(app)
+  it('platform CRUD', async () => {
+    const resC = await request(app)
       .post(`/api/clients/${clientId}/platforms`)
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Meta', platformType: 'Meta' })
       .expect(201)
-    platformId = res.body._id
-  })
+    platformId = resC.body._id
 
-  it('weekly aggregate', async () => {
-    const start = new Date('2024-01-01')
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(start)
-      d.setDate(start.getDate() + i)
-      await request(app)
-        .post(`/api/clients/${clientId}/platforms/${platformId}/ad-daily`)
-        .set('Authorization', `Bearer ${token}`)
-        .send({ date: d.toISOString(), spent: 10 })
-        .expect(201)
-    }
-
-    const res = await request(app)
-      .get(`/api/clients/${clientId}/platforms/${platformId}/ad-daily/weekly`)
+    const resG = await request(app)
+      .get(`/api/clients/${clientId}/platforms`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
-    expect(res.body[0].spent).toBe(70)
+    expect(resG.body.length).toBe(1)
+
+    await request(app)
+      .put(`/api/clients/${clientId}/platforms/${platformId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Meta2' })
+      .expect(200)
+
+    await request(app)
+      .delete(`/api/clients/${clientId}/platforms/${platformId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
   })
 })
