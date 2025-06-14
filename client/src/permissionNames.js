@@ -3,6 +3,7 @@ export const PERMISSION_NAMES = {
   'asset:read': '資源讀取',
   'asset:update': '資源更新',
   'asset:delete': '資源刪除',
+  'folder:read': '資料夾瀏覽',
   'folder:manage': '資料夾管理',
   'user:manage': '使用者管理',
   'task:manage': '任務管理',
