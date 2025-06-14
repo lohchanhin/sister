@@ -2,7 +2,6 @@
  * 素材 / 影片 Model (Asset)
  */
 import mongoose from 'mongoose'
-import { ROLES } from '../config/roles.js'
 
 /* ---------- 子文件：留言 ---------- */
 const commentSchema = new mongoose.Schema(
@@ -34,13 +33,6 @@ const assetSchema = new mongoose.Schema(
     /* 標籤 */
     tags:       { type: [String], default: [] },
 
-    /* 允許查看角色 */
-    allowRoles: {
-      type: [String],
-      enum: Object.values(ROLES),
-      default: [ROLES.MANAGER, ROLES.EMPLOYEE]
-    },
-
     /* 可查看使用者 */
     allowedUsers: { type: [mongoose.Schema.Types.ObjectId], ref: 'User', default: [] },
 
@@ -50,21 +42,5 @@ const assetSchema = new mongoose.Schema(
   { timestamps: true }
 )
 
-assetSchema.pre('save', async function (next) {
-  if (this.isNew && this.uploadedBy) {
-    try {
-      const user = await this.model('User')
-        .findById(this.uploadedBy)
-        .populate('roleId', 'name')
-      const role = user?.roleId?.name
-      if (role && !this.allowRoles.includes(role)) {
-        this.allowRoles.push(role)
-      }
-    } catch (e) {
-      // ignore errors and continue
-    }
-  }
-  next()
-})
 
 export default mongoose.model('Asset', assetSchema)

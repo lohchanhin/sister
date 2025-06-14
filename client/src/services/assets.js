@@ -71,6 +71,4 @@ export const updateAssetStage = (assetId, stageId, completed) =>
 export const updateAssetsViewers = (ids, users) =>
   api.put('/assets/viewers', { ids, allowedUsers: users }).then(res => res.data)
 
-export const updateAssetsRoles = (ids, roles) =>
-  api.put('/assets/roles', { ids, allowRoles: roles }).then(res => res.data)
 

@@ -1,7 +1,6 @@
 import Folder from '../models/folder.model.js'
 import { getDescendantFolderIds } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
-import { ROLES } from '../config/roles.js'
 
 const parseTags = (t) => {
   if (!t) return []
@@ -18,9 +17,6 @@ export const createFolder = async (req, res) => {
   const baseUsers = Array.isArray(req.body.allowedUsers)
     ? Array.from(new Set([...req.body.allowedUsers, req.user._id]))
     : [req.user._id]
-  const roles = Array.isArray(req.body.allowRoles)
-    ? req.body.allowRoles.filter(r => Object.values(ROLES).includes(r))
-    : undefined
   const folder = await Folder.create({
     name: req.body.name,
     parentId: req.body.parentId || null,
@@ -28,8 +24,7 @@ export const createFolder = async (req, res) => {
     script: req.body.script,
     type: req.body.type || 'raw',
     tags: parseTags(req.body.tags),
-    allowedUsers: await includeManagers(baseUsers),
-    ...(roles ? { allowRoles: roles } : {})
+    allowedUsers: await includeManagers(baseUsers)
   })
   res.status(201).json(folder)
 }
@@ -45,7 +40,7 @@ export const getFolders = async (req, res) => {
     parentIds = parentIds.concat(childIds)
   }
 
-  const query = { parentId: { $in: parentIds }, type, allowRoles: req.user.roleId?.name }
+  const query = { parentId: { $in: parentIds }, type }
   if (req.query.tags) {
     const tags = Array.isArray(req.query.tags)
       ? req.query.tags
@@ -76,11 +71,6 @@ export const updateFolder = async (req, res) => {
   } else if (Array.isArray(req.body.allowedUsers)) {
     req.body.allowedUsers = await includeManagers(req.body.allowedUsers)
   }
-  if (req.body.allowRoles && !Array.isArray(req.body.allowRoles)) {
-    delete req.body.allowRoles
-  } else if (Array.isArray(req.body.allowRoles)) {
-    req.body.allowRoles = req.body.allowRoles.filter(r => Object.values(ROLES).includes(r))
-  }
   const folder = await Folder.findByIdAndUpdate(req.params.id, req.body, { new: true })
   if (!folder) return res.status(404).json({ message: '資料夾不存在' })
   res.json(folder)
@@ -101,12 +91,3 @@ export const updateFoldersViewers = async (req, res) => {
   res.json({ message: '已更新' })
 }
 
-export const updateFoldersRoles = async (req, res) => {
-  const { ids, allowRoles } = req.body
-  if (!Array.isArray(ids) || !Array.isArray(allowRoles)) {
-    return res.status(400).json({ message: '參數錯誤' })
-  }
-  const roles = allowRoles.filter(r => Object.values(ROLES).includes(r))
-  await Folder.updateMany({ _id: { $in: ids } }, { allowRoles: roles })
-  res.json({ message: '已更新' })
-}
