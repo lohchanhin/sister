@@ -79,4 +79,24 @@ describe('Client and AdDaily', () => {
       .expect(200)
     expect(res.body[0].spent).toBe(70)
   })
+
+  it('create adDaily with currency string', async () => {
+    const res = await request(app)
+      .post(`/api/clients/${clientId}/platforms/${platformId}/ad-daily`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        date: new Date('2024-02-01').toISOString(),
+        spent: '$10',
+        enquiries: '5件',
+        reach: '1,000',
+        impressions: '2,000',
+        clicks: '7'
+      })
+      .expect(201)
+    expect(res.body.spent).toBe(10)
+    expect(res.body.enquiries).toBe(5)
+    expect(res.body.reach).toBe(1000)
+    expect(res.body.impressions).toBe(2000)
+    expect(res.body.clicks).toBe(7)
+  })
 })
