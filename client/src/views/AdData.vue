@@ -14,6 +14,7 @@ const platformId = route.params.platformId
 const dailyData = ref([])
 const weeklyData = ref([])
 const recordForm = ref({ date: '', spent: '', enquiries: '', reach: '', impressions: '', clicks: '' })
+
 const activeTab = ref('daily')
 let chart
 
@@ -31,10 +32,12 @@ onMounted(async () => {
   await loadWeekly()
 })
 
+
 const submitRecord = async () => {
   await createDaily(clientId, platformId, { ...recordForm.value })
   ElMessage.success('已新增記錄')
   recordForm.value = { date: '', spent: '', enquiries: '', reach: '', impressions: '', clicks: '' }
+
   await loadDaily()
   await loadWeekly()
 }
@@ -56,12 +59,16 @@ const drawChart = () => {
 <template>
   <section class="p-6 space-y-6 bg-white text-gray-800">
     <h1 class="text-2xl font-bold">廣告數據</h1>
+
+
     <el-tabs v-model="activeTab">
       <el-tab-pane label="每日記錄" name="daily">
         <el-table :data="dailyData" stripe style="width:100%" empty-text="尚無資料">
           <el-table-column prop="date" label="日期" />
           <el-table-column prop="spent" label="花費" />
+
           <el-table-column prop="enquiries" label="詢問" />
+
           <el-table-column prop="reach" label="觸及" />
           <el-table-column prop="impressions" label="曝光" />
           <el-table-column prop="clicks" label="點擊" />
@@ -70,7 +77,9 @@ const drawChart = () => {
           <div class="flex flex-wrap gap-4 items-end">
             <el-date-picker v-model="recordForm.date" type="date" placeholder="日期" />
             <el-input v-model.number="recordForm.spent" placeholder="花費" class="w-28" />
+
             <el-input v-model.number="recordForm.enquiries" placeholder="詢問" class="w-28" />
+
             <el-input v-model.number="recordForm.reach" placeholder="觸及" class="w-28" />
             <el-input v-model.number="recordForm.impressions" placeholder="曝光" class="w-28" />
             <el-input v-model.number="recordForm.clicks" placeholder="點擊" class="w-28" />
@@ -84,6 +93,7 @@ const drawChart = () => {
           <el-table-column prop="week" label="週" />
           <el-table-column prop="spent" label="總花費" />
           <el-table-column prop="enquiries" label="總詢問" />
+
           <el-table-column prop="reach" label="總觸及" />
           <el-table-column prop="impressions" label="總曝光" />
           <el-table-column prop="clicks" label="總點擊" />
