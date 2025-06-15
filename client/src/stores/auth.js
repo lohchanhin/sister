@@ -10,7 +10,15 @@ export const useAuthStore = defineStore('auth', {
   }),
   getters: {
     isAuthenticated: (state) => !!state.token,
-    role: (state) => state.user?.role ?? 'guest'
+    role: (state) => state.user?.role ?? 'guest',
+    hasPermission: (state) => (code) => {
+      return Array.isArray(state.user.permissions) &&
+        state.user.permissions.includes(code)
+    },
+    hasPerms: (state) => (codes = []) => {
+      return Array.isArray(codes) &&
+        codes.every(c => state.user.permissions.includes(c))
+    }
   },
   actions: {
     /* ---------- 登入 ---------- */

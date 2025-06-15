@@ -17,7 +17,7 @@ const loadRoles = async () => {
 
 /* ---------- 權限檢查：非 manager 直接跳回首頁 ---------- */
 const store = useAuthStore()
-if (store.role !== 'manager') {
+if (!store.hasPermission('user:manage')) {
   window.location.href = '/'   // 或用 router.replace('/')
 }
 
