@@ -43,12 +43,26 @@
       <el-tab-pane label="週摘要" name="weekly">
         <!-- 指標切換 + 匯出 -->
         <div class="flex justify-between items-center mb-2">
-          <div />
+          <el-select
+            v-model="yMetric"
+            size="small"
+            style="width:160px"
+            v-if="customColumns.length"
+          >
+            <el-option
+              v-for="f in customColumns"
+              :key="f"
+              :label="f"
+              :value="f"
+            />
+          </el-select>
           <el-button size="small" @click="exportWeekly">匯出週報</el-button>
         </div>
 
         <!-- 折線圖（如需） -->
-        <!-- <div style="height:300px;width:100%" class="mb-4"><canvas id="weekly-chart" /></div> -->
+        <div style="height:300px;width:100%" class="mb-4">
+          <canvas id="weekly-chart" />
+        </div>
 
         <!-- 週表格 -->
         <el-table :data="weeklyAgg" stripe style="width:100%" empty-text="尚無資料">
@@ -59,12 +73,23 @@
             <template #default="{ row }">{{ row[field] }}</template>
           </el-table-column>
 
-          <!-- 🆕 筆記欄 -->
-          <el-table-column label="筆記" width="120">
+          <!-- 圖片欄 -->
+          <el-table-column label="圖片" width="120">
             <template #default="{ row }">
-              <span v-if="row.hasNote">{{ row.note }}</span>
-              <el-button v-else-if="row.hasImage" link type="primary" size="small"
-                @click="previewImages(row.images)">查看圖片</el-button>
+              <el-button
+                v-if="row.hasImage"
+                link
+                type="primary"
+                size="small"
+                @click="previewImages(row.images)"
+              >查看圖片</el-button>
+            </template>
+          </el-table-column>
+
+          <!-- 筆記欄 -->
+          <el-table-column label="筆記" width="160">
+            <template #default="{ row }">
+              <span>{{ row.note }}</span>
             </template>
           </el-table-column>
 
@@ -397,18 +422,40 @@ const exportDaily = () => {
   saveAs(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), 'daily.csv')
 }
 
-const exportWeekly = () => {
+const exportWeekly = async () => {
   if (!weeklyAgg.value.length) return ElMessage.warning('無資料可匯出')
-  const rows = weeklyAgg.value.map(r => {
-    const obj = { 週: r.week }
-    customColumns.value.forEach(col => { obj[col] = r[col] })
-    obj['備註'] = r.note || r.images.join(' ')
-    return obj
-  })
-  const ws = XLSX.utils.json_to_sheet(rows)
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'weekly')
-  const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+  const ExcelJS = (await import('exceljs')).default
+  const wb = new ExcelJS.Workbook()
+  const ws = wb.addWorksheet('weekly')
+
+  const headers = ['週'].concat(customColumns.value, '備註', '圖片')
+  ws.columns = headers.map(h => ({ header: h, key: h }))
+
+  for (const row of weeklyAgg.value) {
+    const data = { '週': row.week }
+    customColumns.value.forEach(col => { data[col] = row[col] })
+    data['備註'] = row.note
+    const wsRow = ws.addRow(data)
+
+    if (row.hasImage && row.images[0]) {
+      try {
+        const res = await fetch(row.images[0])
+        const buf = await res.arrayBuffer()
+        const ext = row.images[0].split('.').pop()
+        const imgId = wb.addImage({ buffer: buf, extension: ext })
+        const r = wsRow.number - 1
+        const c = headers.length - 1
+        ws.addImage(imgId, {
+          tl: { col: c, row: r },
+          ext: { width: 100, height: 100 }
+        })
+      } catch (e) {
+        /* ignore image errors */
+      }
+    }
+  }
+
+  const buf = await wb.xlsx.writeBuffer()
   saveAs(new Blob([buf], { type: 'application/octet-stream' }), 'weekly.xlsx')
 }
 
