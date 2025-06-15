@@ -56,11 +56,15 @@ npm start                 # 啟動伺服器
      -H "Content-Type: application/json" \
    -d '{"username":"admin","password":"mypwd"}'
    ```
-5. 執行自動化測試：
+5. **安裝相依套件**：若尚未安裝，請先執行
+   ```bash
+   npm install
+   ```
+6. 執行自動化測試：
    ```bash
    npm test
    ```
-透過 Jest 與 Supertest 模擬登入，確認回傳資料包含 `token` 與 `user.role`。
+   透過 Jest 與 Supertest 模擬登入，確認回傳資料包含 `token` 與 `user.role`。
 
 ## 成品審核 API
 素材上傳後若 `type=edited`，預設 `reviewStatus` 為 `pending`。管理者可呼叫
