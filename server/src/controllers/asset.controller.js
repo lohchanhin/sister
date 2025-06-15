@@ -195,4 +195,3 @@ export const updateAssetsViewers = async (req, res) => {
   res.json({ message: '已更新' })
 }
 
-/* ---------- PUT /api/assets/roles ---------- */
