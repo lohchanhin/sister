@@ -49,7 +49,14 @@
             </div>
           </template>
           <el-scrollbar max-height="60">
-            <div class="desc-line">{{ f.description || '—' }}</div>
+            <div class="desc-line">
+              <template v-if="f.description && f.description.includes('\n')">
+                <ul>
+                  <li v-for="(line, i) in f.description.split('\n')" :key="i">{{ line }}</li>
+                </ul>
+              </template>
+              <template v-else>{{ f.description || '—' }}</template>
+            </div>
           </el-scrollbar>
           <div v-if="f.tags?.length" class="tag-list mt-1">
             <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
@@ -72,7 +79,14 @@
             </div>
           </template>
           <el-scrollbar max-height="60">
-            <div class="desc-line">{{ a.description || '—' }}</div>
+            <div class="desc-line">
+              <template v-if="a.description && a.description.includes('\n')">
+                <ul>
+                  <li v-for="(line, i) in a.description.split('\n')" :key="i">{{ line }}</li>
+                </ul>
+              </template>
+              <template v-else>{{ a.description || '—' }}</template>
+            </div>
           </el-scrollbar>
           <div v-if="a.tags?.length" class="tag-list mt-1">
             <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
@@ -418,6 +432,7 @@ function downloadAsset(asset) {
 .desc-line {
   font-size: .75rem;
   line-height: 1.1rem;
+  white-space: pre-line;
 }
 
 .tag-list {
