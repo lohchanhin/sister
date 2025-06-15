@@ -20,3 +20,17 @@ export const importDaily = (clientId, platformId, file) => {
   ).then(r => r.data)
 }
 
+export const bulkCreateDaily = async (clientId, platformId, records) => {
+  try {
+    const res = await api.post(
+      `/clients/${clientId}/platforms/${platformId}/ad-daily/bulk`,
+      records
+    )
+    return res.data
+  } catch (e) {
+    return Promise.all(
+      records.map(r => createDaily(clientId, platformId, r))
+    )
+  }
+}
+
