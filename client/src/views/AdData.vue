@@ -46,6 +46,15 @@
 
       <!-- ───── 週報表 ───── -->
       <el-tab-pane label="週報表" name="weekly">
+        <div class="mb-2 text-right">
+          <el-select v-model="metric" size="small" style="width: 120px">
+            <el-option label="花費" value="spent" />
+            <el-option label="詢問" value="enquiries" />
+            <el-option label="觸及" value="reach" />
+            <el-option label="曝光" value="impressions" />
+            <el-option label="點擊" value="clicks" />
+          </el-select>
+        </div>
         <!-- 圖表：固定高 300px -->
         <div style="height: 300px; width: 100%;">
           <canvas id="weekly-chart"></canvas>
@@ -135,7 +144,7 @@
 /* ------------------------------------------------------------------
  * 匯入
  * ---------------------------------------------------------------- */
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { InfoFilled } from '@element-plus/icons-vue'
@@ -169,6 +178,14 @@ const platformId  = route.params.platformId
 const dailyData   = ref([])
 const weeklyData  = ref([])
 const activeTab   = ref('daily')
+const metric      = ref('spent')
+const metricLabel = {
+  spent: '花費',
+  enquiries: '詢問',
+  reach: '觸及',
+  impressions: '曝光',
+  clicks: '點擊'
+}
 
 const dialogVisible = ref(false)
 const showHelp      = ref(false)
@@ -203,6 +220,8 @@ onMounted(async () => {
   await loadWeekly()
 })
 
+watch(metric, drawChart)
+
 /* ------------------------------------------------------------------
  * 圖表
  * ---------------------------------------------------------------- */
@@ -211,11 +230,12 @@ const drawChart = () => {
   const ctx = document.getElementById('weekly-chart')
   if (!ctx) return
   const labels = weeklyData.value.map(d => d.week)
-  const data   = weeklyData.value.map(d => d.spent)
+  const data   = weeklyData.value.map(d => d[metric.value])
+  const label  = metricLabel[metric.value]
   if (chart) chart.destroy()
   chart = new Chart(ctx, {
     type: 'line',
-    data: { labels, datasets: [{ label: '花費', data, borderColor: '#409EFF', tension: 0.35 }] },
+    data: { labels, datasets: [{ label, data, borderColor: '#409EFF', tension: 0.35 }] },
     options: { responsive: true, maintainAspectRatio: false }
   })
 }
