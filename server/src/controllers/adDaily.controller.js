@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import AdDaily from '../models/adDaily.model.js'
 
 const sanitizeNumber = val =>
-  parseFloat(String(val).replace(/[^\d.]/g, '')) || 0
+  parseInt(String(val).replace(/[^\d-]/g, ''), 10) || 0
 
 const sanitizeExtraData = obj => {
   const result = {}
