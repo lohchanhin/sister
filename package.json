@@ -12,6 +12,8 @@
     "server": "npm --prefix server run dev",
     "dev": "concurrently \"npm --prefix client run dev\" \"npm --prefix server run dev\"",
 
+    "test": "npm --prefix server test",
+
     
     "heroku-prebuild": "npm install --prefix server --omit=dev",
 
