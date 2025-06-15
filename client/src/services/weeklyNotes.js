@@ -3,6 +3,9 @@ import api from './api'
 export const fetchWeeklyNote = (clientId, platformId, week) =>
   api.get(`/clients/${clientId}/platforms/${platformId}/weekly-notes/${week}`).then(r => r.data)
 
+export const fetchWeeklyNotes = (clientId, platformId) =>
+  api.get(`/clients/${clientId}/platforms/${platformId}/weekly-notes`).then(r => r.data)
+
 export const createWeeklyNote = (clientId, platformId, data) => {
   const formData = new FormData()
   formData.append('week', data.week)
