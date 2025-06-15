@@ -48,8 +48,8 @@
                 </el-icon>
                 <span class="font-medium truncate">{{ f.name }}</span>
               </el-checkbox>
-              <el-button link size="small" @click.stop="showDetailFor(f, 'folder')">
-                <el-icon style="font-size: 24px;">
+              <el-button link size="small" class="flex-shrink-0" @click.stop="showDetailFor(f, 'folder')">
+                <el-icon style="font-size: 24px;" class="flex-shrink-0">
                   <InfoFilled />
                 </el-icon>
               </el-button>
@@ -84,8 +84,8 @@
               >
                 <span class="font-medium truncate">{{ a.title || a.filename }}</span>
               </el-checkbox>
-              <el-button link size="small" @click.stop="showDetailFor(a, 'asset')">
-                <el-icon style="font-size: 24px;">
+              <el-button link size="small" class="flex-shrink-0" @click.stop="showDetailFor(a, 'asset')">
+                <el-icon style="font-size: 24px;" class="flex-shrink-0">
                   <InfoFilled />
                 </el-icon>
               </el-button>
