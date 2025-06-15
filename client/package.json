@@ -16,7 +16,13 @@
     "lucide-vue-next": "^0.513.0",
     "pinia": "^3.0.3",
     "vue": "^3.5.13",
+<<<<<<< HEAD
     "vue-router": "^4.5.1"
+=======
+    "vue-router": "^4.5.1",
+    "chart.js": "^4.4.1",
+    "xlsx": "^0.18.5"
+>>>>>>> d599b07dfc2fd147b97f17456abde6983143f1ee
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.3",
