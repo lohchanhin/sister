@@ -10,7 +10,20 @@ const clientId = route.params.clientId
 const platforms = ref([])
 const dialog = ref(false)
 const editing = ref(false)
-const form = ref({ name: '', platformType: '' })
+const form = ref({ name: '', platformType: '', fields: [] })
+const newField = ref('')
+
+const addField = () => {
+  const v = newField.value.trim()
+  if (v && !form.value.fields.includes(v)) {
+    form.value.fields.push(v)
+  }
+  newField.value = ''
+}
+
+const removeField = i => {
+  form.value.fields.splice(i, 1)
+}
 
 const loadPlatforms = async () => {
   platforms.value = await fetchPlatforms(clientId)
@@ -18,13 +31,13 @@ const loadPlatforms = async () => {
 
 const openCreate = () => {
   editing.value = false
-  form.value = { name: '', platformType: '' }
+  form.value = { name: '', platformType: '', fields: [] }
   dialog.value = true
 }
 
 const openEdit = p => {
   editing.value = true
-  form.value = { ...p }
+  form.value = { ...p, fields: p.fields || [] }
   dialog.value = true
 }
 
@@ -78,7 +91,16 @@ onMounted(loadPlatforms)
     <el-dialog v-model="dialog" :title="editing ? '編輯平台' : '新增平台'" width="420px">
       <el-form label-position="top" @submit.prevent>
         <el-form-item label="平台名稱"><el-input v-model="form.name" /></el-form-item>
-        <el-form-item label="類型"><el-input v-model="form.platformType" /></el-form-item>
+      <el-form-item label="類型"><el-input v-model="form.platformType" /></el-form-item>
+      <el-form-item label="自訂欄位">
+        <div class="flex items-center gap-2 mb-2">
+          <el-input v-model="newField" @keyup.enter.native.prevent="addField" placeholder="欄位名稱" class="flex-1" />
+          <el-button type="primary" @click="addField">新增</el-button>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <el-tag v-for="(f,i) in form.fields" :key="i" closable @close="removeField(i)">{{ f }}</el-tag>
+        </div>
+      </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialog=false">取消</el-button>

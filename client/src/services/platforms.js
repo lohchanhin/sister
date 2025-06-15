@@ -11,3 +11,6 @@ export const updatePlatform = (clientId, id, data) =>
 
 export const deletePlatform = (clientId, id) =>
   api.delete(`/clients/${clientId}/platforms/${id}`).then(r => r.data)
+
+export const getPlatform = (clientId, id) =>
+  api.get(`/clients/${clientId}/platforms/${id}`).then(r => r.data)
