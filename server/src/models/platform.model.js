@@ -5,6 +5,7 @@ const platformSchema = new mongoose.Schema(
     clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
     name: { type: String, required: true },
     platformType: { type: String, default: '' },
+    mode: { type: String, default: 'custom' },
     // 自訂欄位名稱清單
     fields: { type: [String], default: [] }
   },
