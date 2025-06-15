@@ -42,3 +42,11 @@ export const updateWeeklyNote = async (req, res) => {
   if (!note) return res.status(404).json({ message: '備註不存在' })
   res.json(note)
 }
+
+export const getWeeklyNotes = async (req, res) => {
+  const notes = await WeeklyNote.find({
+    clientId: req.params.clientId,
+    platformId: req.params.platformId
+  })
+  res.json(notes)
+}
