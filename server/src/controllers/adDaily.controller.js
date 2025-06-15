@@ -7,14 +7,15 @@ const sanitizeNumber = val =>
 
 export const createAdDaily = async (req, res) => {
   const rec = await AdDaily.create({
-    ...req.body,
+    date: req.body.date,
     spent: sanitizeNumber(req.body.spent),
     enquiries: sanitizeNumber(req.body.enquiries),
     reach: sanitizeNumber(req.body.reach),
     impressions: sanitizeNumber(req.body.impressions),
     clicks: sanitizeNumber(req.body.clicks),
     clientId: req.params.clientId,
-    platformId: req.params.platformId
+    platformId: req.params.platformId,
+    extraData: req.body.extraData
   })
   res.status(201).json(rec)
 }
@@ -67,22 +68,31 @@ export const bulkCreateAdDaily = async (req, res) => {
     return res.status(400).json({ message: '資料格式錯誤' })
   }
 
+  const known = ['date', 'spent', 'enquiries', 'reach', 'impressions', 'clicks', 'extraData']
+
   const records = req.body
-    .map(row => ({
-      date: row.date,
-      spent: sanitizeNumber(row.spent),
-      enquiries: sanitizeNumber(row.enquiries),
-      reach: sanitizeNumber(row.reach),
-      impressions: sanitizeNumber(row.impressions),
-      clicks: sanitizeNumber(row.clicks),
-      clientId: req.params.clientId,
-      platformId: req.params.platformId
-    }))
+    .map(row => {
+      const extra = { ...(row.extraData || {}) }
+      for (const k of Object.keys(row)) {
+        if (!known.includes(k)) extra[k] = row[k]
+      }
+      return {
+        date: row.date,
+        spent: sanitizeNumber(row.spent),
+        enquiries: sanitizeNumber(row.enquiries),
+        reach: sanitizeNumber(row.reach),
+        impressions: sanitizeNumber(row.impressions),
+        clicks: sanitizeNumber(row.clicks),
+        clientId: req.params.clientId,
+        platformId: req.params.platformId,
+        extraData: Object.keys(extra).length ? extra : undefined
+      }
+    })
     .filter(r => r.date)
     .map(r => ({ ...r, date: new Date(r.date) }))
 
   const docs = await AdDaily.insertMany(records)
-  res.status(201).json({ count: docs.length })
+  res.status(201).json(docs)
 }
 
 export const importAdDaily = async (req, res) => {
@@ -95,21 +105,38 @@ export const importAdDaily = async (req, res) => {
   const sheet = wb.Sheets[wb.SheetNames[0]]
   const rows = xlsx.utils.sheet_to_json(sheet)
 
+  const known = [
+    'date', 'Date', '日期',
+    'spent', 'Spent', '花費',
+    'enquiries', 'Enquiries', '詢問',
+    'reach', 'Reach', '觸及',
+    'impressions', 'Impressions', '曝光',
+    'clicks', 'Clicks', '點擊',
+    'extraData'
+  ]
+
   const records = rows
-    .map(row => ({
-      date: row.date || row.Date || row['日期'],
-      spent: sanitizeNumber(row.spent || row.Spent || row['花費']),
-      enquiries: sanitizeNumber(row.enquiries || row.Enquiries || row['詢問']),
-      reach: sanitizeNumber(row.reach || row.Reach || row['觸及']),
-      impressions: sanitizeNumber(row.impressions || row.Impressions || row['曝光']),
-      clicks: sanitizeNumber(row.clicks || row.Clicks || row['點擊']),
-      clientId: req.params.clientId,
-      platformId: req.params.platformId
-    }))
+    .map(row => {
+      const extra = { ...(row.extraData || {}) }
+      for (const k of Object.keys(row)) {
+        if (!known.includes(k)) extra[k] = row[k]
+      }
+      return {
+        date: row.date || row.Date || row['日期'],
+        spent: sanitizeNumber(row.spent || row.Spent || row['花費']),
+        enquiries: sanitizeNumber(row.enquiries || row.Enquiries || row['詢問']),
+        reach: sanitizeNumber(row.reach || row.Reach || row['觸及']),
+        impressions: sanitizeNumber(row.impressions || row.Impressions || row['曝光']),
+        clicks: sanitizeNumber(row.clicks || row.Clicks || row['點擊']),
+        clientId: req.params.clientId,
+        platformId: req.params.platformId,
+        extraData: Object.keys(extra).length ? extra : undefined
+      }
+    })
     .filter(r => r.date)
     .map(r => ({ ...r, date: new Date(r.date) }))
 
   const docs = await AdDaily.insertMany(records)
   fs.unlink(req.file.path, () => {})
-  res.status(201).json({ count: docs.length })
+  res.status(201).json(docs)
 }
