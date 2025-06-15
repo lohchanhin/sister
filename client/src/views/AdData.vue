@@ -48,7 +48,7 @@
         </div>
 
         <!-- 折線圖（如需） -->
-        <!-- <div style="height:300px;width:100%" class="mb-4"><canvas id="weekly-chart" /></div> -->
+        <div style="height:300px;width:100%" class="mb-4"><canvas id="weekly-chart" /></div>
 
         <!-- 週表格 -->
         <el-table :data="weeklyAgg" stripe style="width:100%" empty-text="尚無資料">
