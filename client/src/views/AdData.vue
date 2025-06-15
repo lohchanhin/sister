@@ -75,10 +75,15 @@
           <el-table-column prop="reach"       label="總觸及"   width="100" />
           <el-table-column prop="impressions" label="總曝光"   width="100" />
           <el-table-column prop="clicks"      label="總點擊"   width="100" />
-          <el-table-column label="備註" width="80">
+          <el-table-column label="備註">
             <template #default="{ row }">
-              <el-button link type="primary" @click="openNote(row)">備註</el-button>
-              <el-icon v-if="row.hasNote" class="ml-1"><InfoFilled/></el-icon>
+              <div>
+                <el-button link type="primary" @click="openNote(row)">備註</el-button>
+                <el-icon v-if="row.hasNote" class="ml-1"><InfoFilled/></el-icon>
+              </div>
+              <div v-if="row.note" class="text-xs text-gray-600 whitespace-pre-line mt-1">
+                {{ row.note }}
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -217,7 +222,14 @@ const loadDaily  = async () => {
 const loadWeekly = async () => {
   weeklyData.value = await fetchWeekly(clientId, platformId)
   for (const r of weeklyData.value) {
-    try { await fetchWeeklyNote(clientId, platformId, r.week); r.hasNote = true } catch { r.hasNote = false }
+    try {
+      const n = await fetchWeeklyNote(clientId, platformId, r.week)
+      r.hasNote = true
+      r.note = n.text
+    } catch {
+      r.hasNote = false
+      r.note = ''
+    }
   }
   drawChart()
 }
@@ -335,7 +347,7 @@ const openHelp  = () => { showHelp.value = true }
 const closeHelp = () => { showHelp.value = false }
 
 const openNote = async (row) => {
-  noteForm.value = { week: row.week, text: '', images: [] }
+  noteForm.value = { week: row.week, text: row.note || '', images: [] }
   hasNote.value = false
   try {
     const n = await fetchWeeklyNote(clientId, platformId, row.week)
