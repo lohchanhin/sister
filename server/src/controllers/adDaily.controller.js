@@ -62,6 +62,29 @@ export const getWeeklyData = async (req, res) => {
   res.json(result)
 }
 
+export const bulkCreateAdDaily = async (req, res) => {
+  if (!Array.isArray(req.body)) {
+    return res.status(400).json({ message: '資料格式錯誤' })
+  }
+
+  const records = req.body
+    .map(row => ({
+      date: row.date,
+      spent: sanitizeNumber(row.spent),
+      enquiries: sanitizeNumber(row.enquiries),
+      reach: sanitizeNumber(row.reach),
+      impressions: sanitizeNumber(row.impressions),
+      clicks: sanitizeNumber(row.clicks),
+      clientId: req.params.clientId,
+      platformId: req.params.platformId
+    }))
+    .filter(r => r.date)
+    .map(r => ({ ...r, date: new Date(r.date) }))
+
+  const docs = await AdDaily.insertMany(records)
+  res.status(201).json({ count: docs.length })
+}
+
 export const importAdDaily = async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: '未上傳檔案' })
