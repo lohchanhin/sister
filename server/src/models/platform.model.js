@@ -4,7 +4,9 @@ const platformSchema = new mongoose.Schema(
   {
     clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
     name: { type: String, required: true },
-    platformType: { type: String, default: '' }
+    platformType: { type: String, default: '' },
+    // 自訂欄位名稱清單
+    fields: { type: [String], default: [] }
   },
   { timestamps: true }
 )

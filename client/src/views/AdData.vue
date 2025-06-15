@@ -195,6 +195,7 @@ import {
 import {
   fetchWeeklyNote, createWeeklyNote, updateWeeklyNote
 } from '../services/weeklyNotes'
+import { getPlatform } from '../services/platforms'
 import {
   Chart, LineController, LineElement,
   PointElement, LinearScale, Title, CategoryScale
@@ -212,6 +213,7 @@ const excelDialog   = ref(false)
 
 /* 自訂欄位列表 */
 const customColumns = ref([])
+const platform = ref(null)
 
 /* ===== 每日 ===== */
 const dailyData  = ref([])
@@ -244,6 +246,10 @@ const excelSpec = computed(() => [
 
 /* 日期 formatter */
 const dateFmt = row => dayjs(row.date).format('YYYY-MM-DD')
+const loadPlatform = async () => {
+  platform.value = await getPlatform(clientId, platformId)
+  customColumns.value = platform.value.fields || []
+}
 
 /* --------------------------------------------------- 資料載入 --------------------------------------------------- */
 const loadDaily = async () => {
@@ -258,7 +264,7 @@ const loadDaily = async () => {
       avgCost: r.enquiries ? (r.spent / r.enquiries).toFixed(2) : '0.00'
     }
   })
-  customColumns.value = Array.from(cols)
+  customColumns.value = Array.from(new Set([...customColumns.value, ...cols]))
 }
 const loadWeekly = async () => {
   weeklyData.value = await fetchWeekly(clientId, platformId)
@@ -274,8 +280,7 @@ const loadWeekly = async () => {
   )
   drawChart()
 }
-onMounted(async () => { await loadDaily(); await loadWeekly() })
-watch(metric, () => drawChart())
+onMounted(async () => { await loadPlatform(); await loadDaily(); await loadWeekly() })
 
 /* --------------------------------------------------- 折線圖 --------------------------------------------------- */
 const drawChart = () => {
