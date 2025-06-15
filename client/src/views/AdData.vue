@@ -49,6 +49,13 @@
           <el-table-column prop="reach"       label="觸及" />
           <el-table-column prop="impressions" label="曝光" />
           <el-table-column prop="clicks"      label="點擊" />
+          <el-table-column
+            v-for="col in customColumns"
+            :key="col"
+            :label="col"
+          >
+            <template #default="{ row }">{{ row.extraData?.[col] || '' }}</template>
+          </el-table-column>
         </el-table>
       </el-tab-pane>
 
@@ -174,7 +181,7 @@
 
 <script setup>
 /* ---------------------------------------------------- 套件 ---------------------------------------------------- */
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { InfoFilled } from '@element-plus/icons-vue'
@@ -203,9 +210,12 @@ const dialogVisible = ref(false)
 const showHelp      = ref(false)
 const excelDialog   = ref(false)
 
+/* 自訂欄位列表 */
+const customColumns = ref([])
+
 /* ===== 每日 ===== */
 const dailyData  = ref([])
-const recordForm = ref({ date:'', spent:'', enquiries:'', reach:'', impressions:'', clicks:'' })
+const recordForm = ref({ date:'', spent:'', enquiries:'', reach:'', impressions:'', clicks:'', extraData:{} })
 
 /* ===== 週 ===== */
 const weeklyData  = ref([])
@@ -219,7 +229,7 @@ let chartCtx = null
 let chart    = null
 
 /* ===== Excel 欄位規格 ===== */
-const excelSpec = [
+const baseSpec = [
   { field:'date',        type:'文字 / 日期', sample:'2025-06-01' },
   { field:'spent',       type:'數字',         sample:'1200'      },
   { field:'enquiries',   type:'數字',         sample:'10'        },
@@ -227,6 +237,10 @@ const excelSpec = [
   { field:'impressions', type:'數字',         sample:'800'       },
   { field:'clicks',      type:'數字',         sample:'23'        }
 ]
+const excelSpec = computed(() => [
+  ...baseSpec,
+  ...customColumns.value.map(c => ({ field: c, type: '文字', sample: '' }))
+])
 
 /* 日期 formatter */
 const dateFmt = row => dayjs(row.date).format('YYYY-MM-DD')
@@ -234,10 +248,17 @@ const dateFmt = row => dayjs(row.date).format('YYYY-MM-DD')
 /* --------------------------------------------------- 資料載入 --------------------------------------------------- */
 const loadDaily = async () => {
   const list = await fetchDaily(clientId, platformId)
-  dailyData.value = list.map(r => ({
-    ...r,
-    avgCost: r.enquiries ? (r.spent / r.enquiries).toFixed(2) : '0.00'
-  }))
+  const cols = new Set()
+  dailyData.value = list.map(r => {
+    if (r.extraData && typeof r.extraData === 'object') {
+      Object.keys(r.extraData).forEach(k => cols.add(k))
+    }
+    return {
+      ...r,
+      avgCost: r.enquiries ? (r.spent / r.enquiries).toFixed(2) : '0.00'
+    }
+  })
+  customColumns.value = Array.from(cols)
 }
 const loadWeekly = async () => {
   weeklyData.value = await fetchWeekly(clientId, platformId)
@@ -275,7 +296,7 @@ const handleConfirm = async () => {
   if (!recordForm.value.date) return ElMessage.warning('請選擇日期')
   await createDaily(clientId, platformId, { ...recordForm.value })
   ElMessage.success('已新增記錄')
-  Object.assign(recordForm.value, { date:'', spent:'', enquiries:'', reach:'', impressions:'', clicks:'' })
+  Object.assign(recordForm.value, { date:'', spent:'', enquiries:'', reach:'', impressions:'', clicks:'', extraData:{} })
   dialogVisible.value = false
   await loadDaily(); await loadWeekly()
 }
@@ -308,21 +329,37 @@ const parseCSV = file => new Promise((res,rej) => {
     complete:r=>res(normalize(r.data)),error:rej})
 })
 const normalize = arr => arr
-  .map(r => ({
-    date:        r.date||r.日期,
-    spent:       + (r.spent||r.花費||0),
-    enquiries:   + (r.enquiries||r.詢問||0),
-    reach:       + (r.reach||r.觸及||0),
-    impressions: + (r.impressions||r.曝光||0),
-    clicks:      + (r.clicks||r.點擊||0)
-  }))
+  .map(r => {
+    const obj = {
+      date:        r.date||r.日期,
+      spent:       + (r.spent||r.花費||0),
+      enquiries:   + (r.enquiries||r.詢問||0),
+      reach:       + (r.reach||r.觸及||0),
+      impressions: + (r.impressions||r.曝光||0),
+      clicks:      + (r.clicks||r.點擊||0)
+    }
+    const ignore = ['date','日期','spent','花費','enquiries','詢問','reach','觸及','impressions','曝光','clicks','點擊']
+    const extra = {}
+    for (const [k,v] of Object.entries(r)) {
+      if (!ignore.includes(k)) extra[k] = v
+    }
+    if (Object.keys(extra).length) obj.extraData = extra
+    return obj
+  })
   .filter(r=>r.date)
 
 /* 下載 Excel 範例 */
 const downloadTemplate = () => {
-  const ws = XLSX.utils.json_to_sheet([{
-    date:'2025-06-01', spent:1200, enquiries:10, reach:500, impressions:800, clicks:23
-  }])
+  const sample = {
+    date:'2025-06-01',
+    spent:1200,
+    enquiries:10,
+    reach:500,
+    impressions:800,
+    clicks:23
+  }
+  customColumns.value.forEach(c => { sample[c] = '' })
+  const ws = XLSX.utils.json_to_sheet([sample])
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Template')
   const buf = XLSX.write(wb,{bookType:'xlsx',type:'array'})
@@ -332,10 +369,19 @@ const downloadTemplate = () => {
 /* --------------------------------------------------- 匯出功能 -------------------------------------------------- */
 const exportDaily = () => {
   if (!dailyData.value.length) return ElMessage.warning('無資料可匯出')
-  const rows = dailyData.value.map(r => ({
-    日期: dateFmt(r), 花費:r.spent, 詢問:r.enquiries, 平均成本:r.avgCost,
-    觸及:r.reach, 曝光:r.impressions, 點擊:r.clicks
-  }))
+  const rows = dailyData.value.map(r => {
+    const obj = {
+      日期: dateFmt(r),
+      花費: r.spent,
+      詢問: r.enquiries,
+      平均成本: r.avgCost,
+      觸及: r.reach,
+      曝光: r.impressions,
+      點擊: r.clicks
+    }
+    customColumns.value.forEach(c => { obj[c] = r.extraData?.[c] || '' })
+    return obj
+  })
   const csv = Papa.unparse(rows)
   saveAs(new Blob([csv],{type:'text/csv;charset=utf-8;'}), 'daily.csv')
 }
