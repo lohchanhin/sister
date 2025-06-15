@@ -2,8 +2,11 @@ import Platform from '../models/platform.model.js'
 
 export const createPlatform = async (req, res) => {
   try {
+    const { name, platformType, fields } = req.body
     const platform = await Platform.create({
-      ...req.body,
+      name,
+      platformType,
+      fields,
       clientId: req.params.clientId
     })
     res.status(201).json(platform)
@@ -28,9 +31,10 @@ export const getPlatform = async (req, res) => {
 
 export const updatePlatform = async (req, res) => {
   try {
+    const { name, platformType, fields } = req.body
     const p = await Platform.findOneAndUpdate(
       { _id: req.params.id, clientId: req.params.clientId },
-      req.body,
+      { name, platformType, fields },
       { new: true }
     )
     if (!p) return res.status(404).json({ message: '平台不存在' })
