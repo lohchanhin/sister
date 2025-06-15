@@ -56,6 +56,7 @@ onMounted(loadPlatforms)
 
 <template>
   <section class="p-6 space-y-6 bg-white text-gray-800">
+    <el-button @click="router.back()">返回上層</el-button>
     <h1 class="text-2xl font-bold">平台管理</h1>
     <el-button type="primary" @click="openCreate">＋ 新增平台</el-button>
     <el-table :data="platforms" stripe style="width:100%" class="mt-4">

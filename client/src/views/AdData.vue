@@ -1,6 +1,7 @@
 <!-- src/views/AdData.vue – 修正版：單一 <template>、Dialog 新增、匯入 Excel/CSV -->
 <template>
   <section class="p-6 space-y-6 bg-white text-gray-800">
+    <el-button @click="router.back()">返回上層</el-button>
     <h1 class="text-2xl font-bold">廣告數據</h1>
 
     <el-tabs v-model="activeTab">
@@ -150,6 +151,7 @@
 /* ------------------------------------------------------------------
  * 匯入
  * ---------------------------------------------------------------- */
+
 import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -178,6 +180,7 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, Title, Ca
  * 參數與狀態
  * ---------------------------------------------------------------- */
 const route       = useRoute()
+const router      = useRouter()
 const clientId    = route.params.clientId
 const platformId  = route.params.platformId
 
