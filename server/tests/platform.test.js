@@ -17,6 +17,7 @@ let app
 let token
 let clientId
 let platformId
+const defaultFields = ['date','spent','enquiries','reach','impressions','clicks']
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create()
@@ -53,7 +54,7 @@ describe('Platform API', () => {
     const resC = await request(app)
       .post(`/api/clients/${clientId}/platforms`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Meta', platformType: 'Meta', fields: ['note'] })
+      .send({ name: 'Meta', platformType: 'Meta', fields: ['note'], mode:'custom' })
       .expect(201)
     platformId = resC.body._id
     expect(resC.body.fields).toEqual(['note'])
@@ -75,6 +76,16 @@ describe('Platform API', () => {
       .delete(`/api/clients/${clientId}/platforms/${platformId}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
+  })
+
+  it('create platform with default mode', async () => {
+    const res = await request(app)
+      .post(`/api/clients/${clientId}/platforms`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Def', platformType: 'Meta', mode: 'default', fields: defaultFields })
+      .expect(201)
+    expect(res.body.mode).toBe('default')
+    expect(res.body.fields).toEqual(defaultFields)
   })
 
   it('duplicate platform name returns 409', async () => {
