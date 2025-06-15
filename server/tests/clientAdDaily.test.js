@@ -99,4 +99,17 @@ describe('Client and AdDaily', () => {
     expect(res.body.impressions).toBe(2000)
     expect(res.body.clicks).toBe(7)
   })
+
+  it('bulk create adDaily', async () => {
+    const records = [
+      { date: new Date('2024-03-01').toISOString(), spent: 5 },
+      { date: new Date('2024-03-02').toISOString(), spent: 7 }
+    ]
+    const res = await request(app)
+      .post(`/api/clients/${clientId}/platforms/${platformId}/ad-daily/bulk`)
+      .set('Authorization', `Bearer ${token}`)
+      .send(records)
+      .expect(201)
+    expect(res.body.count).toBe(2)
+  })
 })
