@@ -1,11 +1,18 @@
 import Platform from '../models/platform.model.js'
 
 export const createPlatform = async (req, res) => {
-  const platform = await Platform.create({
-    ...req.body,
-    clientId: req.params.clientId
-  })
-  res.status(201).json(platform)
+  try {
+    const platform = await Platform.create({
+      ...req.body,
+      clientId: req.params.clientId
+    })
+    res.status(201).json(platform)
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ message: '平台名稱重複' })
+    }
+    throw err
+  }
 }
 
 export const getPlatforms = async (req, res) => {
@@ -20,13 +27,20 @@ export const getPlatform = async (req, res) => {
 }
 
 export const updatePlatform = async (req, res) => {
-  const p = await Platform.findOneAndUpdate(
-    { _id: req.params.id, clientId: req.params.clientId },
-    req.body,
-    { new: true }
-  )
-  if (!p) return res.status(404).json({ message: '平台不存在' })
-  res.json(p)
+  try {
+    const p = await Platform.findOneAndUpdate(
+      { _id: req.params.id, clientId: req.params.clientId },
+      req.body,
+      { new: true }
+    )
+    if (!p) return res.status(404).json({ message: '平台不存在' })
+    res.json(p)
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ message: '平台名稱重複' })
+    }
+    throw err
+  }
 }
 
 export const deletePlatform = async (req, res) => {

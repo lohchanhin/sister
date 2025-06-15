@@ -74,4 +74,19 @@ describe('Platform API', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
   })
+
+  it('duplicate platform name returns 409', async () => {
+    await request(app)
+      .post(`/api/clients/${clientId}/platforms`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Dup', platformType: 'Meta' })
+      .expect(201)
+
+    const res = await request(app)
+      .post(`/api/clients/${clientId}/platforms`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Dup', platformType: 'Meta' })
+      .expect(409)
+    expect(res.body.message).toBe('平台名稱重複')
+  })
 })
