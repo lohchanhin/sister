@@ -197,6 +197,12 @@ import {
 } from '../services/weeklyNotes'
 import { getPlatform } from '../services/platforms'
 import {
+  buildExcelSpec,
+  buildTemplateRow,
+  normalizeRows,
+  buildExportRows
+} from '../utils/adData'
+import {
   Chart, LineController, LineElement,
   PointElement, LinearScale, Title, CategoryScale
 } from 'chart.js'
@@ -231,18 +237,7 @@ let chartCtx = null
 let chart    = null
 
 /* ===== Excel 欄位規格 ===== */
-const baseSpec = [
-  { field:'date',        type:'文字 / 日期', sample:'2025-06-01' },
-  { field:'spent',       type:'數字',         sample:'1200'      },
-  { field:'enquiries',   type:'數字',         sample:'10'        },
-  { field:'reach',       type:'數字',         sample:'500'       },
-  { field:'impressions', type:'數字',         sample:'800'       },
-  { field:'clicks',      type:'數字',         sample:'23'        }
-]
-const excelSpec = computed(() => [
-  ...baseSpec,
-  ...customColumns.value.map(c => ({ field: c, type: '文字', sample: '' }))
-])
+const excelSpec = computed(() => buildExcelSpec(customColumns.value))
 
 /* 日期 formatter */
 const dateFmt = row => dayjs(row.date).format('YYYY-MM-DD')
@@ -254,17 +249,13 @@ const loadPlatform = async () => {
 /* --------------------------------------------------- 資料載入 --------------------------------------------------- */
 const loadDaily = async () => {
   const list = await fetchDaily(clientId, platformId)
-  const cols = new Set()
   dailyData.value = list.map(r => {
-    if (r.extraData && typeof r.extraData === 'object') {
-      Object.keys(r.extraData).forEach(k => cols.add(k))
-    }
     return {
       ...r,
       avgCost: r.enquiries ? (r.spent / r.enquiries).toFixed(2) : '0.00'
     }
   })
-  customColumns.value = Array.from(new Set([...customColumns.value, ...cols]))
+  customColumns.value = platform.value.fields || []
 }
 const loadWeekly = async () => {
   weeklyData.value = await fetchWeekly(clientId, platformId)
@@ -333,37 +324,11 @@ const parseCSV = file => new Promise((res,rej) => {
   Papa.parse(file,{header:true,skipEmptyLines:true,
     complete:r=>res(normalize(r.data)),error:rej})
 })
-const normalize = arr => arr
-  .map(r => {
-    const obj = {
-      date:        r.date||r.日期,
-      spent:       + (r.spent||r.花費||0),
-      enquiries:   + (r.enquiries||r.詢問||0),
-      reach:       + (r.reach||r.觸及||0),
-      impressions: + (r.impressions||r.曝光||0),
-      clicks:      + (r.clicks||r.點擊||0)
-    }
-    const ignore = ['date','日期','spent','花費','enquiries','詢問','reach','觸及','impressions','曝光','clicks','點擊']
-    const extra = {}
-    for (const [k,v] of Object.entries(r)) {
-      if (!ignore.includes(k)) extra[k] = v
-    }
-    if (Object.keys(extra).length) obj.extraData = extra
-    return obj
-  })
-  .filter(r=>r.date)
+const normalize = arr => normalizeRows(arr, customColumns.value)
 
 /* 下載 Excel 範例 */
 const downloadTemplate = () => {
-  const sample = {
-    date:'2025-06-01',
-    spent:1200,
-    enquiries:10,
-    reach:500,
-    impressions:800,
-    clicks:23
-  }
-  customColumns.value.forEach(c => { sample[c] = '' })
+  const sample = buildTemplateRow(customColumns.value)
   const ws = XLSX.utils.json_to_sheet([sample])
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Template')
@@ -374,19 +339,7 @@ const downloadTemplate = () => {
 /* --------------------------------------------------- 匯出功能 -------------------------------------------------- */
 const exportDaily = () => {
   if (!dailyData.value.length) return ElMessage.warning('無資料可匯出')
-  const rows = dailyData.value.map(r => {
-    const obj = {
-      日期: dateFmt(r),
-      花費: r.spent,
-      詢問: r.enquiries,
-      平均成本: r.avgCost,
-      觸及: r.reach,
-      曝光: r.impressions,
-      點擊: r.clicks
-    }
-    customColumns.value.forEach(c => { obj[c] = r.extraData?.[c] || '' })
-    return obj
-  })
+  const rows = buildExportRows(dailyData.value, customColumns.value, dateFmt)
   const csv = Papa.unparse(rows)
   saveAs(new Blob([csv],{type:'text/csv;charset=utf-8;'}), 'daily.csv')
 }
