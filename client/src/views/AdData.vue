@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { InfoFilled } from '@element-plus/icons-vue'
 import { fetchDaily, createDaily, fetchWeekly } from '../services/adDaily'
 import { Chart, LineController, LineElement, PointElement, LinearScale, Title, CategoryScale } from 'chart.js'
 import * as XLSX from 'xlsx'
@@ -18,6 +19,10 @@ const recordForm = ref({ date: '', spent: '', enquiries: '', reach: '', impressi
 
 const activeTab = ref('daily')
 let chart
+
+const showHelp = ref(false)
+const openHelp = () => { showHelp.value = true }
+const closeHelp = () => { showHelp.value = false }
 
 const loadDaily = async () => {
   dailyData.value = await fetchDaily(clientId, platformId)
@@ -109,6 +114,11 @@ const drawChart = () => {
             <el-input v-model.number="recordForm.impressions" placeholder="曝光" class="w-28" />
             <el-input v-model.number="recordForm.clicks" placeholder="點擊" class="w-28" />
             <el-button type="primary" native-type="submit">新增記錄</el-button>
+            <el-button link size="small" @click="openHelp" class="ml-2">
+              <el-icon>
+                <InfoFilled />
+              </el-icon>
+            </el-button>
           </div>
         </el-form>
       </el-tab-pane>
@@ -125,6 +135,12 @@ const drawChart = () => {
         </el-table>
       </el-tab-pane>
     </el-tabs>
+    <el-dialog v-model="showHelp" title="填寫說明" width="360px" @close="closeHelp">
+      <p>可手動輸入或匯入 CSV/Excel，日期格式需為 YYYY-MM-DD</p>
+      <template #footer>
+        <el-button type="primary" @click="closeHelp">確定</el-button>
+      </template>
+    </el-dialog>
   </section>
 </template>
 
