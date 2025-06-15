@@ -72,4 +72,25 @@ describe('WeeklyNote API', () => {
       .expect(200)
     expect(resG.body.text).toBe('hello')
   })
+
+  it('upload images and list all notes', async () => {
+    const week = '2024-W02'
+    const res = await request(app)
+      .post(`/api/clients/${clientId}/platforms/${platformId}/weekly-notes`)
+      .set('Authorization', `Bearer ${token}`)
+      .field('week', week)
+      .field('text', '')
+      .attach('images', Buffer.from('a'), 'a.txt')
+      .attach('images', Buffer.from('b'), 'b.txt')
+      .expect(201)
+    expect(res.body.images.length).toBe(2)
+
+    const resAll = await request(app)
+      .get(`/api/clients/${clientId}/platforms/${platformId}/weekly-notes`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    const weeks = resAll.body.map(n => n.week)
+    expect(weeks).toContain('2024-W01')
+    expect(weeks).toContain('2024-W02')
+  })
 })

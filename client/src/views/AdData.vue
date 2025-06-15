@@ -60,12 +60,10 @@
           </el-table-column>
 
           <!-- 🆕 筆記欄 -->
-          <el-table-column label="筆記" width="100">
+          <el-table-column label="筆記" width="120">
             <template #default="{ row }">
-              <!-- 文字 -->
-              <span v-if="row.hasNote && !row.hasImage">📄</span>
-              <!-- 圖片 -->
-              <el-button v-if="row.hasImage" link type="primary" size="small"
+              <span v-if="row.hasNote">{{ row.note }}</span>
+              <el-button v-else-if="row.hasImage" link type="primary" size="small"
                 @click="previewImages(row.images)">查看圖片</el-button>
             </template>
           </el-table-column>
@@ -175,7 +173,7 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, Title, Ca
 
 /**** ------------------ API 服務（依專案實作，可替換為 axios 呼叫） ------------------ ****/
 import { fetchDaily, createDaily, bulkCreateDaily } from '@/services/adDaily'
-import { fetchWeeklyNote, createWeeklyNote, updateWeeklyNote } from '@/services/weeklyNotes'
+import { fetchWeeklyNote, fetchWeeklyNotes, createWeeklyNote, updateWeeklyNote } from '@/services/weeklyNotes'
 import { getPlatform } from '@/services/platforms'
 
 /**** ----------------------------- 路由 & 基本狀態 ----------------------------- ****/
@@ -187,6 +185,8 @@ const dialogVisible = ref(false)
 const showHelp = ref(false)
 const excelDialog = ref(false)
 const noteDialog = ref(false)
+const imgPreviewDialog = ref(false)
+const imgList = ref([])
 
 /**** 自訂欄位 ****/
 const customColumns = ref([])      // e.g. ['花費','詢問','觸及']
@@ -219,6 +219,8 @@ const weeklyAgg = computed(() => {
     const note = weeklyNotes.value[w]
     map[w].note = note?.text || ''
     map[w].hasNote = !!(note && note.text)
+    map[w].hasImage = !!(note && note.images && note.images.length)
+    map[w].images = note?.images || []
   })
   Object.keys(weeklyNotes.value).forEach(w => {
     if (!map[w]) {
@@ -227,6 +229,8 @@ const weeklyAgg = computed(() => {
       customColumns.value.forEach(f => (map[w][f] = 0))
       map[w].note = note?.text || ''
       map[w].hasNote = !!(note && note.text)
+      map[w].hasImage = !!(note && note.images && note.images.length)
+      map[w].images = note?.images || []
     }
   })
   // 轉陣列並按週期排序
@@ -264,6 +268,14 @@ const loadPlatform = async () => {
 const loadDaily = async () => {
   const list = await fetchDaily(clientId, platformId)
   dailyData.value = list
+}
+
+const loadWeeklyNotes = async () => {
+  const list = await fetchWeeklyNotes(clientId, platformId)
+  weeklyNotes.value = list.reduce((acc, n) => {
+    acc[n.week] = n
+    return acc
+  }, {})
 }
 
 /**** --------------------------------------------------- 折線圖繪製 --------------------------------------------------- ****/
@@ -307,6 +319,7 @@ onMounted(async () => {
   // 初始化 recordForm.extraData
   customColumns.value.forEach(f => (recordForm.value.extraData[f] = ''))
   await loadDaily()
+  await loadWeeklyNotes()
 })
 
 /**** --------------------------------------------------- CRUD：每日 --------------------------------------------------- ****/
@@ -389,7 +402,7 @@ const exportWeekly = () => {
   const rows = weeklyAgg.value.map(r => {
     const obj = { 週: r.week }
     customColumns.value.forEach(col => { obj[col] = r[col] })
-    obj['備註'] = r.note || ''
+    obj['備註'] = r.note || r.images.join(' ')
     return obj
   })
   const ws = XLSX.utils.json_to_sheet(rows)
@@ -424,16 +437,21 @@ const openNote = async row => {
 }
 
 const saveNote = async () => {
-  const { week, text } = noteForm.value
+  const { week, text, images } = noteForm.value
   let note
   try {
-    note = await updateWeeklyNote(clientId, platformId, week, { text })
+    note = await updateWeeklyNote(clientId, platformId, week, { text, images: images.map(f => f.raw) })
   } catch {
-    note = await createWeeklyNote(clientId, platformId, { week, text })
+    note = await createWeeklyNote(clientId, platformId, { week, text, images: images.map(f => f.raw) })
   }
   weeklyNotes.value[week] = note
   ElMessage.success('已儲存備註')
   noteDialog.value = false
+}
+
+const previewImages = (imgs) => {
+  imgList.value = imgs
+  imgPreviewDialog.value = true
 }
 </script>
 

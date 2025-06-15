@@ -4,6 +4,7 @@ import { upload } from '../middleware/upload.js'
 import {
   createWeeklyNote,
   getWeeklyNote,
+  getWeeklyNotes,
   updateWeeklyNote
 } from '../controllers/weeklyNote.controller.js'
 
@@ -11,6 +12,7 @@ const router = Router({ mergeParams: true })
 
 router.use(protect)
 
+router.get('/', getWeeklyNotes)
 router.post('/', upload.array('images'), createWeeklyNote)
 router.route('/:week')
   .get(getWeeklyNote)
