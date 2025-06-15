@@ -11,7 +11,7 @@ const platforms = ref([])
 const dialog = ref(false)
 const editing = ref(false)
 const form = ref({ name: '', platformType: '', mode: 'custom', fields: [] })
-const defaultFields = ['date','spent','enquiries','reach','impressions','clicks']
+const defaultFields = ['spent','enquiries','reach','impressions','clicks']
 const newField = ref('')
 
 const addField = () => {
