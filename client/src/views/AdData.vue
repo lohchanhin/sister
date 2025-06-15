@@ -1,12 +1,12 @@
-<!-- src/views/AdData.vue – 完整修正版 -->
+<!-- src/views/AdData.vue – 動態欄位 + 週折線圖（Y 軸可選） -->
 <template>
   <section class="p-6 space-y-6 bg-white text-gray-800">
-    <!-- ── 返回 ── -->
+    <!-- ===== 返回上一頁 ===== -->
     <el-button @click="router.back()">返回上層</el-button>
     <h1 class="text-2xl font-bold">廣告數據</h1>
 
     <el-tabs v-model="activeTab">
-      <!-- ───────────── 每日記錄 ───────────── -->
+      <!-- ──────────────────── 每日記錄 ──────────────────── -->
       <el-tab-pane label="每日記錄" name="daily">
         <!-- 工具列 -->
         <div class="flex justify-between items-center mb-4">
@@ -20,15 +20,13 @@
             >
               <el-button>匯入 CSV / Excel</el-button>
             </el-upload>
-            <el-button size="small" plain @click="excelDialog = true">
-              Excel 格式說明
-            </el-button>
+            <el-button size="small" plain @click="excelDialog = true">Excel 格式說明</el-button>
           </div>
 
-          <!-- 右：匯出 / 新增 / 全域說明 -->
+          <!-- 右：匯出 / 新增 / 說明 -->
           <div class="flex items-center gap-2">
-            <el-button size="small" @click="exportDaily">每日匯出</el-button>
-            <el-button type="primary" @click="dialogVisible = true">新增記錄</el-button>
+            <el-button size="small" @click="exportDaily">匯出</el-button>
+            <el-button type="primary" @click="openCreateDialog">新增記錄</el-button>
             <el-button link size="small" @click="showHelp = true">
               <el-icon><InfoFilled /></el-icon>
             </el-button>
@@ -36,73 +34,61 @@
         </div>
 
         <!-- 每日表格 -->
-        <el-table
-          :data="dailyData"
-          stripe
-          style="width:100%"
-          empty-text="尚無資料"
-        >
-          <el-table-column prop="date"        label="日期"   :formatter="dateFmt" />
-          <el-table-column prop="spent"       label="花費" />
-          <el-table-column prop="enquiries"   label="詢問" />
-          <el-table-column prop="avgCost"     label="平均成本" />
-          <el-table-column prop="reach"       label="觸及" />
-          <el-table-column prop="impressions" label="曝光" />
-          <el-table-column prop="clicks"      label="點擊" />
+        <el-table :data="dailyData" stripe style="width:100%" empty-text="尚無資料">
+          <el-table-column prop="date" label="日期" :formatter="dateFmt" width="140" />
           <el-table-column
-            v-for="col in customColumns"
-            :key="col"
-            :label="col"
+            v-for="field in customColumns"
+            :key="field"
+            :label="field"
           >
-            <template #default="{ row }">{{ row.extraData?.[col] || '' }}</template>
+            <template #default="{ row }">{{ row.extraData?.[field] ?? '' }}</template>
           </el-table-column>
         </el-table>
       </el-tab-pane>
 
-      <!-- ───────────── 週報表 ───────────── -->
-      <el-tab-pane label="週報表" name="weekly">
+      <!-- ──────────────────── 週摘要 ──────────────────── -->
+      <el-tab-pane label="週摘要" name="weekly">
         <!-- 指標切換 + 匯出 -->
         <div class="flex justify-between items-center mb-2">
-          <el-select v-model="metric" size="small" style="width:120px">
+          <el-select
+            v-model="yMetric"
+            size="small"
+            style="width:160px"
+            placeholder="選擇指標"
+          >
             <el-option
-              v-for="(lbl,val) in metricLabel"
-              :key="val"
-              :label="lbl"
-              :value="val"
+              v-for="field in customColumns"
+              :key="field"
+              :label="field"
+              :value="field"
             />
           </el-select>
-          <el-button size="small" @click="exportWeekly">週匯出</el-button>
+          <el-button size="small" @click="exportWeekly">匯出週報</el-button>
         </div>
 
         <!-- 折線圖 -->
-        <div style="height:300px;width:100%">
+        <div style="height:300px;width:100%" class="mb-4">
           <canvas id="weekly-chart"></canvas>
         </div>
 
         <!-- 週表格 -->
-        <el-table
-          :data="weeklyData"
-          stripe
-          style="width:100%"
-          class="mt-4"
-          empty-text="尚無資料"
-        >
-          <el-table-column prop="week"        label="週"       width="100" />
-          <el-table-column prop="spent"       label="總花費"   width="100" />
-          <el-table-column prop="enquiries"   label="總詢問"   width="100" />
-          <el-table-column prop="reach"       label="總觸及"   width="100" />
-          <el-table-column prop="impressions" label="總曝光"   width="100" />
-          <el-table-column prop="clicks"      label="總點擊"   width="100" />
+        <el-table :data="weeklyAgg" stripe style="width:100%" empty-text="尚無資料">
+          <el-table-column prop="week"  label="週 (YYYY-WW)" width="120" />
+          <el-table-column
+            v-for="field in customColumns"
+            :key="field"
+            :label="field"
+            width="120"
+          >
+            <template #default="{ row }">{{ row[field] }}</template>
+          </el-table-column>
           <el-table-column label="備註">
             <template #default="{ row }">
               <div>
                 <el-button link type="primary" @click="openNote(row)">備註</el-button>
                 <el-icon v-if="row.hasNote" class="ml-1"><InfoFilled /></el-icon>
               </div>
-              <div
-                v-if="row.note"
-                class="text-xs text-gray-600 whitespace-pre-line mt-1"
-              >
+              <div v-if="row.note" class="text-xs text-gray-600 whitespace-pre-line mt-1">
                 {{ row.note }}
               </div>
             </template>
@@ -111,17 +97,16 @@
       </el-tab-pane>
     </el-tabs>
 
-    <!-- ── Dialog：新增每日 ── -->
+    <!-- ─────────── Dialog：新增每日 ─────────── -->
     <el-dialog v-model="dialogVisible" title="新增每日記錄" width="460px" destroy-on-close>
-      <el-form label-position="top" :model="recordForm" @submit.prevent>
+      <el-form label-position="top" @submit.prevent>
         <el-form-item label="日期">
           <el-date-picker v-model="recordForm.date" type="date" style="width:100%" />
         </el-form-item>
-        <el-form-item label="花費"><el-input v-model.number="recordForm.spent" /></el-form-item>
-        <el-form-item label="詢問"><el-input v-model.number="recordForm.enquiries" /></el-form-item>
-        <el-form-item label="觸及"><el-input v-model.number="recordForm.reach" /></el-form-item>
-        <el-form-item label="曝光"><el-input v-model.number="recordForm.impressions" /></el-form-item>
-        <el-form-item label="點擊"><el-input v-model.number="recordForm.clicks" /></el-form-item>
+        <!-- 動態欄位輸入 -->
+        <el-form-item v-for="field in customColumns" :key="field" :label="field">
+          <el-input v-model="recordForm.extraData[field]" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -129,25 +114,24 @@
       </template>
     </el-dialog>
 
-    <!-- ── Dialog：操作說明 ── -->
+    <!-- ─────────── Dialog：操作說明 ─────────── -->
     <el-dialog v-model="showHelp" title="操作說明" width="380px">
       <ul class="list-disc pl-5 leading-7">
         <li>點 <b>新增記錄</b>：手動輸入每日數據。</li>
         <li>點 <b>匯入 CSV / Excel</b>：批量匯入多筆資料。</li>
-        <li>不了解欄位？可先點 <b>Excel 格式說明</b> 下載範例。</li>
-        <li>切換上方下拉，可即時比較不同指標的週趨勢。</li>
-        <li>週表「備註」可追加說明及圖片。</li>
+        <li>不了解欄位？可先點 <b>Excel 格式說明</b> 查看範例。</li>
+        <li>週摘要折線圖可在右上角下拉選擇 Y 軸指標。</li>
       </ul>
       <template #footer>
         <el-button type="primary" @click="showHelp = false">了解</el-button>
       </template>
     </el-dialog>
 
-    <!-- ── Dialog：Excel 欄位規格 ── -->
+    <!-- ─────────── Dialog：Excel 欄位規格 ─────────── -->
     <el-dialog v-model="excelDialog" title="Excel / CSV 欄位格式" width="500px" destroy-on-close>
       <el-table :data="excelSpec" border>
-        <el-table-column prop="field"  label="欄位名稱" width="130" />
-        <el-table-column prop="type"   label="資料型別" width="110" />
+        <el-table-column prop="field"  label="欄位名稱" width="180" />
+        <el-table-column prop="type"   label="資料型別" width="150" />
         <el-table-column prop="sample" label="範例值" />
       </el-table>
       <template #footer>
@@ -156,23 +140,14 @@
       </template>
     </el-dialog>
 
-    <!-- ── Dialog：週備註 ── -->
+    <!-- ─────────── Dialog：週備註 ─────────── -->
     <el-dialog v-model="noteDialog" title="週備註" width="460px" destroy-on-close>
-      <el-input
-        v-model="noteForm.text"
-        type="textarea"
-        rows="4"
-        placeholder="輸入備註"
-      />
-      <el-upload
-        multiple
-        :before-upload="() => false"
-        v-model:file-list="noteForm.images"
-      >
+      <el-input v-model="noteForm.text" type="textarea" rows="4" placeholder="輸入備註" />
+      <el-upload multiple :before-upload="() => false" v-model:file-list="noteForm.images">
         <el-button>上傳圖片</el-button>
       </el-upload>
       <template #footer>
-        <el-button @click="noteDialog=false">取消</el-button>
+        <el-button @click="noteDialog = false">取消</el-button>
         <el-button type="primary" @click="saveNote">儲存</el-button>
       </template>
     </el-dialog>
@@ -180,8 +155,8 @@
 </template>
 
 <script setup>
-/* ---------------------------------------------------- 套件 ---------------------------------------------------- */
-import { ref, onMounted, watch, computed } from 'vue'
+/**** ---------------------------------------------------- 套件 ---------------------------------------------------- ****/
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { InfoFilled } from '@element-plus/icons-vue'
@@ -190,25 +165,17 @@ import { saveAs } from 'file-saver'
 import Papa from 'papaparse'
 import dayjs from 'dayjs'
 import {
-  fetchDaily, fetchWeekly, createDaily, bulkCreateDaily
-} from '../services/adDaily'
-import {
-  fetchWeeklyNote, createWeeklyNote, updateWeeklyNote
-} from '../services/weeklyNotes'
-import { getPlatform } from '../services/platforms'
-import {
-  buildExcelSpec,
-  buildTemplateRow,
-  normalizeRows,
-  buildExportRows
-} from '../utils/adData'
-import {
   Chart, LineController, LineElement,
   PointElement, LinearScale, Title, CategoryScale
 } from 'chart.js'
 Chart.register(LineController, LineElement, PointElement, LinearScale, Title, CategoryScale)
 
-/* --------------------------------------------------- 路由 & 狀態 ------------------------------------------------ */
+/**** ------------------ API 服務（依專案實作，可替換為 axios 呼叫） ------------------ ****/
+import { fetchDaily, createDaily, bulkCreateDaily }          from '@/services/adDaily'
+import { fetchWeeklyNote, createWeeklyNote, updateWeeklyNote } from '@/services/weeklyNotes'
+import { getPlatform } from '@/services/platforms'
+
+/**** ----------------------------- 路由 & 基本狀態 ----------------------------- ****/
 const { clientId, platformId } = useRoute().params
 const router = useRouter()
 
@@ -216,168 +183,229 @@ const activeTab     = ref('daily')
 const dialogVisible = ref(false)
 const showHelp      = ref(false)
 const excelDialog   = ref(false)
+const noteDialog    = ref(false)
 
-/* 自訂欄位列表 */
-const customColumns = ref([])
-const platform = ref(null)
+/**** 自訂欄位 ****/
+const customColumns = ref([])      // e.g. ['花費','詢問','觸及']
+const platform      = ref(null)
 
-/* ===== 每日 ===== */
-const dailyData  = ref([])
-const recordForm = ref({ date:'', spent:'', enquiries:'', reach:'', impressions:'', clicks:'', extraData:{} })
+/**** 每日資料 ****/
+const dailyData  = ref([])         // [{ date:'2025-06-16', extraData:{ 花費:100, 詢問:5 } }]
+const recordForm = ref({ date:'', extraData:{} })
 
-/* ===== 週 ===== */
-const weeklyData  = ref([])
-const metric      = ref('spent')
-const metricLabel = { spent:'花費', enquiries:'詢問', reach:'觸及', impressions:'曝光', clicks:'點擊' }
-const noteDialog  = ref(false)
-const noteForm    = ref({ week:'', text:'', images:[] })
+/**** 週資料（前端彙總） ****/
+const weeklyAgg = computed(() => {
+  // 以 YYYY-WW 為 Key，彙總每個欄位
+  const map = {}
+  dailyData.value.forEach(d => {
+    const week = dayjs(d.date).format('YYYY-WW')
+    if (!map[week]) {
+      map[week] = { week }
+      customColumns.value.forEach(f => (map[week][f] = 0))
+    }
+    customColumns.value.forEach(f => {
+      const val = Number(d.extraData[f] || 0)
+      map[week][f] += isNaN(val) ? 0 : val
+    })
+  })
+  // 轉陣列並按週期排序
+  return Object.values(map).sort((a, b) => a.week.localeCompare(b.week))
+})
 
-/* 折線圖全域變數（先宣告，供 watch 使用） */
-let chartCtx = null
-let chart    = null
+/**** 折線圖狀態 ****/
+const yMetric = ref('')     // 使用者選的欄位
+let chartCtx  = null
+let chart     = null
 
-/* ===== Excel 欄位規格 ===== */
-const excelSpec = computed(() => buildExcelSpec(customColumns.value))
+/**** --------------------------------------------------- 動態 Excel 說明 --------------------------------------------------- ****/
+const excelSpec = computed(() => {
+  const base = [{
+    field  : '日期',
+    type   : '日期 (YYYY-MM-DD)',
+    sample : dayjs().format('YYYY-MM-DD')
+  }]
+  return base.concat(
+    customColumns.value.map(f => ({ field:f, type:'文字', sample:'' }))
+  )
+})
 
-/* 日期 formatter */
+/**** 日期 formatter ****/
 const dateFmt = row => dayjs(row.date).format('YYYY-MM-DD')
+
+/**** --------------------------------------------------- 資料載入 --------------------------------------------------- ****/
 const loadPlatform = async () => {
   platform.value = await getPlatform(clientId, platformId)
-  customColumns.value = platform.value.fields || []
+  customColumns.value = platform.value?.fields || []
+  // 預設 Y 軸選第一個欄位
+  if (!yMetric.value && customColumns.value.length) yMetric.value = customColumns.value[0]
 }
 
-/* --------------------------------------------------- 資料載入 --------------------------------------------------- */
 const loadDaily = async () => {
   const list = await fetchDaily(clientId, platformId)
-  dailyData.value = list.map(r => {
-    return {
-      ...r,
-      avgCost: r.enquiries ? (r.spent / r.enquiries).toFixed(2) : '0.00'
-    }
-  })
-  customColumns.value = platform.value.fields || []
+  dailyData.value = list
 }
-const loadWeekly = async () => {
-  weeklyData.value = await fetchWeekly(clientId, platformId)
-  await Promise.all(
-    weeklyData.value.map(async r => {
-      try {
-        const n = await fetchWeeklyNote(clientId, platformId, r.week)
-        Object.assign(r, { hasNote:true, note:n.text })
-      } catch {
-        Object.assign(r, { hasNote:false, note:'' })
-      }
-    })
-  )
-  drawChart()
-}
-onMounted(async () => { await loadPlatform(); await loadDaily(); await loadWeekly() })
 
-/* --------------------------------------------------- 折線圖 --------------------------------------------------- */
+/**** --------------------------------------------------- 折線圖繪製 --------------------------------------------------- ****/
 const drawChart = () => {
   if (!chartCtx) chartCtx = document.getElementById('weekly-chart')
-  if (!chartCtx) return
-  const labels = weeklyData.value.map(r => r.week)
-  const data   = weeklyData.value.map(r => r[metric.value])
+  if (!chartCtx || !yMetric.value) return
+  const labels = weeklyAgg.value.map(r => r.week)
+  const data   = weeklyAgg.value.map(r => r[yMetric.value] ?? 0)
   chart && chart.destroy()
   chart = new Chart(chartCtx, {
-    type:'line',
-    data:{ labels, datasets:[{ label: metricLabel[metric.value], data, borderColor:'#409EFF', tension:0.35 }] },
-    options:{ responsive:true, maintainAspectRatio:false }
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: yMetric.value,
+        data,
+        borderColor: '#409EFF',
+        tension: 0.35
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
   })
 }
 
-/* --------------------------------------------------- 新增每日 --------------------------------------------------- */
-const handleConfirm = async () => {
-  if (!recordForm.value.date) return ElMessage.warning('請選擇日期')
-  await createDaily(clientId, platformId, { ...recordForm.value })
-  ElMessage.success('已新增記錄')
-  Object.assign(recordForm.value, { date:'', spent:'', enquiries:'', reach:'', impressions:'', clicks:'', extraData:{} })
-  dialogVisible.value = false
-  await loadDaily(); await loadWeekly()
+/**** 監聽資料或指標變動即重繪 ****/
+watch([weeklyAgg, yMetric], () => {
+  if (activeTab.value === 'weekly') drawChart()
+})
+
+/**** Tab 切換（避免元件初始化時畫布尺寸不對） ****/
+watch(activeTab, tab => {
+  if (tab === 'weekly') drawChart()
+})
+
+/**** --------------------------------------------------- 生命週期 --------------------------------------------------- ****/
+onMounted(async () => {
+  await loadPlatform()
+  // 初始化 recordForm.extraData
+  customColumns.value.forEach(f => (recordForm.value.extraData[f] = ''))
+  await loadDaily()
+})
+
+/**** --------------------------------------------------- CRUD：每日 --------------------------------------------------- ****/
+const openCreateDialog = () => {
+  recordForm.value.date = ''
+  customColumns.value.forEach(f => (recordForm.value.extraData[f] = ''))
+  dialogVisible.value = true
 }
 
-/* --------------------------------------------------- 匯入檔案 -------------------------------------------------- */
+const handleConfirm = async () => {
+  if (!recordForm.value.date) return ElMessage.warning('請選擇日期')
+  try {
+    await createDaily(clientId, platformId, { ...recordForm.value })
+    ElMessage.success('已新增記錄')
+    dialogVisible.value = false
+    await loadDaily()
+  } catch (err) {
+    ElMessage.error(err.message || '新增失敗')
+  }
+}
+
+/**** ------------------------------------------------------- 匯入 ------------------------------------------------------- ****/
 const importFile = async file => {
   try {
-    const ext = file.name.split('.').pop().toLowerCase()
+    const ext  = file.name.split('.').pop().toLowerCase()
     const rows = ext === 'csv' ? await parseCSV(file) : await parseExcel(file)
     if (!rows.length) throw new Error('檔案無有效資料')
     await bulkCreateDaily(clientId, platformId, rows)
     ElMessage.success(`匯入完成，共 ${rows.length} 筆`)
-    await loadDaily(); await loadWeekly()
+    await loadDaily()
   } catch (err) {
     ElMessage.error(err.message || '匯入失敗')
   }
   return false
 }
-const parseExcel = file => new Promise((res,rej) => {
+
+/* ---- Excel / CSV 解析 + Normalize ---- */
+const parseExcel = file => new Promise((res, rej) => {
   const fr = new FileReader()
   fr.onload = e => {
-    const wb = XLSX.read(e.target.result,{type:'array'})
+    const wb = XLSX.read(e.target.result, { type:'array' })
     const ws = wb.Sheets[wb.SheetNames[0]]
-    res(normalize(XLSX.utils.sheet_to_json(ws,{defval:''})))
+    res(normalize(XLSX.utils.sheet_to_json(ws, { defval:'' })))
   }
-  fr.onerror = rej; fr.readAsArrayBuffer(file)
+  fr.onerror = rej
+  fr.readAsArrayBuffer(file)
 })
-const parseCSV = file => new Promise((res,rej) => {
-  Papa.parse(file,{header:true,skipEmptyLines:true,
-    complete:r=>res(normalize(r.data)),error:rej})
-})
-const normalize = arr => normalizeRows(arr, customColumns.value)
 
-/* 下載 Excel 範例 */
-const downloadTemplate = () => {
-  const sample = buildTemplateRow(customColumns.value)
-  const ws = XLSX.utils.json_to_sheet([sample])
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Template')
-  const buf = XLSX.write(wb,{bookType:'xlsx',type:'array'})
-  saveAs(new Blob([buf],{type:'application/octet-stream'}),'ad-data-template.xlsx')
+const parseCSV = file => new Promise((res, rej) => {
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: r => res(normalize(r.data)),
+    error: rej
+  })
+})
+
+const normalize = arr => {
+  return arr.map(r => {
+    const extraData = {}
+    customColumns.value.forEach(col => { extraData[col] = r[col] || '' })
+    return { date: r['日期'] || r.date || '', extraData }
+  }).filter(r => r.date)
 }
 
-/* --------------------------------------------------- 匯出功能 -------------------------------------------------- */
+/**** ------------------------------------------------------- 匯出 ------------------------------------------------------- ****/
 const exportDaily = () => {
   if (!dailyData.value.length) return ElMessage.warning('無資料可匯出')
-  const rows = buildExportRows(dailyData.value, customColumns.value, dateFmt)
+  const rows = dailyData.value.map(r => {
+    const row = { 日期: dateFmt(r) }
+    customColumns.value.forEach(col => { row[col] = r.extraData[col] ?? '' })
+    return row
+  })
   const csv = Papa.unparse(rows)
-  saveAs(new Blob([csv],{type:'text/csv;charset=utf-8;'}), 'daily.csv')
+  saveAs(new Blob([csv], { type:'text/csv;charset=utf-8;' }), 'daily.csv')
 }
 
 const exportWeekly = () => {
-  if (!weeklyData.value.length) return ElMessage.warning('無資料可匯出')
-  const rows = weeklyData.value.map(r => ({
-    週:r.week, 總花費:r.spent, 總詢問:r.enquiries, 總觸及:r.reach,
-    總曝光:r.impressions, 總點擊:r.clicks, 備註:r.note||''
-  }))
+  if (!weeklyAgg.value.length) return ElMessage.warning('無資料可匯出')
+  const rows = weeklyAgg.value.map(r => {
+    const obj = { 週: r.week }
+    customColumns.value.forEach(col => { obj[col] = r[col] })
+    obj['備註'] = r.note || ''
+    return obj
+  })
   const ws = XLSX.utils.json_to_sheet(rows)
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'weekly')
-  const buf = XLSX.write(wb,{bookType:'xlsx',type:'array'})
-  saveAs(new Blob([buf],{type:'application/octet-stream'}), 'weekly.xlsx')
-
-  /* 同時存折線圖 PNG */
-  if (chart) {
-    const img = chart.toBase64Image()
-    const byte = atob(img.split(',')[1])
-    const u8   = Uint8Array.from(byte, c => c.charCodeAt(0))
-    saveAs(new Blob([u8],{type:'image/png'}),'weekly-chart.png')
-  }
+  const buf = XLSX.write(wb, { bookType:'xlsx', type:'array' })
+  saveAs(new Blob([buf], { type:'application/octet-stream' }), 'weekly.xlsx')
 }
 
-/* ---------------------------------------------------- 週備註 --------------------------------------------------- */
+/* 下載 Excel 範例（日期 + 自訂欄位） */
+const downloadTemplate = () => {
+  const sample = { 日期: dayjs().format('YYYY-MM-DD') }
+  customColumns.value.forEach(col => { sample[col] = '' })
+  const ws = XLSX.utils.json_to_sheet([sample])
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Template')
+  const buf = XLSX.write(wb, { bookType:'xlsx', type:'array' })
+  saveAs(new Blob([buf], { type:'application/octet-stream' }), 'ad-data-template.xlsx')
+}
+
+/**** ------------------------------------------------------- 週備註 ------------------------------------------------------- ****/
+const noteForm = ref({ week:'', text:'', images:[] })
+
 const openNote = row => {
-  noteForm.value = { week:row.week, text:row.note||'', images:[] }
+  noteForm.value = { week: row.week, text: row.note || '', images: [] }
   noteDialog.value = true
 }
+
 const saveNote = async () => {
   const { week, text } = noteForm.value
   try { await updateWeeklyNote(clientId, platformId, week, { text }) }
   catch { await createWeeklyNote(clientId, platformId, { week, text }) }
   ElMessage.success('已儲存備註')
   noteDialog.value = false
-  await loadWeekly()
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+/* 自行視覺調整 */
+</style> 
