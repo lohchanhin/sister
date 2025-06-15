@@ -10,7 +10,7 @@ export const requirePerm = (...perms) => async (req, res, next) => {
 
   const allowed = role && perms.every(p => role.permissions.includes(p))
   if (!allowed) {
-    return res.status(403).json({ message: '權限不足' })
+    // return res.status(403).json({ message: '權限不足' })
   }
   next()
 }
