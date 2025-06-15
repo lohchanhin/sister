@@ -47,6 +47,7 @@ import reviewStageRoutes from './routes/reviewStage.routes.js'
 import clientRoutes     from './routes/client.routes.js'
 import platformRoutes   from './routes/platform.routes.js'
 import adDailyRoutes    from './routes/adDaily.routes.js'
+import weeklyNoteRoutes from './routes/weeklyNote.routes.js'
 // import analyticsRoutes from './routes/analytics.routes.js' // 未啟用
 
 app.use('/api/auth',     authRoutes)
@@ -60,6 +61,7 @@ app.use('/api/tags',     tagRoutes)
 app.use('/api/clients',  clientRoutes)
 app.use('/api/clients/:clientId/platforms', platformRoutes)
 app.use('/api/clients/:clientId/platforms/:platformId/ad-daily', adDailyRoutes)
+app.use('/api/clients/:clientId/platforms/:platformId/weekly-notes', weeklyNoteRoutes)
 app.use('/api/permissions', permissionsRoutes)
 app.use('/api/menus', menusRoutes)
 app.use('/api/review-stages', reviewStageRoutes)

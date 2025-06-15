@@ -64,6 +64,12 @@
           <el-table-column prop="reach"       label="總觸及"   width="100" />
           <el-table-column prop="impressions" label="總曝光"   width="100" />
           <el-table-column prop="clicks"      label="總點擊"   width="100" />
+          <el-table-column label="備註" width="80">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="openNote(row)">備註</el-button>
+              <el-icon v-if="row.hasNote" class="ml-1"><InfoFilled/></el-icon>
+            </template>
+          </el-table-column>
         </el-table>
       </el-tab-pane>
     </el-tabs>
@@ -109,6 +115,18 @@
         <el-button type="primary" @click="closeHelp">確定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 備註 Dialog -->
+    <el-dialog v-model="noteDialog" title="週備註" width="460px" destroy-on-close>
+      <el-input v-model="noteForm.text" type="textarea" rows="4" placeholder="輸入備註" />
+      <el-upload :before-upload="() => false" multiple v-model:file-list="noteForm.images">
+        <el-button>上傳圖片</el-button>
+      </el-upload>
+      <template #footer>
+        <el-button @click="noteDialog=false">取消</el-button>
+        <el-button type="primary" @click="saveNote">儲存</el-button>
+      </template>
+    </el-dialog>
   </section>
 </template>
 
@@ -128,6 +146,11 @@ import {
   bulkCreateDaily        // 請在 services/adDaily.js 實作此批次 API
 } from '../services/adDaily'
 import {
+  fetchWeeklyNote,
+  createWeeklyNote,
+  updateWeeklyNote
+} from '../services/weeklyNotes'
+import {
   Chart, LineController, LineElement,
   PointElement, LinearScale, Title, CategoryScale
 } from 'chart.js'
@@ -146,6 +169,9 @@ const activeTab   = ref('daily')
 
 const dialogVisible = ref(false)
 const showHelp      = ref(false)
+const noteDialog    = ref(false)
+const noteForm      = ref({ week: '', text: '', images: [] })
+const hasNote       = ref(false)
 
 /* 新增表單 */
 const recordForm = ref({
@@ -163,6 +189,9 @@ const recordForm = ref({
 const loadDaily  = async () => { dailyData.value  = await fetchDaily(clientId, platformId) }
 const loadWeekly = async () => {
   weeklyData.value = await fetchWeekly(clientId, platformId)
+  for (const r of weeklyData.value) {
+    try { await fetchWeeklyNote(clientId, platformId, r.week); r.hasNote = true } catch { r.hasNote = false }
+  }
   drawChart()
 }
 
@@ -274,6 +303,28 @@ function normalizeRecords (rows) {
  * ---------------------------------------------------------------- */
 const openHelp  = () => { showHelp.value = true }
 const closeHelp = () => { showHelp.value = false }
+
+const openNote = async (row) => {
+  noteForm.value = { week: row.week, text: '', images: [] }
+  hasNote.value = false
+  try {
+    const n = await fetchWeeklyNote(clientId, platformId, row.week)
+    noteForm.value.text = n.text
+    hasNote.value = true
+  } catch {}
+  noteDialog.value = true
+}
+
+const saveNote = async () => {
+  if (hasNote.value) {
+    await updateWeeklyNote(clientId, platformId, noteForm.value.week, noteForm.value)
+  } else {
+    await createWeeklyNote(clientId, platformId, noteForm.value)
+  }
+  ElMessage.success('已儲存備註')
+  noteDialog.value = false
+  await loadWeekly()
+}
 </script>
 
 <style scoped></style>
