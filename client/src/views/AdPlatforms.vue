@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { fetchPlatforms, createPlatform, updatePlatform, deletePlatform } from '../services/platforms'
@@ -10,7 +10,8 @@ const clientId = route.params.clientId
 const platforms = ref([])
 const dialog = ref(false)
 const editing = ref(false)
-const form = ref({ name: '', platformType: '', fields: [] })
+const form = ref({ name: '', platformType: '', mode: 'custom', fields: [] })
+const defaultFields = ['date','spent','enquiries','reach','impressions','clicks']
 const newField = ref('')
 
 const addField = () => {
@@ -31,13 +32,13 @@ const loadPlatforms = async () => {
 
 const openCreate = () => {
   editing.value = false
-  form.value = { name: '', platformType: '', fields: [] }
+  form.value = { name: '', platformType: '', mode: 'custom', fields: [] }
   dialog.value = true
 }
 
 const openEdit = p => {
   editing.value = true
-  form.value = { ...p, fields: p.fields || [] }
+  form.value = { ...p, fields: p.fields || [], mode: p.mode || 'custom' }
   dialog.value = true
 }
 
@@ -68,6 +69,14 @@ const removePlatform = async p => {
   await loadPlatforms()
 }
 
+watch(
+  () => form.value.mode,
+  m => {
+    if (m === 'default') form.value.fields = [...defaultFields]
+    else if (m === 'custom') form.value.fields = []
+  }
+)
+
 onMounted(loadPlatforms)
 </script>
 
@@ -92,6 +101,12 @@ onMounted(loadPlatforms)
       <el-form label-position="top" @submit.prevent>
         <el-form-item label="平台名稱"><el-input v-model="form.name" /></el-form-item>
       <el-form-item label="類型"><el-input v-model="form.platformType" /></el-form-item>
+      <el-form-item label="模式">
+        <el-select v-model="form.mode">
+          <el-option label="預設" value="default" />
+          <el-option label="自訂" value="custom" />
+        </el-select>
+      </el-form-item>
       <el-form-item label="自訂欄位">
         <div class="flex items-center gap-2 mb-2">
           <el-input v-model="newField" @keyup.enter.native.prevent="addField" placeholder="欄位名稱" class="flex-1" />
