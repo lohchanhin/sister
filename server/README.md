@@ -106,4 +106,12 @@ POST /api/user { username, password }
 # 取得廣告成效摘要
 GET /api/analytics
 ```
+新增廣告每日資料可呼叫：
+```bash
+POST /api/clients/:clientId/platforms/:platformId/ad-daily { date, spent, ... }
+```
+批次匯入：
+```bash
+POST /api/clients/:clientId/platforms/:platformId/ad-daily/import (multipart/form-data)
+```
 目前不需額外的環境變數即可使用。
