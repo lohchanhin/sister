@@ -14,8 +14,9 @@
             <el-button>匯入 CSV / Excel</el-button>
           </el-upload>
 
-          <!-- 右側：新增 / 說明 -->
+          <!-- 右側：匯出 / 新增 / 說明 -->
           <div class="space-x-2">
+            <el-button size="small" @click="exportDaily">每日匯出</el-button>
             <el-button type="primary" @click="dialogVisible = true">新增記錄</el-button>
             <el-button link size="small" @click="showHelp = true">
               <el-icon>
@@ -39,11 +40,12 @@
 
       <!-- ── 週報表 ── -->
       <el-tab-pane label="週報表" name="weekly">
-        <!-- 指標切換 -->
-        <div class="mb-2 text-right">
+        <!-- 指標切換與匯出 -->
+        <div class="flex justify-between items-center mb-2">
           <el-select v-model="metric" size="small" style="width:120px">
             <el-option v-for="(lbl, val) in metricLabel" :key="val" :label="lbl" :value="val" />
           </el-select>
+          <el-button size="small" @click="exportWeekly">週匯出</el-button>
         </div>
 
         <!-- 圖表 -->
@@ -257,6 +259,57 @@ const normalize = rows => rows.map(r => ({
   impressions: + (r.impressions || r.曝光 || 0),
   clicks: + (r.clicks || r.點擊 || 0)
 })).filter(r => r.date)
+
+/* ------------------------------------------------------------------ 匯出功能 ------------------------------------------------------------------ */
+const downloadBlob = (blob, filename) => {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const exportDaily = () => {
+  if (!dailyData.value.length) return ElMessage.warning('無資料可匯出')
+  const rows = dailyData.value.map(r => ({
+    日期: dayjs(r.date).format('YYYY-MM-DD'),
+    花費: r.spent,
+    詢問: r.enquiries,
+    平均成本: r.avgCost,
+    觸及: r.reach,
+    曝光: r.impressions,
+    點擊: r.clicks
+  }))
+  const csv = Papa.unparse(rows)
+  downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), 'daily.csv')
+}
+
+const exportWeekly = () => {
+  if (!weeklyData.value.length) return ElMessage.warning('無資料可匯出')
+  const rows = weeklyData.value.map(r => ({
+    週: r.week,
+    總花費: r.spent,
+    總詢問: r.enquiries,
+    總觸及: r.reach,
+    總曝光: r.impressions,
+    總點擊: r.clicks,
+    備註: r.note || ''
+  }))
+  const ws = XLSX.utils.json_to_sheet(rows)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'weekly')
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+  downloadBlob(new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'weekly.xlsx')
+  if (chart) {
+    const img = chart.toBase64Image()
+    const binary = atob(img.split(',')[1])
+    const len = binary.length
+    const u8 = new Uint8Array(len)
+    for (let i = 0; i < len; i++) u8[i] = binary.charCodeAt(i)
+    downloadBlob(new Blob([u8], { type: 'image/png' }), 'weekly-chart.png')
+  }
+}
 
 /* ------------------------------------------------------------------ 週備註 ------------------------------------------------------------------ */
 const openNote = async row => {
