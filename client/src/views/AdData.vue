@@ -38,6 +38,7 @@
             :formatter="(_, __, cell) => formatDate(cell)" />
           <el-table-column prop="spent"       label="花費" />
           <el-table-column prop="enquiries"   label="詢問" />
+          <el-table-column prop="avgCost"     label="平均成本" />
           <el-table-column prop="reach"       label="觸及" />
           <el-table-column prop="impressions" label="曝光" />
           <el-table-column prop="clicks"      label="點擊" />
@@ -206,7 +207,13 @@ const recordForm = ref({
 /* ------------------------------------------------------------------
  * 資料載入
  * ---------------------------------------------------------------- */
-const loadDaily  = async () => { dailyData.value  = await fetchDaily(clientId, platformId) }
+const loadDaily  = async () => {
+  const list = await fetchDaily(clientId, platformId)
+  dailyData.value = list.map(r => ({
+    ...r,
+    avgCost: r.enquiries ? r.spent / r.enquiries : 0
+  }))
+}
 const loadWeekly = async () => {
   weeklyData.value = await fetchWeekly(clientId, platformId)
   for (const r of weeklyData.value) {
