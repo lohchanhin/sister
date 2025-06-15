@@ -53,9 +53,10 @@ describe('Platform API', () => {
     const resC = await request(app)
       .post(`/api/clients/${clientId}/platforms`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Meta', platformType: 'Meta' })
+      .send({ name: 'Meta', platformType: 'Meta', fields: ['note'] })
       .expect(201)
     platformId = resC.body._id
+    expect(resC.body.fields).toEqual(['note'])
 
     const resG = await request(app)
       .get(`/api/clients/${clientId}/platforms`)
@@ -63,11 +64,12 @@ describe('Platform API', () => {
       .expect(200)
     expect(resG.body.length).toBe(1)
 
-    await request(app)
+    const resU = await request(app)
       .put(`/api/clients/${clientId}/platforms/${platformId}`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Meta2' })
+      .send({ name: 'Meta2', fields: ['x','y'] })
       .expect(200)
+    expect(resU.body.fields).toEqual(['x','y'])
 
     await request(app)
       .delete(`/api/clients/${clientId}/platforms/${platformId}`)
