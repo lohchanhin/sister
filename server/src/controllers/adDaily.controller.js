@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import fs from 'node:fs'
 import AdDaily from '../models/adDaily.model.js'
 
 const sanitizeNumber = val =>
@@ -59,4 +60,33 @@ export const getWeeklyData = async (req, res) => {
     clicks: d.clicks
   }))
   res.json(result)
+}
+
+export const importAdDaily = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: '未上傳檔案' })
+  }
+
+  const xlsx = await import('xlsx')
+  const wb = xlsx.readFile(req.file.path)
+  const sheet = wb.Sheets[wb.SheetNames[0]]
+  const rows = xlsx.utils.sheet_to_json(sheet)
+
+  const records = rows
+    .map(row => ({
+      date: row.date || row.Date || row['日期'],
+      spent: sanitizeNumber(row.spent || row.Spent || row['花費']),
+      enquiries: sanitizeNumber(row.enquiries || row.Enquiries || row['詢問']),
+      reach: sanitizeNumber(row.reach || row.Reach || row['觸及']),
+      impressions: sanitizeNumber(row.impressions || row.Impressions || row['曝光']),
+      clicks: sanitizeNumber(row.clicks || row.Clicks || row['點擊']),
+      clientId: req.params.clientId,
+      platformId: req.params.platformId
+    }))
+    .filter(r => r.date)
+    .map(r => ({ ...r, date: new Date(r.date) }))
+
+  const docs = await AdDaily.insertMany(records)
+  fs.unlink(req.file.path, () => {})
+  res.status(201).json({ count: docs.length })
 }
