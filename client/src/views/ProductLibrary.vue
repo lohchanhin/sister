@@ -37,13 +37,16 @@
           @click="openFolder(f)">
           <template #header>
             <div class="flex items-center mb-2">
-              <el-checkbox v-model="selectedItems" :label="f._id" @click.stop class="mr-1">
-                <span class="font-medium flex items-center gap-2 truncate">
-                  <el-icon style="font-size: 24px;">
-                    <Folder />
-                  </el-icon>
-                  {{ f.name }}
-                </span>
+              <el-checkbox
+                v-model="selectedItems"
+                :label="f._id"
+                @click.stop
+                class="mr-1 flex-1 flex items-center gap-2"
+              >
+                <el-icon style="font-size: 24px;" class="flex-shrink-0">
+                  <Folder />
+                </el-icon>
+                <span class="font-medium truncate">{{ f.name }}</span>
               </el-checkbox>
               <el-button link size="small" @click.stop="showDetailFor(f, 'folder')">
                 <el-icon style="font-size: 24px;">
@@ -73,7 +76,12 @@
           shadow="hover" @click="previewAsset(a)">
           <template #header>
             <div class="flex items-center mb-2">
-              <el-checkbox v-model="selectedItems" :label="a._id" @click.stop class="mr-1">
+              <el-checkbox
+                v-model="selectedItems"
+                :label="a._id"
+                @click.stop
+                class="mr-1 flex-1"
+              >
                 <span class="font-medium truncate">{{ a.title || a.filename }}</span>
               </el-checkbox>
               <el-button link size="small" @click.stop="showDetailFor(a, 'asset')">
