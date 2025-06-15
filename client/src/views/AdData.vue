@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { fetchDaily, createDaily, fetchWeekly } from '../services/adDaily'
 import { Chart, LineController, LineElement, PointElement, LinearScale, Title, CategoryScale } from 'chart.js'
+import * as XLSX from 'xlsx'
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, Title, CategoryScale)
 
@@ -31,6 +32,25 @@ onMounted(async () => {
   await loadDaily()
   await loadWeekly()
 })
+
+const importExcel = file => {
+  const raw = file.raw || file.target?.files?.[0]
+  if (!raw) return
+  const reader = new FileReader()
+  reader.onload = async e => {
+    const data = new Uint8Array(e.target.result)
+    const wb = XLSX.read(data, { type: 'array' })
+    const sheet = wb.Sheets[wb.SheetNames[0]]
+    const records = XLSX.utils.sheet_to_json(sheet)
+    for (const r of records) {
+      await createDaily(clientId, platformId, r)
+    }
+    ElMessage.success('匯入完成')
+    await loadDaily()
+    await loadWeekly()
+  }
+  reader.readAsArrayBuffer(raw)
+}
 
 
 const submitRecord = async () => {
@@ -73,6 +93,11 @@ const drawChart = () => {
           <el-table-column prop="impressions" label="曝光" width="100" />
           <el-table-column prop="clicks" label="點擊" width="100" />
         </el-table>
+        <div class="my-4">
+          <el-upload :show-file-list="false" accept=".xlsx,.csv" @change="importExcel">
+            <el-button>匯入 Excel</el-button>
+          </el-upload>
+        </div>
         <el-form label-position="top" class="mt-4" @submit.prevent="submitRecord">
           <div class="flex flex-wrap gap-4 items-end">
             <el-date-picker v-model="recordForm.date" type="date" placeholder="日期" />
