@@ -31,7 +31,11 @@
    ```
    伺服器啟動後，API 根路徑為 `http://localhost:3000/api`，
    靜態檔案可自 `/static/<檔名>` 存取。
-3. 進行登入測試：
+3. 執行測試前請先在 `server` 目錄安裝相依套件：
+   ```bash
+   npm install
+   ```
+4. 進行登入測試：
    ```bash
    npm test
    ```
