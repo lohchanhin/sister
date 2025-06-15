@@ -18,7 +18,7 @@
           <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
         </el-select>
 
-        <el-button v-if="selectedItems.length && isManager" @click="openBatchDialog">
+        <el-button v-if="selectedItems.length && canManageViewers" @click="openBatchDialog">
           批次設定可查看者
         </el-button>
 
@@ -136,12 +136,12 @@
             <el-form-item v-if="detailType === 'folder'" label="腳本需求">
               <el-input v-model="detail.script" type="textarea" rows="4" resize="vertical" />
             </el-form-item>
-            <el-form-item v-if="detailType === 'folder' && isManager" label="可存取使用者">
+            <el-form-item v-if="detailType === 'folder' && canManageViewers" label="可存取使用者">
               <el-select v-model="detail.allowedUsers" multiple filterable style="width:100%">
                 <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
               </el-select>
             </el-form-item>
-            <el-form-item v-if="detailType === 'asset' && isManager" label="可查看使用者">
+            <el-form-item v-if="detailType === 'asset' && canManageViewers" label="可查看使用者">
               <el-select v-model="detail.allowedUsers" multiple filterable style="width:100%">
                 <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
               </el-select>
@@ -234,8 +234,10 @@ const currentFolder = ref(null)
 const editingFolder = ref(null)
 
 const store = useAuthStore()
-const canReview = computed(() => store.role === 'manager')
-const isManager = computed(() => store.role === 'manager')
+const canReview = computed(() => store.hasPermission('review:manage'))
+const canManageViewers = computed(
+  () => store.hasPermission('asset:update') || store.hasPermission('folder:manage')
+)
 
 const detail = ref({ title: '', description: '', script: '', tags: [], allowedUsers: [] })
 const showDetail = ref(false)
@@ -300,7 +302,7 @@ const loadTags = async () => {
 onMounted(() => {
   loadData()
   loadTags()
-  if (isManager.value) loadUsers()
+  if (canManageViewers.value) loadUsers()
 })
 watch(filterTags, () => loadData(currentFolder.value?._id || null))
 
@@ -358,7 +360,7 @@ async function saveDetail() {
       title: detail.value.title,
       description: detail.value.description,
       tags: detail.value.tags,
-      ...(isManager.value ? {
+      ...(canManageViewers.value ? {
         allowedUsers: detail.value.allowedUsers
       } : {})
     })
