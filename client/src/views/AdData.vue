@@ -52,8 +52,7 @@
 
         <!-- 週表格 -->
         <el-table :data="weeklyAgg" stripe style="width:100%" empty-text="尚無資料">
-          <el-table-column prop="week" label="週 (YYYY-WW)" width="110" />
-          <el-table-column prop="count" label="筆數" width="70" />
+          <el-table-column prop="week" label="週 (YYYY-WW)" width="110" />          
           <!-- 動態欄位總計 -->
           <el-table-column v-for="field in customColumns" :key="field" :label="field" width="100">
             <template #default="{ row }">{{ row[field] }}</template>
@@ -67,6 +66,8 @@
                 @click="previewImages(row.images)">查看圖片</el-button>
             </template>
           </el-table-column>
+
+          <!-- 不是筆記裡面擁擠多一個而是多一個 column el-button -->
 
           <!-- 備註操作欄 -->
           <el-table-column label="備註" width="120">
