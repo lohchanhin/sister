@@ -31,28 +31,23 @@
 
       <!-- 卡片格線 -->
       <transition-group name="fade-slide" tag="div" class="flex flex-wrap gap-5">
-
         <!-- ===== 資料夾卡 ===== -->
         <el-card v-for="f in folders" :key="f._id" class="folder-card card-base cursor-pointer" shadow="hover"
           @click="openFolder(f)">
           <template #header>
-            <div class="flex items-center mb-2">
-              <el-checkbox
-                v-model="selectedItems"
-                :label="f._id"
-                @click.stop
-                class="mr-1 flex-1 flex items-center gap-1"
-              >
+            <div class="flex items-center mb-2 gap-2 w-full min-w-0">
+              <el-checkbox v-model="selectedItems" :label="f._id" @click.stop
+                class="mr-1 flex-1 min-w-0 flex items-center gap-2">
                 <span class="font-medium truncate">{{ f.name }}</span>
               </el-checkbox>
-
               <el-button link size="small" class="flex-shrink-0" @click.stop="showDetailFor(f, 'folder')">
-                <el-icon style="font-size: 24px;" class="flex-shrink-0">
+                <el-icon style="font-size:24px;" class="flex-shrink-0">
                   <InfoFilled />
                 </el-icon>
               </el-button>
             </div>
           </template>
+
           <el-scrollbar max-height="60">
             <div class="desc-line">
               <template v-if="f.description && f.description.includes('\n')">
@@ -63,6 +58,7 @@
               <template v-else>{{ f.description || '—' }}</template>
             </div>
           </el-scrollbar>
+
           <div v-if="f.tags?.length" class="tag-list mt-1">
             <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
           </div>
@@ -72,22 +68,19 @@
         <el-card v-for="a in assets" :key="a._id" class="asset-card card-base cursor-pointer" shadow="hover"
           @click="previewAsset(a)">
           <template #header>
-            <div class="flex items-center mb-2">
-              <el-checkbox
-                v-model="selectedItems"
-                :label="a._id"
-                @click.stop
-                class="mr-1 flex-1"
-              >
+            <div class="flex items-center mb-2 gap-2 w-full min-w-0">
+              <el-checkbox v-model="selectedItems" :label="a._id" @click.stop
+                class="mr-1 flex-1 min-w-0 flex items-center gap-2">
                 <span class="font-medium truncate">{{ a.title || a.filename }}</span>
               </el-checkbox>
               <el-button link size="small" class="flex-shrink-0" @click.stop="showDetailFor(a, 'asset')">
-                <el-icon style="font-size: 24px;" class="flex-shrink-0">
+                <el-icon style="font-size:24px;" class="flex-shrink-0">
                   <InfoFilled />
                 </el-icon>
               </el-button>
             </div>
           </template>
+
           <el-scrollbar max-height="60">
             <div class="desc-line">
               <template v-if="a.description && a.description.includes('\n')">
@@ -98,13 +91,11 @@
               <template v-else>{{ a.description || '—' }}</template>
             </div>
           </el-scrollbar>
+
           <div v-if="a.tags?.length" class="tag-list mt-1">
             <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
           </div>
         </el-card>
-
-
-
       </transition-group>
     </div>
 
@@ -546,5 +537,27 @@ function downloadAsset(asset) {
   max-height: 70vh;
   object-fit: contain;
   /* 影片、圖片皆等比縮放 */
+}
+
+/* ================= 覆寫區 ================= */
+.folder-card :deep(.el-checkbox),
+.asset-card  :deep(.el-checkbox){
+  min-width:0!important;
+  flex:1 1 0%!important;
+  overflow:hidden!important;
+}
+.folder-card :deep(.el-checkbox__label),
+.asset-card  :deep(.el-checkbox__label){
+  display:block!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.folder-card :deep(.el-card__header),
+.asset-card  :deep(.el-card__header){
+  display:flex!important;
+  align-items:center!important;
+  gap:.5rem!important;
 }
 </style>
