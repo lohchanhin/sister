@@ -43,18 +43,8 @@
       <el-tab-pane label="週摘要" name="weekly">
         <!-- 指標切換 + 匯出 -->
         <div class="flex justify-between items-center mb-2">
-          <el-select
-            v-model="yMetric"
-            size="small"
-            style="width:160px"
-            v-if="customColumns.length"
-          >
-            <el-option
-              v-for="f in customColumns"
-              :key="f"
-              :label="f"
-              :value="f"
-            />
+          <el-select v-model="yMetric" size="small" style="width:160px" v-if="customColumns.length">
+            <el-option v-for="f in customColumns" :key="f" :label="f" :value="f" />
           </el-select>
           <el-button size="small" @click="exportWeekly">匯出週報</el-button>
         </div>
@@ -66,7 +56,7 @@
 
         <!-- 週表格 -->
         <el-table :data="weeklyAgg" stripe style="width:100%" empty-text="尚無資料">
-          <el-table-column prop="week" label="週 (YYYY-WW)" width="110" />          
+          <el-table-column prop="week" label="週 (YYYY-WW)" width="110" />
           <!-- 動態欄位總計 -->
           <el-table-column v-for="field in customColumns" :key="field" :label="field" width="100">
             <template #default="{ row }">{{ row[field] }}</template>
@@ -75,13 +65,8 @@
           <!-- 圖片欄 -->
           <el-table-column label="圖片" width="120">
             <template #default="{ row }">
-              <el-button
-                v-if="row.hasImage"
-                link
-                type="primary"
-                size="small"
-                @click="previewImages(row.images)"
-              >查看圖片</el-button>
+              <el-button v-if="row.hasImage" link type="primary" size="small"
+                @click="previewImages(row.images)">查看圖片</el-button>
             </template>
           </el-table-column>
 
@@ -423,41 +408,47 @@ const exportDaily = () => {
   saveAs(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), 'daily.csv')
 }
 
-const exportWeekly = async () => {
+/* ------------------------------------------------ 匯出週報 ------------------------------------------------ */
+async function exportWeekly() {
   if (!weeklyAgg.value.length) return ElMessage.warning('無資料可匯出')
   const ExcelJS = (await import('exceljs')).default
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet('weekly')
 
-  const headers = ['週'].concat(customColumns.value, '備註', '圖片')
-  ws.columns = headers.map(h => ({ header: h, key: h }))
+  /* 標頭 */
+  const headers = ['週', ...customColumns.value, '筆記', '圖片']
+  ws.addRow(headers)
+  ws.getRow(1).font = { bold: true }
 
+  /* 每列資料 + 圖片 */
   for (const row of weeklyAgg.value) {
-    const data = { '週': row.week }
-    customColumns.value.forEach(col => { data[col] = row[col] })
-    data['備註'] = row.note
+    const data = [row.week, ...customColumns.value.map(c => row[c] || 0), row.note || '', '']
     const wsRow = ws.addRow(data)
 
+    /* 第一張圖片嵌入 */
     if (row.hasImage && row.images[0]) {
       try {
         const res = await fetch(row.images[0])
         const buf = await res.arrayBuffer()
-        const ext = row.images[0].split('.').pop()
+        const ext = row.images[0].split('.').pop().replace('jpg', 'jpeg')   // exceljs 要用 jpeg / png
         const imgId = wb.addImage({ buffer: buf, extension: ext })
-        const r = wsRow.number - 1
-        const c = headers.length - 1
+        const rIdx = wsRow.number - 1           // zero-based
+        const cIdx = headers.length - 1         // 「圖片」欄
         ws.addImage(imgId, {
-          tl: { col: c, row: r },
-          ext: { width: 100, height: 100 }
+          tl: { col: cIdx, row: rIdx },
+          ext: { width: 80, height: 80 }
         })
-      } catch (e) {
-        /* ignore image errors */
-      }
+        wsRow.height = 60                        // 調高列高
+        ws.getColumn(cIdx + 1).width = 15          // 調寬圖片欄
+      } catch { /* 圖片失敗就跳過 */ }
     }
   }
 
+  /* 匯出 */
   const buf = await wb.xlsx.writeBuffer()
-  saveAs(new Blob([buf], { type: 'application/octet-stream' }), 'weekly.xlsx')
+  saveAs(new Blob([buf], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  }), 'weekly.xlsx')
 }
 
 /* 下載 Excel 範例（日期 + 自訂欄位） */
