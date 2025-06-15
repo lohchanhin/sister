@@ -100,16 +100,40 @@ describe('Client and AdDaily', () => {
     expect(res.body.clicks).toBe(7)
   })
 
+  it('create adDaily with extraData and read it', async () => {
+    const custom = {
+      date: new Date('2024-04-01').toISOString(),
+      spent: 3,
+      extraData: { note: 'test', metric: 99 }
+    }
+    const res = await request(app)
+      .post(`/api/clients/${clientId}/platforms/${platformId}/ad-daily`)
+      .set('Authorization', `Bearer ${token}`)
+      .send(custom)
+      .expect(201)
+    expect(res.body.extraData).toEqual(custom.extraData)
+
+    const list = await request(app)
+      .get(
+        `/api/clients/${clientId}/platforms/${platformId}/ad-daily?start=${custom.date}&end=${custom.date}`
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    expect(list.body[0].extraData).toEqual(custom.extraData)
+  })
+
   it('bulk create adDaily', async () => {
     const records = [
-      { date: new Date('2024-03-01').toISOString(), spent: 5 },
-      { date: new Date('2024-03-02').toISOString(), spent: 7 }
+      { date: new Date('2024-03-01').toISOString(), spent: 5, extraData: { tag: 'A' } },
+      { date: new Date('2024-03-02').toISOString(), spent: 7, extraData: { tag: 'B' } }
     ]
     const res = await request(app)
       .post(`/api/clients/${clientId}/platforms/${platformId}/ad-daily/bulk`)
       .set('Authorization', `Bearer ${token}`)
       .send(records)
       .expect(201)
-    expect(res.body.count).toBe(2)
+    expect(res.body.length).toBe(2)
+    expect(res.body[0].extraData).toEqual({ tag: 'A' })
+    expect(res.body[1].extraData).toEqual({ tag: 'B' })
   })
 })
