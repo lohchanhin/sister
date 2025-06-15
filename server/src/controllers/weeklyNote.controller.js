@@ -19,7 +19,7 @@ export const getWeeklyNote = async (req, res) => {
     platformId: req.params.platformId,
     week: req.params.week
   })
-  if (!note) return res.status(404).json({ message: '備註不存在' })
+  // if (!note) return res.status(404).json({ message: '備註不存在' })
   res.json(note)
 }
 
