@@ -39,6 +39,7 @@
             :formatter="(_, __, cell) => formatDate(cell)" />
           <el-table-column prop="spent"       label="花費" />
           <el-table-column prop="enquiries"   label="詢問" />
+          <el-table-column prop="avgCost"     label="平均成本" />
           <el-table-column prop="reach"       label="觸及" />
           <el-table-column prop="impressions" label="曝光" />
           <el-table-column prop="clicks"      label="點擊" />
@@ -47,6 +48,15 @@
 
       <!-- ───── 週報表 ───── -->
       <el-tab-pane label="週報表" name="weekly">
+        <div class="mb-2 text-right">
+          <el-select v-model="metric" size="small" style="width: 120px">
+            <el-option label="花費" value="spent" />
+            <el-option label="詢問" value="enquiries" />
+            <el-option label="觸及" value="reach" />
+            <el-option label="曝光" value="impressions" />
+            <el-option label="點擊" value="clicks" />
+          </el-select>
+        </div>
         <!-- 圖表：固定高 300px -->
         <div style="height: 300px; width: 100%;">
           <canvas id="weekly-chart"></canvas>
@@ -66,10 +76,15 @@
           <el-table-column prop="reach"       label="總觸及"   width="100" />
           <el-table-column prop="impressions" label="總曝光"   width="100" />
           <el-table-column prop="clicks"      label="總點擊"   width="100" />
-          <el-table-column label="備註" width="80">
+          <el-table-column label="備註">
             <template #default="{ row }">
-              <el-button link type="primary" @click="openNote(row)">備註</el-button>
-              <el-icon v-if="row.hasNote" class="ml-1"><InfoFilled/></el-icon>
+              <div>
+                <el-button link type="primary" @click="openNote(row)">備註</el-button>
+                <el-icon v-if="row.hasNote" class="ml-1"><InfoFilled/></el-icon>
+              </div>
+              <div v-if="row.note" class="text-xs text-gray-600 whitespace-pre-line mt-1">
+                {{ row.note }}
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -136,8 +151,9 @@
 /* ------------------------------------------------------------------
  * 匯入
  * ---------------------------------------------------------------- */
-import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+
+import { ref, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { InfoFilled } from '@element-plus/icons-vue'
 import * as XLSX from 'xlsx'
@@ -171,6 +187,14 @@ const platformId  = route.params.platformId
 const dailyData   = ref([])
 const weeklyData  = ref([])
 const activeTab   = ref('daily')
+const metric      = ref('spent')
+const metricLabel = {
+  spent: '花費',
+  enquiries: '詢問',
+  reach: '觸及',
+  impressions: '曝光',
+  clicks: '點擊'
+}
 
 const dialogVisible = ref(false)
 const showHelp      = ref(false)
@@ -191,11 +215,24 @@ const recordForm = ref({
 /* ------------------------------------------------------------------
  * 資料載入
  * ---------------------------------------------------------------- */
-const loadDaily  = async () => { dailyData.value  = await fetchDaily(clientId, platformId) }
+const loadDaily  = async () => {
+  const list = await fetchDaily(clientId, platformId)
+  dailyData.value = list.map(r => ({
+    ...r,
+    avgCost: r.enquiries ? r.spent / r.enquiries : 0
+  }))
+}
 const loadWeekly = async () => {
   weeklyData.value = await fetchWeekly(clientId, platformId)
   for (const r of weeklyData.value) {
-    try { await fetchWeeklyNote(clientId, platformId, r.week); r.hasNote = true } catch { r.hasNote = false }
+    try {
+      const n = await fetchWeeklyNote(clientId, platformId, r.week)
+      r.hasNote = true
+      r.note = n.text
+    } catch {
+      r.hasNote = false
+      r.note = ''
+    }
   }
   drawChart()
 }
@@ -205,6 +242,8 @@ onMounted(async () => {
   await loadWeekly()
 })
 
+watch(metric, drawChart)
+
 /* ------------------------------------------------------------------
  * 圖表
  * ---------------------------------------------------------------- */
@@ -213,11 +252,12 @@ const drawChart = () => {
   const ctx = document.getElementById('weekly-chart')
   if (!ctx) return
   const labels = weeklyData.value.map(d => d.week)
-  const data   = weeklyData.value.map(d => d.spent)
+  const data   = weeklyData.value.map(d => d[metric.value])
+  const label  = metricLabel[metric.value]
   if (chart) chart.destroy()
   chart = new Chart(ctx, {
     type: 'line',
-    data: { labels, datasets: [{ label: '花費', data, borderColor: '#409EFF', tension: 0.35 }] },
+    data: { labels, datasets: [{ label, data, borderColor: '#409EFF', tension: 0.35 }] },
     options: { responsive: true, maintainAspectRatio: false }
   })
 }
@@ -310,7 +350,7 @@ const openHelp  = () => { showHelp.value = true }
 const closeHelp = () => { showHelp.value = false }
 
 const openNote = async (row) => {
-  noteForm.value = { week: row.week, text: '', images: [] }
+  noteForm.value = { week: row.week, text: row.note || '', images: [] }
   hasNote.value = false
   try {
     const n = await fetchWeeklyNote(clientId, platformId, row.week)
