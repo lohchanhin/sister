@@ -74,8 +74,8 @@
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="handleConfirm">確定</el-button>
       </template>
-    </el-dialog>
-  </section>
+</el-dialog>
+</section>
 </template>
 
 <script setup>
@@ -162,23 +162,23 @@ const importExcel = file => {
 }
 
 
-  await createDaily(clientId, platformId, { ...recordForm.value })
-  ElMessage.success('已新增記錄')
+await createDaily(clientId, platformId, { ...recordForm.value })
+ElMessage.success('已新增記錄')
 
-  // 重置表單
-  Object.assign(recordForm.value, {
-    date: '',
-    spent: '',
-    enquiries: '',
-    reach: '',
-    impressions: '',
-    clicks: ''
-  })
+// 重置表單
+Object.assign(recordForm.value, {
+  date: '',
+  spent: '',
+  enquiries: '',
+  reach: '',
+  impressions: '',
+  clicks: ''
+})
 
-  dialogVisible.value = false
-  await loadDaily()
-  await loadWeekly()
-}
+dialogVisible.value = false
+await loadDaily()
+await loadWeekly()
+
 
 /* ------------------------------------------------------------------
  * 畫圖
@@ -272,5 +272,4 @@ const drawChart = () => {
   </section>
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>
