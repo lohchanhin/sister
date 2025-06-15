@@ -34,7 +34,8 @@
           style="width: 100%"
           empty-text="尚無資料"
         >
-          <el-table-column prop="date"        label="日期" />
+          <el-table-column prop="date" label="日期"
+            :formatter="(_, __, cell) => formatDate(cell)" />
           <el-table-column prop="spent"       label="花費" />
           <el-table-column prop="enquiries"   label="詢問" />
           <el-table-column prop="reach"       label="觸及" />
@@ -121,6 +122,8 @@ import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { InfoFilled } from '@element-plus/icons-vue'
 import * as XLSX from 'xlsx'
+import dayjs from 'dayjs'
+const formatDate = d => dayjs(d).format('YYYY-MM-DD')
 import {
   fetchDaily,
   fetchWeekly,
