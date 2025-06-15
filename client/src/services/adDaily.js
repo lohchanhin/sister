@@ -5,7 +5,10 @@ export const fetchDaily = (clientId, platformId) =>
   api.get(`/clients/${clientId}/platforms/${platformId}/ad-daily`).then(r => r.data)
 
 export const createDaily = (clientId, platformId, data) =>
-  api.post(`/clients/${clientId}/platforms/${platformId}/ad-daily`, data).then(r => r.data)
+  api.post(
+    `/clients/${clientId}/platforms/${platformId}/ad-daily`,
+    { ...data, extraData: data.extraData || {} }
+  ).then(r => r.data)
 
 export const fetchWeekly = (clientId, platformId) =>
   api.get(`/clients/${clientId}/platforms/${platformId}/ad-daily/weekly`).then(r => r.data)
@@ -24,7 +27,7 @@ export const bulkCreateDaily = async (clientId, platformId, records) => {
   try {
     const res = await api.post(
       `/clients/${clientId}/platforms/${platformId}/ad-daily/bulk`,
-      records
+      records.map(r => ({ ...r, extraData: r.extraData || {} }))
     )
     return res.data
   } catch (e) {
