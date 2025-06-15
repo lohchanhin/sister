@@ -29,15 +29,19 @@ const openEdit = p => {
 }
 
 const submit = async () => {
-  if (editing.value) {
-    await updatePlatform(clientId, form.value._id, form.value)
-    ElMessage.success('已更新平台')
-  } else {
-    await createPlatform(clientId, form.value)
-    ElMessage.success('已新增平台')
+  try {
+    if (editing.value) {
+      await updatePlatform(clientId, form.value._id, form.value)
+      ElMessage.success('已更新平台')
+    } else {
+      await createPlatform(clientId, form.value)
+      ElMessage.success('已新增平台')
+    }
+    dialog.value = false
+    await loadPlatforms()
+  } catch (e) {
+    ElMessage.error(e.response?.data?.message || e.message)
   }
-  dialog.value = false
-  await loadPlatforms()
 }
 
 const manageData = p => {
