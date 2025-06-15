@@ -193,6 +193,9 @@ const platform      = ref(null)
 const dailyData  = ref([])         // [{ date:'2025-06-16', extraData:{ 花費:100, 詢問:5 } }]
 const recordForm = ref({ date:'', extraData:{} })
 
+/* 週備註狀態 */
+const weeklyNotes = ref({})       // { '2025-W25': { week:'2025-W25', text:'...' } }
+
 /**** 週資料（前端彙總） ****/
 const weeklyAgg = computed(() => {
   // 以 YYYY-WW 為 Key，彙總每個欄位
@@ -207,6 +210,21 @@ const weeklyAgg = computed(() => {
       const val = Number(d.extraData[f] || 0)
       map[week][f] += isNaN(val) ? 0 : val
     })
+  })
+  // 合併備註資訊
+  Object.keys(map).forEach(w => {
+    const note = weeklyNotes.value[w]
+    map[w].note = note?.text || ''
+    map[w].hasNote = !!(note && note.text)
+  })
+  Object.keys(weeklyNotes.value).forEach(w => {
+    if (!map[w]) {
+      const note = weeklyNotes.value[w]
+      map[w] = { week: w }
+      customColumns.value.forEach(f => (map[w][f] = 0))
+      map[w].note = note?.text || ''
+      map[w].hasNote = !!(note && note.text)
+    }
   })
   // 轉陣列並按週期排序
   return Object.values(map).sort((a, b) => a.week.localeCompare(b.week))
@@ -392,15 +410,25 @@ const downloadTemplate = () => {
 /**** ------------------------------------------------------- 週備註 ------------------------------------------------------- ****/
 const noteForm = ref({ week:'', text:'', images:[] })
 
-const openNote = row => {
-  noteForm.value = { week: row.week, text: row.note || '', images: [] }
+const openNote = async row => {
+  const week = row.week
+  let note = null
+  try { note = await fetchWeeklyNote(clientId, platformId, week) }
+  catch { /* ignore */ }
+  if (note) weeklyNotes.value[week] = note
+  noteForm.value = { week, text: note?.text || '', images: [] }
   noteDialog.value = true
 }
 
 const saveNote = async () => {
   const { week, text } = noteForm.value
-  try { await updateWeeklyNote(clientId, platformId, week, { text }) }
-  catch { await createWeeklyNote(clientId, platformId, { week, text }) }
+  let note
+  try {
+    note = await updateWeeklyNote(clientId, platformId, week, { text })
+  } catch {
+    note = await createWeeklyNote(clientId, platformId, { week, text })
+  }
+  weeklyNotes.value[week] = note
   ElMessage.success('已儲存備註')
   noteDialog.value = false
 }
