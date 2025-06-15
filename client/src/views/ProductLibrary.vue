@@ -31,30 +31,23 @@
 
       <!-- 卡片格線 -->
       <transition-group name="fade-slide" tag="div" class="flex flex-wrap gap-5">
-
         <!-- ===== 資料夾卡 ===== -->
         <el-card v-for="f in folders" :key="f._id" class="folder-card card-base cursor-pointer" shadow="hover"
           @click="openFolder(f)">
           <template #header>
-            <div class="flex items-center mb-2">
-              <el-checkbox
-                v-model="selectedItems"
-                :label="f._id"
-                @click.stop
-                class="mr-1 flex-1 flex items-center gap-2"
-              >
-                <el-icon style="font-size: 24px;" class="flex-shrink-0">
-                  <Folder />
-                </el-icon>
+            <div class="flex items-center mb-2 gap-2 w-full min-w-0">
+              <el-checkbox v-model="selectedItems" :label="f._id" @click.stop
+                class="mr-1 flex-1 min-w-0 flex items-center gap-2">
                 <span class="font-medium truncate">{{ f.name }}</span>
               </el-checkbox>
               <el-button link size="small" class="flex-shrink-0" @click.stop="showDetailFor(f, 'folder')">
-                <el-icon style="font-size: 24px;" class="flex-shrink-0">
+                <el-icon style="font-size:24px;" class="flex-shrink-0">
                   <InfoFilled />
                 </el-icon>
               </el-button>
             </div>
           </template>
+
           <el-scrollbar max-height="60">
             <div class="desc-line">
               <template v-if="f.description && f.description.includes('\n')">
@@ -65,6 +58,7 @@
               <template v-else>{{ f.description || '—' }}</template>
             </div>
           </el-scrollbar>
+
           <div v-if="f.tags?.length" class="tag-list mt-1">
             <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
           </div>
@@ -72,37 +66,32 @@
 
         <!-- ===== 素材卡 ===== -->
         <el-card v-for="a in assets" :key="a._id"
-          :class="['asset-card', 'card-base', 'cursor-pointer', { approved: a.reviewStatus === 'approved' }]"
-          shadow="hover" @click="previewAsset(a)">
+          :class="['asset-card', 'card-base', 'cursor-pointer', { approved: a.reviewStatus === 'approved' }]" shadow="hover"
+          @click="previewAsset(a)">
           <template #header>
-            <div class="flex items-center mb-2">
-              <el-checkbox
-                v-model="selectedItems"
-                :label="a._id"
-                @click.stop
-                class="mr-1 flex-1"
-              >
+            <div class="flex items-center mb-2 gap-2 w-full min-w-0">
+              <el-checkbox v-model="selectedItems" :label="a._id" @click.stop
+                class="mr-1 flex-1 min-w-0 flex items-center gap-2">
                 <span class="font-medium truncate">{{ a.title || a.filename }}</span>
               </el-checkbox>
               <el-button link size="small" class="flex-shrink-0" @click.stop="showDetailFor(a, 'asset')">
-                <el-icon style="font-size: 24px;" class="flex-shrink-0">
+                <el-icon style="font-size:24px;" class="flex-shrink-0">
                   <InfoFilled />
                 </el-icon>
               </el-button>
             </div>
           </template>
+
           <el-scrollbar max-height="60">
             <div class="desc-line">
               {{ a.progress ? `${a.progress.done} / ${a.progress.total} 步驟完成` : '—' }}
             </div>
           </el-scrollbar>
+
           <div v-if="a.tags?.length" class="tag-list mt-1">
             <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
           </div>
         </el-card>
-
-
-
       </transition-group>
     </div>
 
@@ -637,5 +626,36 @@ function downloadAsset(asset) {
 
 .approved :deep(.el-card__body) {
   background-color: var(--el-color-success-light-9, #f0f9eb);
+}
+
+/* ================= 覆寫區 ================= */
+/* **這裡是新加的重點，全部帶 !important** */
+
+/* 讓 checkbox 本身願意縮，並佔滿剩餘空間 */
+.folder-card :deep(.el-checkbox),
+.asset-card :deep(.el-checkbox) {
+  min-width: 0 !important;
+  flex: 1 1 0% !important;
+  /* 允許壓縮 */
+  overflow: hidden !important;
+  /* 防止撐爆 */
+}
+
+/* 文字區真正截斷、省略 */
+.folder-card :deep(.el-checkbox__label),
+.asset-card :deep(.el-checkbox__label) {
+  display: block !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* card header 保持 flex + 間距(保險覆寫一次) */
+.folder-card :deep(.el-card__header),
+.asset-card :deep(.el-card__header) {
+  display: flex !important;
+  align-items: center !important;
+  gap: .5rem !important;
 }
 </style>
