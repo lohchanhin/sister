@@ -203,8 +203,24 @@ const drawChart = () => {
   chart && chart.destroy()
   chart = new Chart(ctx, {
     type: 'line',
-    data: { labels, datasets: [{ label: metricLabel[metric.value], data, borderColor: '#409EFF', tension: 0.35 }] },
-    options: { responsive: true, maintainAspectRatio: false }
+    data: {
+      labels,
+      datasets: [{ label: metricLabel[metric.value], data, borderColor: '#409EFF', tension: 0.35 }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            afterLabel: ctx => {
+              const note = weeklyData.value[ctx.dataIndex].note
+              return note ? `備註: ${note}` : ''
+            }
+          }
+        }
+      }
+    }
   })
 }
 
