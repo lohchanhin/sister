@@ -5,6 +5,15 @@ import AdDaily from '../models/adDaily.model.js'
 const sanitizeNumber = val =>
   parseFloat(String(val).replace(/[^\d.]/g, '')) || 0
 
+const sanitizeExtraData = obj => {
+  const result = {}
+  if (!obj) return result
+  for (const [k, v] of Object.entries(obj)) {
+    result[k] = sanitizeNumber(v)
+  }
+  return result
+}
+
 export const createAdDaily = async (req, res) => {
   const rec = await AdDaily.create({
     date: req.body.date,
@@ -15,7 +24,7 @@ export const createAdDaily = async (req, res) => {
     clicks: sanitizeNumber(req.body.clicks),
     clientId: req.params.clientId,
     platformId: req.params.platformId,
-    extraData: req.body.extraData
+    extraData: sanitizeExtraData(req.body.extraData)
   })
   res.status(201).json(rec)
 }
@@ -72,9 +81,9 @@ export const bulkCreateAdDaily = async (req, res) => {
 
   const records = req.body
     .map(row => {
-      const extra = { ...(row.extraData || {}) }
+      const extra = sanitizeExtraData({ ...(row.extraData || {}) })
       for (const k of Object.keys(row)) {
-        if (!known.includes(k)) extra[k] = row[k]
+        if (!known.includes(k)) extra[k] = sanitizeNumber(row[k])
       }
       return {
         date: row.date,
@@ -117,9 +126,9 @@ export const importAdDaily = async (req, res) => {
 
   const records = rows
     .map(row => {
-      const extra = { ...(row.extraData || {}) }
+      const extra = sanitizeExtraData({ ...(row.extraData || {}) })
       for (const k of Object.keys(row)) {
-        if (!known.includes(k)) extra[k] = row[k]
+        if (!known.includes(k)) extra[k] = sanitizeNumber(row[k])
       }
       return {
         date: row.date || row.Date || row['日期'],
