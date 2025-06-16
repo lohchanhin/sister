@@ -1,8 +1,13 @@
 import User from '../models/user.model.js'
 import Role from '../models/role.model.js'
+import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
 
 /* 取得所有使用者 */
 export const getAllUsers = async (req,res) => {
+  const cacheKey = `users:${JSON.stringify(req.query)}`
+  const cached = await getCache(cacheKey)
+  if (cached) return res.json(cached)
+
   let filter = {}
   if (req.query.role) {
     const roleDoc = await Role.findOne({ name: req.query.role })
@@ -19,6 +24,7 @@ export const getAllUsers = async (req,res) => {
     permissions: u.roleId?.permissions || []
   }))
 
+  await setCache(cacheKey, result)
   res.json(result)
 }
 
@@ -29,6 +35,7 @@ export const createUser = async (req,res) => {
   const roleDoc = await Role.findOne({ name: role })
   const u = await User.create({ username, name, email, roleId: roleDoc?._id, password })
   const populated = await u.populate('roleId')
+  await clearCacheByPrefix('users:')
   res.status(201).json({
     ...populated.toObject(),
     role: populated.roleId?.name,
@@ -55,6 +62,7 @@ export const updateUser = async (req,res) => {
   }
   if (password) u.password = password
   await u.save()
+  await clearCacheByPrefix('users:')
   const populated = await u.populate('roleId')
   res.json({
     ...populated.toObject(),
@@ -67,6 +75,7 @@ export const updateUser = async (req,res) => {
 /* 刪除 */
 export const deleteUser = async (req,res) => {
   await User.findByIdAndDelete(req.params.id)
+  await clearCacheByPrefix('users:')
   res.json({ message:'已刪除' })
 }
 
@@ -95,6 +104,7 @@ export const updateProfile = async (req,res) => {
   if (email)    u.email    = email
   if (password) u.password = password
   await u.save()
+  await clearCacheByPrefix('users:')
   const populated = await u.populate('roleId')
   res.json({
     ...populated.toObject(),
