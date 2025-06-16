@@ -50,6 +50,7 @@ export const uploadFile = async (req, res) => {
     })
   }
 
+  await clearCacheByPrefix('assets:')
   res.status(201).json(asset)
 }
 
@@ -147,6 +148,7 @@ export const updateAsset = async (req, res) => {
   // filename 不可修改，故不處理
 
   await asset.save()
+  await clearCacheByPrefix('assets:')
   res.json(asset)
 }
 
