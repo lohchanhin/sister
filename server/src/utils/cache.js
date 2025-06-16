@@ -15,13 +15,15 @@ export async function setCache(key, value, ttl = CACHE_TTL) {
   await redis.setex(key, ttl, val)
 }
 
-export async function deleteCache(key) {
+
+export async function delCache(key) {
+
   await redis.del(key)
 }
 
 export async function clearCacheByPrefix(prefix) {
   const keys = await redis.keys(`${prefix}*`)
-  if (keys.length) {
-    await redis.del(keys)
-  }
+
+  if (keys.length) await redis.del(keys)
+
 }
