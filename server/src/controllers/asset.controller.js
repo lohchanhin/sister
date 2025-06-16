@@ -7,7 +7,7 @@ import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import { getDescendantFolderIds } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
-import { getCache, setCache } from '../utils/cache.js'
+import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
 
 const parseTags = (t) => {
   if (!t) return []
@@ -126,6 +126,7 @@ export const addComment = async (req, res) => {
 
   asset.comments.push({ userId: req.user._id, message: req.body.message })
   await asset.save()
+  await clearCacheByPrefix('assets:')
   res.json(asset)
 }
 
@@ -158,11 +159,13 @@ export const reviewAsset = async (req, res) => {
   if (!asset) return res.status(404).json({ message: '找不到素材' })
   asset.reviewStatus = reviewStatus
   await asset.save()
+  await clearCacheByPrefix('assets:')
   res.json(asset)
 }
 
 export const deleteAsset = async (req, res) => {
   await Asset.findByIdAndDelete(req.params.id)
+  await clearCacheByPrefix('assets:')
   res.json({ message: '素材已刪除' })
 }
 
@@ -198,6 +201,7 @@ export const updateAssetsViewers = async (req, res) => {
 
   const users = await includeManagers(allowedUsers)
   await Asset.updateMany({ _id: { $in: ids } }, { allowedUsers: users })
+  await clearCacheByPrefix('assets:')
   res.json({ message: '已更新' })
 }
 
