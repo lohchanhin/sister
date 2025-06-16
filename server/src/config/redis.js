@@ -52,6 +52,7 @@ const redis = new RedisClient(
   },
   redisOptions
 )
+console.log('[Redis] 初始化', REDIS_URL || `${process.env.REDIS_HOST || '127.0.0.1'}:${process.env.REDIS_PORT || 6379}`)
 
 /* ---------- 事件監聽 ---------- */
 redis.on('connect', () => console.log('🟢 Redis 已連線'))
