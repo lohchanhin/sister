@@ -1,6 +1,7 @@
 import Folder from '../models/folder.model.js'
 import { getDescendantFolderIds } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
+import { getCache, setCache } from '../utils/cache.js'
 
 const parseTags = (t) => {
   if (!t) return []
@@ -30,6 +31,11 @@ export const createFolder = async (req, res) => {
 }
 
 export const getFolders = async (req, res) => {
+  const cacheKey = `folders:${req.user._id}:${JSON.stringify(req.query)}`
+  const cached = await getCache(cacheKey)
+  if (cached) {
+    return res.json(cached)
+  }
   const parentId = req.query.parentId || null
   const deep = req.query.deep === 'true'
   const type = req.query.type || 'raw'
@@ -52,6 +58,7 @@ export const getFolders = async (req, res) => {
   if (req.user.roleId?.name !== 'manager') {
     result = folders.filter(f => !f.allowedUsers?.length || f.allowedUsers.some(id => id.equals(req.user._id)))
   }
+  await setCache(cacheKey, result)
   res.json(result)
 }
 
