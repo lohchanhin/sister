@@ -27,6 +27,7 @@ export const createFolder = async (req, res) => {
     tags: parseTags(req.body.tags),
     allowedUsers: await includeManagers(baseUsers)
   })
+  await clearCacheByPrefix('folders:')
   res.status(201).json(folder)
 }
 
