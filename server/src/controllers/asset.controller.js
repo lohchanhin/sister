@@ -7,6 +7,7 @@ import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import { getDescendantFolderIds } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
+import { getCache, setCache } from '../utils/cache.js'
 
 const parseTags = (t) => {
   if (!t) return []
@@ -54,6 +55,11 @@ export const uploadFile = async (req, res) => {
 
 /* ---------- GET /api/assets ---------- */
 export const getAssets = async (req, res) => {
+  const cacheKey = `assets:${req.user._id}:${JSON.stringify(req.query)}`
+  const cached = await getCache(cacheKey)
+  if (cached) {
+    return res.json(cached)
+  }
   const deep = req.query.deep === 'true'
   const query = {}
   let folderId = req.query.folderId ? req.query.folderId : null
@@ -92,25 +98,25 @@ export const getAssets = async (req, res) => {
     ])
     const map = {}
     records.forEach(r => { map[r._id.toString()] = r.done })
-    return res.json(
-      filtered.map(a => ({
-        ...a.toObject(),
-        fileName: a.filename,
-        fileType: a.type,
-        uploaderName: a.uploadedBy?.name || a.uploadedBy?.username,
-        progress: { done: map[a._id.toString()] || 0, total }
-      }))
-    )
-  }
-
-  res.json(
-    filtered.map(a => ({
+    const data = filtered.map(a => ({
       ...a.toObject(),
       fileName: a.filename,
       fileType: a.type,
-      uploaderName: a.uploadedBy?.name || a.uploadedBy?.username
+      uploaderName: a.uploadedBy?.name || a.uploadedBy?.username,
+      progress: { done: map[a._id.toString()] || 0, total }
     }))
-  )
+    await setCache(cacheKey, data)
+    return res.json(data)
+  }
+
+  const data = filtered.map(a => ({
+    ...a.toObject(),
+    fileName: a.filename,
+    fileType: a.type,
+    uploaderName: a.uploadedBy?.name || a.uploadedBy?.username
+  }))
+  await setCache(cacheKey, data)
+  res.json(data)
 }
 
 /* ---------- POST /api/assets/:id/comment ---------- */
