@@ -1,7 +1,7 @@
 import Folder from '../models/folder.model.js'
 import { getDescendantFolderIds } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
-import { getCache, setCache } from '../utils/cache.js'
+import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
 
 const parseTags = (t) => {
   if (!t) return []
@@ -80,11 +80,13 @@ export const updateFolder = async (req, res) => {
   }
   const folder = await Folder.findByIdAndUpdate(req.params.id, req.body, { new: true })
   if (!folder) return res.status(404).json({ message: '資料夾不存在' })
+  await clearCacheByPrefix('folders:')
   res.json(folder)
 }
 
 export const deleteFolder = async (req, res) => {
   await Folder.findByIdAndDelete(req.params.id)
+  await clearCacheByPrefix('folders:')
   res.json({ message: '資料夾已刪除' })
 }
 
@@ -95,6 +97,7 @@ export const updateFoldersViewers = async (req, res) => {
   }
   const users = await includeManagers(allowedUsers)
   await Folder.updateMany({ _id: { $in: ids } }, { allowedUsers: users })
+  await clearCacheByPrefix('folders:')
   res.json({ message: '已更新' })
 }
 
