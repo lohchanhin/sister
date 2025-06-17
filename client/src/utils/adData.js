@@ -9,7 +9,11 @@ export const baseSpec = [
 
 export const buildExcelSpec = customFields => [
   ...baseSpec,
-  ...customFields.map(c => ({ field: c, type: '文字', sample: '' }))
+  ...customFields.map(c => ({
+    field: c.name,
+    type: c.type === 'number' ? '數字' : '文字',
+    sample: ''
+  }))
 ]
 
 export const buildTemplateRow = customFields => {
@@ -22,7 +26,7 @@ export const buildTemplateRow = customFields => {
     clicks: 23
   }
   customFields.forEach(c => {
-    row[c] = ''
+    row[c.name] = ''
   })
   return row
 }
@@ -39,12 +43,15 @@ export const normalizeRows = (arr, customFields) => arr
     }
     const extra = {}
     customFields.forEach(c => {
-      if (r[c] !== undefined) extra[c] = r[c]
+      if (r[c.name] !== undefined) {
+        const val = r[c.name]
+        extra[c.name] = c.type === 'number' ? Number(val) || 0 : val
+      }
     })
     const ignore = new Set([
       'date','日期','spent','花費','enquiries','詢問','reach','觸及',
       'impressions','曝光','clicks','點擊',
-      ...customFields
+      ...customFields.map(c => c.name)
     ])
     for (const [k, v] of Object.entries(r)) {
       if (!ignore.has(k)) extra[k] = v
@@ -66,7 +73,7 @@ export const buildExportRows = (dailyData, customFields, dateFmt) =>
       點擊: r.clicks
     }
     customFields.forEach(c => {
-      obj[c] = r.extraData?.[c] || ''
+      obj[c.name] = r.extraData?.[c.name] ?? ''
     })
     return obj
   })
