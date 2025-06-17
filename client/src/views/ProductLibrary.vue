@@ -19,8 +19,8 @@
         </el-select>
 
         <el-button-group class="ml-auto">
-          <el-button :type="viewMode==='card'?'primary':'default'" @click="viewMode='card'">卡片</el-button>
-          <el-button :type="viewMode==='list'?'primary':'default'" @click="viewMode='list'">列表</el-button>
+          <el-button :type="viewMode === 'card' ? 'primary' : 'default'" @click="viewMode = 'card'">卡片</el-button>
+          <el-button :type="viewMode === 'list' ? 'primary' : 'default'" @click="viewMode = 'list'">列表</el-button>
         </el-button-group>
 
         <el-button v-if="selectedItems.length && canManageViewers" @click="openBatchDialog">
@@ -35,7 +35,7 @@
       </el-breadcrumb>
 
       <!-- 卡片格線 -->
-      <transition-group v-if="viewMode==='card'" name="fade-slide" tag="div" class="flex flex-wrap gap-5">
+      <transition-group v-if="viewMode === 'card'" name="fade-slide" tag="div" class="flex flex-wrap gap-5">
         <!-- ===== 資料夾卡 ===== -->
         <el-card v-for="f in folders" :key="f._id" class="folder-card card-base cursor-pointer" shadow="hover"
           @click="openFolder(f)">
@@ -71,8 +71,8 @@
 
         <!-- ===== 素材卡 ===== -->
         <el-card v-for="a in assets" :key="a._id"
-          :class="['asset-card', 'card-base', 'cursor-pointer', { approved: a.reviewStatus === 'approved' }]" shadow="hover"
-          @click="previewAsset(a)">
+          :class="['asset-card', 'card-base', 'cursor-pointer', { approved: a.reviewStatus === 'approved' }]"
+          shadow="hover" @click="previewAsset(a)">
           <template #header>
             <div class="flex items-center mb-2 gap-2 w-full min-w-0">
               <el-checkbox v-model="selectedItems" :label="a._id" @click.stop
@@ -98,27 +98,53 @@
           </div>
         </el-card>
       </transition-group>
+
+      <!-- ==================== 列表檢視 ==================== -->
       <div v-else class="list-view">
+        <!-- ─── 資料夾列 ─── -->
         <div class="list-row" v-for="f in folders" :key="f._id">
-          <el-checkbox v-model="selectedItems" :label="f._id" class="mr-2" />
+          <el-checkbox v-model="selectedItems" :label="f._id" class="mr-2" @click.stop>
+            <template #default></template> <!-- 隱藏文字 -->
+          </el-checkbox>
+
           <span class="name cursor-pointer" @click="openFolder(f)">{{ f.name }}</span>
+
           <div class="flex-1"></div>
+
           <div v-if="f.tags?.length" class="mr-2">
             <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
           </div>
+
           <el-button link size="small" @click="showDetailFor(f, 'folder')">
-            <el-icon><InfoFilled /></el-icon>
+            <el-icon>
+              <InfoFilled />
+            </el-icon>
           </el-button>
         </div>
-        <div class="list-row" v-for="a in assets" :key="a._id">
-          <el-checkbox v-model="selectedItems" :label="a._id" class="mr-2" />
+
+        <!-- ─── 素材列 ─── -->
+        <div class="list-row" v-for="a in assets" :key="a._id" :class="{ approved: a.reviewStatus === 'approved' }">
+          <el-checkbox v-model="selectedItems" :label="a._id" class="mr-2" @click.stop>
+            <template #default></template>
+          </el-checkbox>
+
           <span class="name cursor-pointer" @click="previewAsset(a)">{{ a.title || a.filename }}</span>
+
+          <!-- 進度 -->
+          <span v-if="a.progress" class="progress mr-2">
+            {{ a.progress.done }} / {{ a.progress.total }}
+          </span>
+
           <div class="flex-1"></div>
+
           <div v-if="a.tags?.length" class="mr-2">
             <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
           </div>
+
           <el-button link size="small" @click="showDetailFor(a, 'asset')">
-            <el-icon><InfoFilled /></el-icon>
+            <el-icon>
+              <InfoFilled />
+            </el-icon>
           </el-button>
         </div>
       </div>
