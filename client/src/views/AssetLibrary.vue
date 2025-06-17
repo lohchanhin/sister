@@ -18,6 +18,11 @@
           <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
         </el-select>
 
+        <el-button-group class="ml-auto">
+          <el-button :type="viewMode==='card'?'primary':'default'" @click="viewMode='card'">卡片</el-button>
+          <el-button :type="viewMode==='list'?'primary':'default'" @click="viewMode='list'">列表</el-button>
+        </el-button-group>
+
         <el-button v-if="selectedItems.length && canManageViewers" @click="openBatchDialog">
           批次設定可查看者
         </el-button>
@@ -30,7 +35,7 @@
       </el-breadcrumb>
 
       <!-- 卡片格線 -->
-      <transition-group name="fade-slide" tag="div" class="flex flex-wrap gap-5">
+      <transition-group v-if="viewMode==='card'" name="fade-slide" tag="div" class="flex flex-wrap gap-5">
         <!-- ===== 資料夾卡 ===== -->
         <el-card v-for="f in folders" :key="f._id" class="folder-card card-base cursor-pointer" shadow="hover"
           @click="openFolder(f)">
@@ -97,6 +102,30 @@
           </div>
         </el-card>
       </transition-group>
+      <div v-else class="list-view">
+        <div class="list-row" v-for="f in folders" :key="f._id">
+          <el-checkbox v-model="selectedItems" :label="f._id" class="mr-2" />
+          <span class="name cursor-pointer" @click="openFolder(f)">{{ f.name }}</span>
+          <div class="flex-1"></div>
+          <div v-if="f.tags?.length" class="mr-2">
+            <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
+          </div>
+          <el-button link size="small" @click="showDetailFor(f, 'folder')">
+            <el-icon><InfoFilled /></el-icon>
+          </el-button>
+        </div>
+        <div class="list-row" v-for="a in assets" :key="a._id">
+          <el-checkbox v-model="selectedItems" :label="a._id" class="mr-2" />
+          <span class="name cursor-pointer" @click="previewAsset(a)">{{ a.title || a.filename }}</span>
+          <div class="flex-1"></div>
+          <div v-if="a.tags?.length" class="mr-2">
+            <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
+          </div>
+          <el-button link size="small" @click="showDetailFor(a, 'asset')">
+            <el-icon><InfoFilled /></el-icon>
+          </el-button>
+        </div>
+      </div>
     </div>
 
 
@@ -204,6 +233,7 @@ const folders = ref([])
 const assets = ref([])
 const currentFolder = ref(null)
 const editingFolder = ref(null)
+const viewMode = ref('card')
 
 const store = useAuthStore()
 const canManageViewers = computed(
@@ -559,5 +589,23 @@ function downloadAsset(asset) {
   display:flex!important;
   align-items:center!important;
   gap:.5rem!important;
+}
+
+/* ===== 列表檢視 ===== */
+.list-view {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  padding: .5rem;
+  border-bottom: 1px solid var(--el-border-color);
+}
+
+.list-row .name {
+  flex: 1;
 }
 </style>
