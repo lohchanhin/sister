@@ -14,6 +14,9 @@
           :on-success="handleSuccess" :on-error="handleError" :show-file-list="false">
           <el-button type="success">上傳檔案</el-button>
         </el-upload>
+        <div v-for="(p, id) in progressList" :key="id" class="upload-progress">
+          <el-progress :percentage="p" :text-inside="true" />
+        </div>
         <el-select v-model="filterTags" multiple placeholder="標籤篩選" style="min-width:150px">
           <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
         </el-select>
@@ -657,5 +660,16 @@ function downloadAsset(asset) {
   display: flex !important;
   align-items: center !important;
   gap: .5rem !important;
+}
+
+.upload-progress {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  width: 200px;
+}
+
+.upload-progress + .upload-progress {
+  margin-top: .5rem;
 }
 </style>
