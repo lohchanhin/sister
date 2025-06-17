@@ -33,8 +33,8 @@
         <!-- 每日表格 -->
         <el-table :data="dailyData" stripe style="width:100%" empty-text="尚無資料">
           <el-table-column prop="date" label="日期" :formatter="dateFmt" width="140" />
-          <el-table-column v-for="field in customColumns" :key="field" :label="field">
-            <template #default="{ row }">{{ row.extraData?.[field] ?? '' }}</template>
+          <el-table-column v-for="field in customColumns" :key="field.name" :label="field.name">
+            <template #default="{ row }">{{ row.extraData?.[field.name] ?? '' }}</template>
           </el-table-column>
         </el-table>
       </el-tab-pane>
@@ -43,8 +43,8 @@
       <el-tab-pane label="週摘要" name="weekly">
         <!-- 指標切換 + 匯出 -->
         <div class="flex justify-between items-center mb-2">
-          <el-select v-model="yMetric" size="small" style="width:160px" v-if="customColumns.length">
-            <el-option v-for="f in customColumns" :key="f" :label="f" :value="f" />
+          <el-select v-model="yMetric" size="small" style="width:160px" v-if="numericColumns.length">
+            <el-option v-for="f in numericColumns" :key="f" :label="f" :value="f" />
           </el-select>
           <el-button size="small" @click="exportWeekly">匯出週報</el-button>
         </div>
@@ -58,7 +58,7 @@
         <el-table :data="weeklyAgg" stripe style="width:100%" empty-text="尚無資料">
           <el-table-column prop="week" label="週 (YYYY-WW)" width="110" />
           <!-- 動態欄位總計 -->
-          <el-table-column v-for="field in customColumns" :key="field" :label="field" width="100">
+          <el-table-column v-for="field in numericColumns" :key="field" :label="field" width="100">
             <template #default="{ row }">{{ row[field] }}</template>
           </el-table-column>
 
@@ -96,8 +96,8 @@
           <el-date-picker v-model="recordForm.date" type="date" style="width:100%" />
         </el-form-item>
         <!-- 動態欄位輸入 -->
-        <el-form-item v-for="field in customColumns" :key="field" :label="field">
-          <el-input v-model="recordForm.extraData[field]" />
+        <el-form-item v-for="field in customColumns" :key="field.name" :label="field.name">
+          <el-input v-model="recordForm.extraData[field.name]" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -200,8 +200,11 @@ const imgPreviewDialog = ref(false)
 const imgList = ref([])
 
 /**** 自訂欄位 ****/
-const customColumns = ref([])      // e.g. ['花費','詢問','觸及']
+const customColumns = ref([])      // e.g. [{ name:'備註', type:'text' }]
 const platform = ref(null)
+const numericColumns = computed(() =>
+  customColumns.value.filter(f => f.type === 'number').map(f => f.name)
+)
 
 /**** 每日資料 ****/
 const dailyData = ref([])         // [{ date:'2025-06-16', extraData:{ 花費:100, 詢問:5 } }]
@@ -218,11 +221,15 @@ const weeklyAgg = computed(() => {
     const week = dayjs(d.date).format('YYYY-WW')
     if (!map[week]) {
       map[week] = { week }
-      customColumns.value.forEach(f => (map[week][f] = 0))
+      customColumns.value.forEach(f => {
+        if (f.type === 'number') map[week][f.name] = 0
+      })
     }
     customColumns.value.forEach(f => {
-      const val = Number(d.extraData[f] || 0)
-      map[week][f] += isNaN(val) ? 0 : val
+      if (f.type === 'number') {
+        const val = Number(d.extraData[f.name] || 0)
+        map[week][f.name] += isNaN(val) ? 0 : val
+      }
     })
   })
   // 合併備註資訊
@@ -237,7 +244,9 @@ const weeklyAgg = computed(() => {
     if (!map[w]) {
       const note = weeklyNotes.value[w]
       map[w] = { week: w }
-      customColumns.value.forEach(f => (map[w][f] = 0))
+      customColumns.value.forEach(f => {
+        if (f.type === 'number') map[w][f.name] = 0
+      })
       map[w].note = note?.text || ''
       map[w].hasNote = !!(note && note.text)
       map[w].hasImage = !!(note && note.images && note.images.length)
@@ -261,7 +270,11 @@ const excelSpec = computed(() => {
     sample: dayjs().format('YYYY-MM-DD')
   }]
   return base.concat(
-    customColumns.value.map(f => ({ field: f, type: '文字', sample: '' }))
+    customColumns.value.map(f => ({
+      field: f.name,
+      type: f.type === 'number' ? '數字' : '文字',
+      sample: ''
+    }))
   )
 })
 
@@ -271,9 +284,14 @@ const dateFmt = row => dayjs(row.date).format('YYYY-MM-DD')
 /**** --------------------------------------------------- 資料載入 --------------------------------------------------- ****/
 const loadPlatform = async () => {
   platform.value = await getPlatform(clientId, platformId)
-  customColumns.value = platform.value?.fields || []
+  customColumns.value = (platform.value?.fields || []).map(f =>
+    typeof f === 'string' ? { name: f, type: 'text' } : f
+  )
   // 預設 Y 軸選第一個欄位
-  if (!yMetric.value && customColumns.value.length) yMetric.value = customColumns.value[0]
+  if (!yMetric.value) {
+    const first = customColumns.value.find(f => f.type === 'number')
+    if (first) yMetric.value = first.name
+  }
 }
 
 const loadDaily = async () => {
@@ -328,7 +346,7 @@ watch(activeTab, tab => {
 onMounted(async () => {
   await loadPlatform()
   // 初始化 recordForm.extraData
-  customColumns.value.forEach(f => (recordForm.value.extraData[f] = ''))
+  customColumns.value.forEach(f => (recordForm.value.extraData[f.name] = ''))
   await loadDaily()
   await loadWeeklyNotes()
 })
@@ -336,7 +354,7 @@ onMounted(async () => {
 /**** --------------------------------------------------- CRUD：每日 --------------------------------------------------- ****/
 const openCreateDialog = () => {
   recordForm.value.date = ''
-  customColumns.value.forEach(f => (recordForm.value.extraData[f] = ''))
+  customColumns.value.forEach(f => (recordForm.value.extraData[f.name] = ''))
   dialogVisible.value = true
 }
 
@@ -391,7 +409,10 @@ const parseCSV = file => new Promise((res, rej) => {
 const normalize = arr => {
   return arr.map(r => {
     const extraData = {}
-    customColumns.value.forEach(col => { extraData[col] = r[col] || '' })
+    customColumns.value.forEach(col => {
+      const val = r[col.name] || ''
+      extraData[col.name] = col.type === 'number' ? Number(val) || 0 : val
+    })
     return { date: r['日期'] || r.date || '', extraData }
   }).filter(r => r.date)
 }
@@ -401,7 +422,9 @@ const exportDaily = () => {
   if (!dailyData.value.length) return ElMessage.warning('無資料可匯出')
   const rows = dailyData.value.map(r => {
     const row = { 日期: dateFmt(r) }
-    customColumns.value.forEach(col => { row[col] = r.extraData[col] ?? '' })
+    customColumns.value.forEach(col => {
+      row[col.name] = r.extraData[col.name] ?? ''
+    })
     return row
   })
   const csv = Papa.unparse(rows)
@@ -416,13 +439,18 @@ async function exportWeekly() {
   const ws = wb.addWorksheet('weekly')
 
   /* 標頭 */
-  const headers = ['週', ...customColumns.value, '筆記', '圖片']
+  const headers = ['週', ...numericColumns.value, '筆記', '圖片']
   ws.addRow(headers)
   ws.getRow(1).font = { bold: true }
 
   /* 每列資料 + 圖片 */
   for (const row of weeklyAgg.value) {
-    const data = [row.week, ...customColumns.value.map(c => row[c] || 0), row.note || '', '']
+    const data = [
+      row.week,
+      ...numericColumns.value.map(c => row[c] || 0),
+      row.note || '',
+      ''
+    ]
     const wsRow = ws.addRow(data)
 
     /* 第一張圖片嵌入 */
@@ -454,7 +482,7 @@ async function exportWeekly() {
 /* 下載 Excel 範例（日期 + 自訂欄位） */
 const downloadTemplate = () => {
   const sample = { 日期: dayjs().format('YYYY-MM-DD') }
-  customColumns.value.forEach(col => { sample[col] = '' })
+  customColumns.value.forEach(col => { sample[col.name] = '' })
   const ws = XLSX.utils.json_to_sheet([sample])
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Template')

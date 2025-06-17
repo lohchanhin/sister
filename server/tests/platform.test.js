@@ -17,7 +17,14 @@ let app
 let token
 let clientId
 let platformId
-const defaultFields = ['date','spent','enquiries','reach','impressions','clicks']
+const defaultFields = [
+  { name: 'date',        type: 'text' },
+  { name: 'spent',       type: 'number' },
+  { name: 'enquiries',   type: 'number' },
+  { name: 'reach',       type: 'number' },
+  { name: 'impressions', type: 'number' },
+  { name: 'clicks',      type: 'number' }
+]
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create()
@@ -54,10 +61,15 @@ describe('Platform API', () => {
     const resC = await request(app)
       .post(`/api/clients/${clientId}/platforms`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Meta', platformType: 'Meta', fields: ['note'], mode:'custom' })
+      .send({
+        name: 'Meta',
+        platformType: 'Meta',
+        fields: [{ name: 'note', type: 'text' }],
+        mode: 'custom'
+      })
       .expect(201)
     platformId = resC.body._id
-    expect(resC.body.fields).toEqual(['note'])
+    expect(resC.body.fields).toEqual([{ name: 'note', type: 'text' }])
 
     const resG = await request(app)
       .get(`/api/clients/${clientId}/platforms`)
@@ -68,9 +80,18 @@ describe('Platform API', () => {
     const resU = await request(app)
       .put(`/api/clients/${clientId}/platforms/${platformId}`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Meta2', fields: ['x','y'] })
+      .send({
+        name: 'Meta2',
+        fields: [
+          { name: 'x', type: 'number' },
+          { name: 'y', type: 'text' }
+        ]
+      })
       .expect(200)
-    expect(resU.body.fields).toEqual(['x','y'])
+    expect(resU.body.fields).toEqual([
+      { name: 'x', type: 'number' },
+      { name: 'y', type: 'text' }
+    ])
 
     await request(app)
       .delete(`/api/clients/${clientId}/platforms/${platformId}`)
@@ -82,7 +103,12 @@ describe('Platform API', () => {
     const res = await request(app)
       .post(`/api/clients/${clientId}/platforms`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Def', platformType: 'Meta', mode: 'default', fields: defaultFields })
+      .send({
+        name: 'Def',
+        platformType: 'Meta',
+        mode: 'default',
+        fields: defaultFields
+      })
       .expect(201)
     expect(res.body.mode).toBe('default')
     expect(res.body.fields).toEqual(defaultFields)
