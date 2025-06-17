@@ -5,28 +5,77 @@
 
     <!-- =============== 左側格線區 =============== -->
     <div class="flex-1">
-      <!-- 工具列 -->
-      <div class="tool-bar flex flex-wrap gap-4 items-end mb-8">
-        <el-button :disabled="!currentFolder" @click="goUp">返回上層</el-button>
-        <el-input v-model="newFolderName" placeholder="新增資料夾名稱" class="w-56" @keyup.enter="createNewFolder" />
-        <el-button type="primary" @click="createNewFolder">建立資料夾</el-button>
-        <el-upload v-if="currentFolder" :http-request="uploadRequest" :on-progress="handleProgress"
-          :on-success="handleSuccess" :on-error="handleError" :show-file-list="false">
-          <el-button type="success">上傳檔案</el-button>
-        </el-upload>
-        <el-select v-model="filterTags" multiple placeholder="標籤篩選" style="min-width:150px">
-          <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
-        </el-select>
+      <!-- ────────────── 工具列 (統一版) ────────────── -->
+      <div class="tool-bar flex flex-wrap items-center justify-between gap-y-4 mb-8">
 
-        <el-button-group class="ml-auto">
-          <el-button :type="viewMode === 'card' ? 'primary' : 'default'" @click="viewMode = 'card'">卡片</el-button>
-          <el-button :type="viewMode === 'list' ? 'primary' : 'default'" @click="viewMode = 'list'">列表</el-button>
-        </el-button-group>
+        <!-- ◤ 左側：主要動作 ◢ -->
+        <div class="flex flex-wrap items-end gap-3">
 
-        <el-button v-if="selectedItems.length && canManageViewers" @click="openBatchDialog">
-          批次設定可查看者
-        </el-button>
+          <!-- 返回上層 -->
+          <el-button :disabled="!currentFolder" @click="goUp">
+            <el-icon class="mr-1">
+              <ArrowLeft />
+            </el-icon>
+            返回上層
+          </el-button>
 
+          <!-- 新增資料夾 -->
+          <div class="flex items-end gap-2">
+            <el-input v-model="newFolderName" placeholder="資料夾名稱" class="w-52" @keyup.enter="createNewFolder" />
+            <el-button type="primary" @click="createNewFolder">
+              <el-icon class="mr-1">
+                <Plus />
+              </el-icon>
+              建立
+            </el-button>
+          </div>
+
+          <!-- 上傳（沿用你現有的 upload 方法） -->
+          <el-upload v-if="currentFolder" :http-request="uploadRequest" :on-progress="handleProgress"
+            :on-success="handleSuccess" :on-error="handleError" :show-file-list="false">
+            <el-button type="success">
+              <el-icon class="mr-1">
+                <UploadFilled />
+              </el-icon>
+              上傳
+            </el-button>
+          </el-upload>
+
+          <!-- 標籤篩選（若產品庫沒有標籤，可移除這塊） -->
+          <el-select v-model="filterTags" multiple placeholder="標籤篩選" class="min-w-[150px]">
+            <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
+          </el-select>
+
+        </div>
+
+        <!-- ◤ 右側：檢視 / 批次動作 ◢ -->
+        <div class="flex items-end gap-3">
+
+          <!-- 卡片 / 列表切換 -->
+          <el-button-group>
+            <el-button :type="viewMode === 'card' ? 'primary' : 'default'" @click="viewMode = 'card'">
+              <el-icon class="mr-1">
+                <Grid />
+              </el-icon>
+              卡片
+            </el-button>
+            <el-button :type="viewMode === 'list' ? 'primary' : 'default'" @click="viewMode = 'list'">
+              <el-icon class="mr-1">
+                <Menu />
+              </el-icon>
+              列表
+            </el-button>
+          </el-button-group>
+
+          <!-- 批次設定 -->
+          <el-button v-if="selectedItems.length && canManageViewers" @click="openBatchDialog">
+            <el-icon class="mr-1">
+              <UserFilled />
+            </el-icon>
+            批次設定
+          </el-button>
+
+        </div>
       </div>
 
       <el-breadcrumb separator="/" class="mb-2" style="font-size: larger;margin: 1rem;">
@@ -256,6 +305,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers } from '../services/folders'
+import { ArrowLeft, Plus, UploadFilled, Grid, Menu, UserFilled, InfoFilled } from '@element-plus/icons-vue'
 import { fetchUsers } from '../services/user'
 import {
   fetchProducts,
@@ -270,7 +320,7 @@ import {
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
 import { ElMessage } from 'element-plus'
-import { Folder, InfoFilled, Download } from '@element-plus/icons-vue'
+
 
 const folders = ref([])
 const assets = ref([])
@@ -731,5 +781,17 @@ function downloadAsset(asset) {
 
 .list-row .name {
   flex: 1;
+}
+
+/* 工具列 – 左右區塊在窄螢幕斷行時保留間距 */
+.tool-bar>div {
+  flex: 1 1 auto;
+}
+
+/* 讓「新增資料夾」輸入框在窄螢幕不會被壓縮太小 */
+@media (max-width: 640px) {
+  .tool-bar .w-52 {
+    width: 100% !important;
+  }
 }
 </style>
