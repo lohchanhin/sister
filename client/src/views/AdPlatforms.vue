@@ -11,15 +11,23 @@ const platforms = ref([])
 const dialog = ref(false)
 const editing = ref(false)
 const form = ref({ name: '', platformType: '', mode: 'custom', fields: [] })
-const defaultFields = ['spent','enquiries','reach','impressions','clicks']
-const newField = ref('')
+const defaultFields = [
+  { name: 'spent',       type: 'number' },
+  { name: 'enquiries',   type: 'number' },
+  { name: 'reach',       type: 'number' },
+  { name: 'impressions', type: 'number' },
+  { name: 'clicks',      type: 'number' }
+]
+const newFieldName = ref('')
+const newFieldType = ref('number')
 
 const addField = () => {
-  const v = newField.value.trim()
-  if (v && !form.value.fields.includes(v)) {
-    form.value.fields.push(v)
+  const name = newFieldName.value.trim()
+  const type = newFieldType.value
+  if (name && !form.value.fields.find(f => f.name === name)) {
+    form.value.fields.push({ name, type })
   }
-  newField.value = ''
+  newFieldName.value = ''
 }
 
 const removeField = i => {
@@ -38,7 +46,13 @@ const openCreate = () => {
 
 const openEdit = p => {
   editing.value = true
-  form.value = { ...p, fields: p.fields || [], mode: p.mode || 'custom' }
+  form.value = {
+    ...p,
+    fields: (p.fields || []).map(f =>
+      typeof f === 'string' ? { name: f, type: 'text' } : f
+    ),
+    mode: p.mode || 'custom'
+  }
   dialog.value = true
 }
 
@@ -72,7 +86,8 @@ const removePlatform = async p => {
 watch(
   () => form.value.mode,
   m => {
-    if (m === 'default') form.value.fields = [...defaultFields]
+    if (m === 'default')
+      form.value.fields = defaultFields.map(f => ({ ...f }))
     else if (m === 'custom') form.value.fields = []
   }
 )
@@ -109,11 +124,17 @@ onMounted(loadPlatforms)
       </el-form-item>
       <el-form-item label="自訂欄位">
         <div class="flex items-center gap-2 mb-2">
-          <el-input v-model="newField" @keyup.enter.native.prevent="addField" placeholder="欄位名稱" class="flex-1" />
+          <el-input v-model="newFieldName" @keyup.enter.native.prevent="addField" placeholder="欄位名稱" class="flex-1" />
+          <el-select v-model="newFieldType" style="width:100px">
+            <el-option label="數字" value="number" />
+            <el-option label="文字" value="text" />
+          </el-select>
           <el-button type="primary" @click="addField">新增</el-button>
         </div>
         <div class="flex flex-wrap gap-2">
-          <el-tag v-for="(f,i) in form.fields" :key="i" closable @close="removeField(i)">{{ f }}</el-tag>
+          <el-tag v-for="(f,i) in form.fields" :key="i" closable @close="removeField(i)">
+            {{ f.name }}<span class="ml-1 text-xs">({{ f.type }})</span>
+          </el-tag>
         </div>
       </el-form-item>
       </el-form>
