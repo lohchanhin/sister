@@ -12,11 +12,11 @@ const dialog = ref(false)
 const editing = ref(false)
 const form = ref({ name: '', platformType: '', mode: 'custom', fields: [] })
 const defaultFields = [
-  { name: 'spent',       type: 'number' },
-  { name: 'enquiries',   type: 'number' },
-  { name: 'reach',       type: 'number' },
+  { name: 'spent', type: 'number' },
+  { name: 'enquiries', type: 'number' },
+  { name: 'reach', type: 'number' },
   { name: 'impressions', type: 'number' },
-  { name: 'clicks',      type: 'number' }
+  { name: 'clicks', type: 'number' }
 ]
 const newFieldName = ref('')
 const newFieldType = ref('number')
@@ -115,31 +115,32 @@ onMounted(loadPlatforms)
     <el-dialog v-model="dialog" :title="editing ? '編輯平台' : '新增平台'" width="420px">
       <el-form label-position="top" @submit.prevent>
         <el-form-item label="平台名稱"><el-input v-model="form.name" /></el-form-item>
-      <el-form-item label="類型"><el-input v-model="form.platformType" /></el-form-item>
-      <el-form-item label="模式">
-        <el-select v-model="form.mode">
-          <el-option label="預設" value="default" />
-          <el-option label="自訂" value="custom" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="自訂欄位">
-        <div class="flex items-center gap-2 mb-2">
-          <el-input v-model="newFieldName" @keyup.enter.native.prevent="addField" placeholder="欄位名稱" class="flex-1" />
-          <el-select v-model="newFieldType" style="width:100px">
-            <el-option label="數字" value="number" />
-            <el-option label="文字" value="text" />
+        <el-form-item label="類型"><el-input v-model="form.platformType" /></el-form-item>
+        <el-form-item label="模式">
+          <el-select v-model="form.mode">
+            <el-option label="預設" value="default" />
+            <el-option label="自訂" value="custom" />
           </el-select>
-          <el-button type="primary" @click="addField">新增</el-button>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <el-tag v-for="(f,i) in form.fields" :key="i" closable @close="removeField(i)">
-            {{ f.name }}<span class="ml-1 text-xs">({{ f.type }})</span>
-          </el-tag>
-        </div>
-      </el-form-item>
+        </el-form-item>
+        <el-form-item label="自訂欄位">
+          <div class="flex items-center gap-2 mb-2">
+            <el-input v-model="newFieldName" @keyup.enter.native.prevent="addField" placeholder="欄位名稱" class="flex-1" />
+            <el-select v-model="newFieldType" style="width:100px">
+              <el-option label="數字" value="number" />
+              <el-option label="文字" value="text" />
+            </el-select>
+            <el-button type="primary" @click="addField">新增</el-button>
+          </div>
+          <!-- 自訂欄位 tag 容器加個 class -->
+          <div class="tag-wrap flex flex-wrap gap-2">
+            <el-tag v-for="(f, i) in form.fields" :key="i" closable @close="removeField(i)">
+              {{ f.name }}<span class="ml-1 text-xs">({{ f.type }})</span>
+            </el-tag>
+          </div>
+        </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialog=false">取消</el-button>
+        <el-button @click="dialog = false">取消</el-button>
         <el-button type="primary" @click="submit">{{ editing ? '更新' : '建立' }}</el-button>
       </template>
     </el-dialog>
@@ -147,4 +148,11 @@ onMounted(loadPlatforms)
 </template>
 
 <style scoped>
+:deep(.el-form-item__content) .tag-wrap {
+  /* 把 nowrap 拔掉，並確保可以換行 */
+  white-space: normal !important;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;          /* 與 template 的 gap-2 對應 */
+}
 </style>
