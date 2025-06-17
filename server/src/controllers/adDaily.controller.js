@@ -5,11 +5,14 @@ import AdDaily from '../models/adDaily.model.js'
 const sanitizeNumber = val =>
   parseFloat(String(val).replace(/[^\d.]/g, '')) || 0
 
+const numericPattern = /^[\d\s,.$]+$/
 const sanitizeExtraData = obj => {
   const result = {}
   if (!obj) return result
   for (const [k, v] of Object.entries(obj)) {
-    result[k] = sanitizeNumber(v)
+    if (typeof v === 'number') result[k] = v
+    else if (numericPattern.test(String(v))) result[k] = sanitizeNumber(v)
+    else result[k] = v
   }
   return result
 }
@@ -83,7 +86,9 @@ export const bulkCreateAdDaily = async (req, res) => {
     .map(row => {
       const extra = sanitizeExtraData({ ...(row.extraData || {}) })
       for (const k of Object.keys(row)) {
-        if (!known.includes(k)) extra[k] = sanitizeNumber(row[k])
+        if (!known.includes(k)) extra[k] = numericPattern.test(String(row[k]))
+          ? sanitizeNumber(row[k])
+          : row[k]
       }
       return {
         date: row.date,
@@ -128,7 +133,10 @@ export const importAdDaily = async (req, res) => {
     .map(row => {
       const extra = sanitizeExtraData({ ...(row.extraData || {}) })
       for (const k of Object.keys(row)) {
-        if (!known.includes(k)) extra[k] = sanitizeNumber(row[k])
+        if (!known.includes(k))
+          extra[k] = numericPattern.test(String(row[k]))
+            ? sanitizeNumber(row[k])
+            : row[k]
       }
       return {
         date: row.date || row.Date || row['日期'],
