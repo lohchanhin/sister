@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
-import fs from 'node:fs'
 import AdDaily from '../models/adDaily.model.js'
+import path from 'node:path'
+import { uploadBuffer } from '../utils/gcs.js'
 
 const sanitizeNumber = val =>
   parseFloat(String(val).replace(/[^\d.]/g, '')) || 0
@@ -114,8 +115,13 @@ export const importAdDaily = async (req, res) => {
     return res.status(400).json({ message: '未上傳檔案' })
   }
 
+  const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
+  const ext = path.extname(req.file.originalname)
+  const filename = unique + ext
+  const fileUrl = await uploadBuffer(req.file.buffer, filename, req.file.mimetype)
+
   const xlsx = await import('xlsx')
-  const wb = xlsx.readFile(req.file.path)
+  const wb = xlsx.read(req.file.buffer, { type: 'buffer' })
   const sheet = wb.Sheets[wb.SheetNames[0]]
   const rows = xlsx.utils.sheet_to_json(sheet)
 
@@ -154,6 +160,5 @@ export const importAdDaily = async (req, res) => {
     .map(r => ({ ...r, date: new Date(r.date) }))
 
   const docs = await AdDaily.insertMany(records)
-  fs.unlink(req.file.path, () => {})
-  res.status(201).json(docs)
+  res.status(201).json({ docs, fileUrl })
 }

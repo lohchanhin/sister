@@ -6,7 +6,6 @@ import cors           from 'cors'
 import cookieParser   from 'cookie-parser'
 import dotenv         from 'dotenv'
 import path           from 'node:path'
-import fs             from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import connectDB                    from './config/db.js'
@@ -25,11 +24,8 @@ app.use(express.json())                              // 解析 JSON
 app.use(cookieParser())                              // 解析 Cookie
 
 /* ---------- 靜態檔案（上傳用） ----------
- * 前端存取方式：/static/檔名
+ * 改由 GCS 提供檔案 URL
  */
-const uploadDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR || 'uploads')
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
-app.use('/static', express.static(uploadDir))
 
 /* ---------- 路由 ---------- */
 import authRoutes     from './routes/auth.routes.js'
