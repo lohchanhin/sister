@@ -1,6 +1,19 @@
 import WeeklyNote from '../models/weeklyNote.model.js'
+import path from 'node:path'
+import { uploadBuffer } from '../utils/gcs.js'
 
-const parseImages = files => files?.map(f => `/static/${f.filename}`) || []
+const uploadImages = async files => {
+  if (!files?.length) return []
+  const urls = await Promise.all(
+    files.map(async f => {
+      const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
+      const ext = path.extname(f.originalname)
+      const filename = unique + ext
+      return uploadBuffer(f.buffer, filename, f.mimetype)
+    })
+  )
+  return urls
+}
 
 export const createWeeklyNote = async (req, res) => {
   const note = await WeeklyNote.create({
@@ -8,7 +21,7 @@ export const createWeeklyNote = async (req, res) => {
     platformId: req.params.platformId,
     week: req.body.week,
     text: req.body.text || '',
-    images: parseImages(req.files)
+    images: await uploadImages(req.files)
   })
   res.status(201).json(note)
 }
@@ -28,7 +41,7 @@ export const updateWeeklyNote = async (req, res) => {
     text: req.body.text
   }
   if (req.files?.length) {
-    update.images = parseImages(req.files)
+    update.images = await uploadImages(req.files)
   }
   const note = await WeeklyNote.findOneAndUpdate(
     {
