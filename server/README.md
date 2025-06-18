@@ -8,7 +8,7 @@ npm install
 npm start                 # 啟動伺服器
 ```
 
-伺服器啟動前請在根目錄複製 `.env.example` 為 `.env`，並修改 MongoDB、JWT 等設定。
+伺服器啟動前請在根目錄複製 `.env.example` 為 `.env`，並填入 MongoDB、JWT 及 GCS 設定。
 
 執行 `npm run seed` 可建立預設帳號，方便初次測試。
 
@@ -40,13 +40,13 @@ npm start                 # 啟動伺服器
 
 若要讓某角色具備設定檔案或資料夾「可查看者」的能力，請分別為其啟用 `asset:update` 或 `folder:manage` 權限。
 
-啟動後，可透過 `/static/<檔名>` 存取上傳檔案，API 根路徑為 `/api/*`。
+啟動後，上傳檔案會回傳 GCS 連結，API 根路徑為 `/api/*`。
 亦可執行 `GET /api/health` 測試伺服器是否正常連線。
 
 ---
 
 ## 啟動與測試
-1. **設定 `.env`**：複製 `.env.example`，填入正確的 `MONGODB_URI` 與 `JWT_SECRET`。
+1. **設定 `.env`**：複製 `.env.example`，填入 `MONGODB_URI`、`JWT_SECRET` 以及 GCS 相關參數。
 2. **啟動 MongoDB**（本機或 Atlas）。
 3. 執行 `npm start`，若看到 `✅ MongoDB 已連線` 與 `🚀 Server running` 即成功。
 4. 使用 Postman 或 cURL 測試：
