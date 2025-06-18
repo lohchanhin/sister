@@ -24,13 +24,26 @@
    ```bash
    npm install
    ```
-   伺服器啟動前，請在根目錄複製 `.env.example` 為 `.env`，並依需求調整 MongoDB、JWT 等設定。
+伺服器啟動前，請在根目錄複製 `.env.example` 為 `.env`，並依需求調整 MongoDB、JWT、GCS 等設定。
+ `.env` 中需填入以下 GCS 相關欄位：
+
+ ```bash
+ GCS_PROJECT_ID=你的專案 ID
+ GCS_BUCKET=你的 Bucket 名稱
+ GCS_KEY_FILE=service-account.json 路徑
+ ```
+
+ 如未建立過 Bucket，可至 Google Cloud Console：
+ 1. 建立專案並啟用 **Cloud Storage**。
+ 2. 在 Storage 中建立 Bucket，名稱需與 `GCS_BUCKET` 相同。
+ 3. 建立服務帳戶並賦予 **Storage Admin** 權限，下載金鑰檔。
+ 4. 將金鑰檔路徑填入 `GCS_KEY_FILE`。
 2. 啟動 API：
    ```bash
    npm start
    ```
-   伺服器啟動後，API 根路徑為 `http://localhost:3000/api`，
-   靜態檔案可自 `/static/<檔名>` 存取。
+ 伺服器啟動後，API 根路徑為 `http://localhost:3000/api`，
+ 上傳的檔案會回傳 GCS 連結，可直接於瀏覽器開啟。
 3. 執行測試前請先在 `server` 目錄安裝相依套件：
    ```bash
    npm install
