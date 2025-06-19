@@ -40,6 +40,7 @@ const app = express()
 
 /* ---------- 通用中介層 ---------- */
 app.use(cors({ origin: true, credentials: true }))   // 允許跨域並攜帶 Cookie
+app.options('*', cors({ origin: true, credentials: true })) // 處理所有預檢請求
 app.use(express.json())                              // 解析 JSON
 app.use(cookieParser())                              // 解析 Cookie
 
