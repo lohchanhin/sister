@@ -536,19 +536,14 @@ async function toggleStage(stage) {
 
 
 function previewAsset(a) {
-  // 如果 url 已經以 /static/ 開頭就不重複加
-  const url = /^\/static\//.test(a.url) ? a.url : `/static/${a.filename}`
-  previewItem.value = { ...a, url }
-  console.log('[預覽素材]', url)
+  previewItem.value = { ...a, url: a.url }
+  console.log('[預覽素材]', a.url)
   previewVisible.value = true
 }
 
 function downloadAsset(asset) {
-  const url = /^\/static\//.test(asset.url)
-    ? asset.url
-    : `/static/${asset.filename}`
   const link = document.createElement('a')
-  link.href = url
+  link.href = asset.url
   link.download = asset.title || asset.filename
   document.body.appendChild(link)
   link.click()
