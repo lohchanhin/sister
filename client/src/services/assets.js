@@ -9,13 +9,10 @@ export const fetchAssets = (folderId, type, tags = [], deep = false) => {
   if (deep) params.deep = 'true'
 
   return api.get('/assets', { params }).then(res =>
-    res.data.map(a => {
-      const hasStatic = /^\/static\//.test(a.url || '')
-      return {
-        ...a,
-        url: hasStatic ? a.url : `/static/${a.filename}`
-      }
-    })
+    res.data.map(a => ({
+      ...a,
+      url: a.url || `/static/${a.filename}`
+    }))
   )
 }
 
@@ -27,13 +24,10 @@ export const fetchProducts = (folderId, tags = [], deep = false, withProgress = 
   if (withProgress) params.progress = 'true'
 
   return api.get('/products', { params }).then(res =>
-    res.data.map(a => {
-      const hasStatic = /^\/static\//.test(a.url || '')
-      return {
-        ...a,
-        url: hasStatic ? a.url : `/static/${a.filename}`
-      }
-    })
+    res.data.map(a => ({
+      ...a,
+      url: a.url || `/static/${a.filename}`
+    }))
   )
 }
 
