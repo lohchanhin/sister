@@ -19,7 +19,9 @@ export const uploadBuffer = async (buffer, destination, contentType) => {
     resumable: false,
     metadata: { contentType }
   })
-  await file.makePublic().catch(() => {})
+  await file.makePublic().catch(err => {
+    console.error('makePublic error:', err)
+  })
   return `https://storage.googleapis.com/${process.env.GCS_BUCKET}/${destination}`
 }
 
