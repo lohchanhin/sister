@@ -1,6 +1,6 @@
 import WeeklyNote from '../models/weeklyNote.model.js'
 import path from 'node:path'
-import { uploadBuffer } from '../utils/gcs.js'
+import { uploadBuffer, getSignedUrl } from '../utils/gcs.js'
 
 const uploadImages = async files => {
   if (!files?.length) return []
@@ -62,4 +62,11 @@ export const getWeeklyNotes = async (req, res) => {
     platformId: req.params.platformId
   })
   res.json(notes)
+}
+
+export const getWeeklyImageUrl = async (req, res) => {
+  const filePath = req.query.path
+  if (!filePath) return res.status(400).json({ message: '缺少 path 參數' })
+  const url = await getSignedUrl(filePath)
+  res.json({ url })
 }

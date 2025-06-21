@@ -212,7 +212,7 @@ import {
   updateDaily,
   deleteDaily
 } from '@/services/adDaily'
-import { fetchWeeklyNote, fetchWeeklyNotes, createWeeklyNote, updateWeeklyNote } from '@/services/weeklyNotes'
+import { fetchWeeklyNote, fetchWeeklyNotes, createWeeklyNote, updateWeeklyNote, getWeeklyNoteImageUrl } from '@/services/weeklyNotes'
 import { getPlatform } from '@/services/platforms'
 
 /**** ----------------------------- 路由 & 基本狀態 ----------------------------- ****/
@@ -524,7 +524,8 @@ async function exportWeekly() {
     /* 第一張圖片嵌入 */
     if (row.hasImage && row.images[0]) {
       try {
-        const res = await fetch(row.images[0])
+        const signedUrl = await getWeeklyNoteImageUrl(clientId, platformId, row.images[0])
+        const res = await fetch(signedUrl)
         const buf = await res.arrayBuffer()
         const ext = row.images[0].split('.').pop().replace('jpg', 'jpeg')   // exceljs 要用 jpeg / png
         const imgId = wb.addImage({ buffer: buf, extension: ext })
