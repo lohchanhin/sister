@@ -2,7 +2,7 @@
 <script setup>
 /* ────────────────────────── 依賴 ────────────────────────── */
 import { ref, onMounted, watch } from 'vue'
-import { VueDraggableNext as draggable } from 'vue-draggable-next'   // ✅ 直接改名
+import { VueDraggableNext as Draggable } from 'vue-draggable-next'   // ✅ 直接改名
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -15,28 +15,28 @@ import {
 } from '../services/platforms'
 
 /* ────────────────────────── 路由 & 狀態 ─────────────────── */
-const route     = useRoute()
-const router    = useRouter()
-const clientId  = route.params.clientId
+const route = useRoute()
+const router = useRouter()
+const clientId = route.params.clientId
 
 const platforms = ref([])
-const dialog    = ref(false)
-const editing   = ref(false)
+const dialog = ref(false)
+const editing = ref(false)
 
 const form = ref({
-  name        : '',
+  name: '',
   platformType: '',
-  mode        : 'custom',       // default | custom
-  fields      : []              // [{ name, type }]
+  mode: 'custom',       // default | custom
+  fields: []              // [{ name, type }]
 })
 
 /* ── 預設欄位 ── */
 const defaultFields = [
-  { name: 'spent',       type: 'number' },
-  { name: 'enquiries',   type: 'number' },
-  { name: 'reach',       type: 'number' },
+  { name: 'spent', type: 'number' },
+  { name: 'enquiries', type: 'number' },
+  { name: 'reach', type: 'number' },
   { name: 'impressions', type: 'number' },
-  { name: 'clicks',      type: 'number' }
+  { name: 'clicks', type: 'number' }
 ]
 
 /* ── 新增欄位輸入 ── */
@@ -100,8 +100,8 @@ const manageData = p => {
 const removePlatform = async p => {
   await ElMessageBox.confirm(`確定刪除「${p.name}」？`, '警告', {
     confirmButtonText: '刪除',
-    cancelButtonText : '取消',
-    type             : 'warning'
+    cancelButtonText: '取消',
+    type: 'warning'
   })
   await deletePlatform(clientId, p._id)
   ElMessage.success('已刪除平台')
@@ -135,23 +135,19 @@ onMounted(loadPlatforms)
 
     <!-- 平台列表 -->
     <el-table :data="platforms" stripe class="mt-4" style="width:100%">
-      <el-table-column prop="name"         label="名稱" />
+      <el-table-column prop="name" label="名稱" />
       <el-table-column prop="platformType" label="類型" />
       <el-table-column label="操作" width="200">
         <template #default="{ row }">
           <el-button link type="primary" @click="manageData(row)">數據</el-button>
           <el-button link type="primary" @click="openEdit(row)">編輯</el-button>
-          <el-button link type="danger"  @click="removePlatform(row)">刪除</el-button>
+          <el-button link type="danger" @click="removePlatform(row)">刪除</el-button>
         </template>
       </el-table-column>
     </el-table>
 
     <!-- 新增 / 編輯對話框 -->
-    <el-dialog
-      v-model="dialog"
-      :title="editing ? '編輯平台' : '新增平台'"
-      width="420px"
-    >
+    <el-dialog v-model="dialog" :title="editing ? '編輯平台' : '新增平台'" width="420px">
       <el-form label-position="top" @submit.prevent>
         <el-form-item label="平台名稱">
           <el-input v-model="form.name" />
@@ -163,8 +159,8 @@ onMounted(loadPlatforms)
 
         <el-form-item label="模式">
           <el-select v-model="form.mode">
-            <el-option label="預設"  value="default" />
-            <el-option label="自訂"  value="custom" />
+            <el-option label="預設" value="default" />
+            <el-option label="自訂" value="custom" />
           </el-select>
         </el-form-item>
 
@@ -172,27 +168,18 @@ onMounted(loadPlatforms)
         <el-form-item label="自訂欄位">
           <!-- 新增欄位表單 -->
           <div class="flex items-center gap-2 mb-2">
-            <el-input
-              v-model="newFieldName"
-              placeholder="欄位名稱"
-              class="flex-1"
-              @keyup.enter.native.prevent="addField"
-            />
+            <el-input v-model="newFieldName" placeholder="欄位名稱" class="flex-1" @keyup.enter.native.prevent="addField" />
             <el-select v-model="newFieldType" style="width:100px">
-              <el-option label="數字"  value="number" />
-              <el-option label="文字"  value="text" />
-              <el-option label="日期"  value="date" />
+              <el-option label="數字" value="number" />
+              <el-option label="文字" value="text" />
+              <el-option label="日期" value="date" />
             </el-select>
             <el-button type="primary" @click="addField">新增</el-button>
           </div>
 
           <!-- 拖曳排序 + 刪除 -->
-          <draggable
-            v-model="form.fields"
-            item-key="name"
-            handle=".drag-handle"
-            class="tag-wrap flex flex-wrap gap-2"
-          >
+          <!-- ✅ 大寫開頭，Vue 一眼就認得 -->
+          <Draggable v-model="form.fields" item-key="name" handle=".drag-handle" class="tag-wrap flex flex-wrap gap-2">
             <template #item="{ element, index }">
               <el-tag closable @close="removeField(index)">
                 <span class="drag-handle mr-1 cursor-move">☰</span>
@@ -200,7 +187,8 @@ onMounted(loadPlatforms)
                 <span class="ml-1 text-xs">({{ element.type }})</span>
               </el-tag>
             </template>
-          </draggable>
+          </Draggable>
+
         </el-form-item>
       </el-form>
 
@@ -221,7 +209,8 @@ onMounted(loadPlatforms)
   white-space: normal !important;
   display: flex;
   flex-wrap: wrap;
-  gap: .5rem;             /* 與 template 的 gap-2 對應 */
+  gap: .5rem;
+  /* 與 template 的 gap-2 對應 */
 }
 
 /* 拖曳把手樣式 */
