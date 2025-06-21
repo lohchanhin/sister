@@ -11,7 +11,8 @@ import {
     deleteAsset,
     getRecentAssets,
     reviewAsset,
-    updateAssetsViewers
+    updateAssetsViewers,
+    getAssetSignedUrl
 } from '../controllers/asset.controller.js'
 import {
   getAssetStages,
@@ -35,6 +36,7 @@ router.post(
   addComment
 )
 router.get('/recent', protect, requirePerm(PERMISSIONS.ASSET_READ), getRecentAssets)
+router.get('/:id/url', protect, requirePerm(PERMISSIONS.ASSET_READ), getAssetSignedUrl)
 
 /* ★ 新增：更新檔名／描述 */
 

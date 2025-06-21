@@ -141,3 +141,13 @@ describe('Batch update viewers', () => {
   })
 })
 
+describe('Asset signed url', () => {
+  it('should return signed url', async () => {
+    const res = await request(app)
+      .get(`/api/assets/${assetId}/url`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    expect(res.body.url).toMatch(/^https?:\/\/.*file\.mp4/)
+  })
+})
+

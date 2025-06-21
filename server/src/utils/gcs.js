@@ -28,4 +28,18 @@ export const getSignedUrl = async (filename, options) => {
   return url
 }
 
+export const getSignedUrl = async (filePath, options = {}) => {
+  if (process.env.NODE_ENV === 'test') {
+    return `https://signed.example.com/${filePath}`
+  }
+  const file = bucket.file(filePath)
+  const opts = {
+    action: 'read',
+    expires: Date.now() + 60 * 60 * 1000,
+    ...options
+  }
+  const [url] = await file.getSignedUrl(opts)
+  return url
+}
+
 export default bucket
