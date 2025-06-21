@@ -11,7 +11,7 @@ export const fetchAssets = (folderId, type, tags = [], deep = false) => {
   return api.get('/assets', { params }).then(res =>
     res.data.map(a => ({
       ...a,
-      url: a.url || `/static/${a.filename}`
+      url: a.url || null
     }))
   )
 }
@@ -26,7 +26,7 @@ export const fetchProducts = (folderId, tags = [], deep = false, withProgress = 
   return api.get('/products', { params }).then(res =>
     res.data.map(a => ({
       ...a,
-      url: a.url || `/static/${a.filename}`
+      url: a.url || null
     }))
   )
 }
