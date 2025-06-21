@@ -166,3 +166,26 @@ export const importAdDaily = async (req, res) => {
   const docs = await AdDaily.insertMany(records)
   res.status(201).json({ docs, filePath })
 }
+
+export const updateAdDaily = async (req, res) => {
+  const rec = await AdDaily.findByIdAndUpdate(
+    req.params.id,
+    {
+      date: req.body.date,
+      spent: sanitizeNumber(req.body.spent),
+      enquiries: sanitizeNumber(req.body.enquiries),
+      reach: sanitizeNumber(req.body.reach),
+      impressions: sanitizeNumber(req.body.impressions),
+      clicks: sanitizeNumber(req.body.clicks),
+      extraData: sanitizeExtraData(req.body.extraData)
+    },
+    { new: true }
+  )
+  if (!rec) return res.status(404).json({ message: '紀錄不存在' })
+  res.json(rec)
+}
+
+export const deleteAdDaily = async (req, res) => {
+  await AdDaily.findByIdAndDelete(req.params.id)
+  res.json({ message: '紀錄已刪除' })
+}
