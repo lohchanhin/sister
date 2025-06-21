@@ -315,7 +315,8 @@ import {
   reviewAsset,
   fetchAssetStages,
   updateAssetStage,
-  updateAssetsViewers
+  updateAssetsViewers,
+  getAssetUrl
 } from '../services/assets'
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
@@ -535,15 +536,17 @@ async function toggleStage(stage) {
 }
 
 
-function previewAsset(a) {
-  previewItem.value = { ...a, url: a.url }
-  console.log('[預覽素材]', a.url)
+async function previewAsset(a) {
+  const url = await getAssetUrl(a._id)
+  previewItem.value = { ...a, url }
+  console.log('[預覽素材]', url)
   previewVisible.value = true
 }
 
-function downloadAsset(asset) {
+async function downloadAsset(asset) {
+  const url = await getAssetUrl(asset._id)
   const link = document.createElement('a')
-  link.href = asset.url
+  link.href = url
   link.download = asset.title || asset.filename
   document.body.appendChild(link)
   link.click()

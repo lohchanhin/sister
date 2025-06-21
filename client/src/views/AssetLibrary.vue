@@ -279,7 +279,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers } from '../services/folders'
-import { fetchAssets, uploadAsset, updateAsset, deleteAsset, updateAssetsViewers } from '../services/assets'
+import { fetchAssets, uploadAsset, updateAsset, deleteAsset, updateAssetsViewers, getAssetUrl } from '../services/assets'
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
@@ -471,15 +471,17 @@ async function uploadRequest({ file, onProgress, onSuccess, onError }) {
   }
 }
 
-function previewAsset(a) {
-  previewItem.value = { ...a, url: a.url }
-  console.log('[預覽素材]', a.url)
+async function previewAsset(a) {
+  const url = await getAssetUrl(a._id)
+  previewItem.value = { ...a, url }
+  console.log('[預覽素材]', url)
   previewVisible.value = true
 }
 
-function downloadAsset(asset) {
+async function downloadAsset(asset) {
+  const url = await getAssetUrl(asset._id)
   const link = document.createElement('a')
-  link.href = asset.url
+  link.href = url
   link.download = asset.title || asset.filename
   document.body.appendChild(link)
   link.click()

@@ -71,4 +71,7 @@ export const updateAssetsViewers = async (ids, users) => {
   }
 }
 
+export const getAssetUrl = id =>
+  api.get(`/assets/${id}/url`).then(res => res.data.url)
+
 
