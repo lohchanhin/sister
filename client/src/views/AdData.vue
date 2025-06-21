@@ -36,6 +36,12 @@
           <el-table-column v-for="field in customColumns" :key="field.name" :label="field.name">
             <template #default="{ row }">{{ row.extraData?.[field.name] ?? '' }}</template>
           </el-table-column>
+          <el-table-column label="操作" width="160">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="openEdit(row)">編輯</el-button>
+              <el-button link type="danger" @click="removeDaily(row)">刪除</el-button>
+            </template>
+          </el-table-column>
         </el-table>
       </el-tab-pane>
 
@@ -89,8 +95,13 @@
       </el-tab-pane>
     </el-tabs>
 
-    <!-- ─────────── Dialog：新增每日 ─────────── -->
-    <el-dialog v-model="dialogVisible" title="新增每日記錄" width="460px" destroy-on-close>
+    <!-- ─────────── Dialog：新增/編輯每日 ─────────── -->
+    <el-dialog
+      v-model="dialogVisible"
+      :title="editing ? '編輯每日記錄' : '新增每日記錄'"
+      width="460px"
+      destroy-on-close
+    >
       <el-form label-position="top" @submit.prevent>
         <el-form-item label="日期">
           <el-date-picker v-model="recordForm.date" type="date" style="width:100%" />
@@ -166,7 +177,7 @@
 /**** ---------------------------------------------------- 套件 ---------------------------------------------------- ****/
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { InfoFilled } from '@element-plus/icons-vue'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
@@ -183,7 +194,13 @@ import {
 Chart.register(LineController, LineElement, PointElement, LinearScale, Title, CategoryScale)
 
 /**** ------------------ API 服務（依專案實作，可替換為 axios 呼叫） ------------------ ****/
-import { fetchDaily, createDaily, bulkCreateDaily } from '@/services/adDaily'
+import {
+  fetchDaily,
+  createDaily,
+  bulkCreateDaily,
+  updateDaily,
+  deleteDaily
+} from '@/services/adDaily'
 import { fetchWeeklyNote, fetchWeeklyNotes, createWeeklyNote, updateWeeklyNote } from '@/services/weeklyNotes'
 import { getPlatform } from '@/services/platforms'
 
@@ -193,6 +210,8 @@ const router = useRouter()
 
 const activeTab = ref('daily')
 const dialogVisible = ref(false)
+const editing = ref(false)
+const editingId = ref('')
 const showHelp = ref(false)
 const excelDialog = ref(false)
 const noteDialog = ref(false)
@@ -353,6 +372,8 @@ onMounted(async () => {
 
 /**** --------------------------------------------------- CRUD：每日 --------------------------------------------------- ****/
 const openCreateDialog = () => {
+  editing.value = false
+  editingId.value = ''
   recordForm.value.date = ''
   customColumns.value.forEach(f => (recordForm.value.extraData[f.name] = ''))
   dialogVisible.value = true
@@ -361,13 +382,39 @@ const openCreateDialog = () => {
 const handleConfirm = async () => {
   if (!recordForm.value.date) return ElMessage.warning('請選擇日期')
   try {
-    await createDaily(clientId, platformId, { ...recordForm.value })
-    ElMessage.success('已新增記錄')
+    if (editing.value) {
+      await updateDaily(clientId, platformId, editingId.value, {
+        ...recordForm.value
+      })
+      ElMessage.success('已更新記錄')
+    } else {
+      await createDaily(clientId, platformId, { ...recordForm.value })
+      ElMessage.success('已新增記錄')
+    }
     dialogVisible.value = false
     await loadDaily()
   } catch (err) {
-    ElMessage.error(err.message || '新增失敗')
+    ElMessage.error(err.message || (editing.value ? '更新失敗' : '新增失敗'))
   }
+}
+
+const openEdit = row => {
+  editing.value = true
+  editingId.value = row._id
+  recordForm.value.date = row.date
+  recordForm.value.extraData = { ...row.extraData }
+  dialogVisible.value = true
+}
+
+const removeDaily = async row => {
+  await ElMessageBox.confirm(`確定刪除？`, '警告', {
+    confirmButtonText: '刪除',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+  await deleteDaily(clientId, platformId, row._id)
+  ElMessage.success('已刪除紀錄')
+  await loadDaily()
 }
 
 /**** ------------------------------------------------------- 匯入 ------------------------------------------------------- ****/

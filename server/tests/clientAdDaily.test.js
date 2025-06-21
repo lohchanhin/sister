@@ -136,4 +136,33 @@ describe('Client and AdDaily', () => {
     expect(res.body[0].extraData).toEqual({ metric: 1 })
     expect(res.body[1].extraData).toEqual({ metric: 2 })
   })
+
+  it('update and delete adDaily', async () => {
+    const create = await request(app)
+      .post(`/api/clients/${clientId}/platforms/${platformId}/ad-daily`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ date: new Date('2024-05-01').toISOString(), spent: 1 })
+      .expect(201)
+    const id = create.body._id
+
+    const updated = await request(app)
+      .put(`/api/clients/${clientId}/platforms/${platformId}/ad-daily/${id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ spent: 20 })
+      .expect(200)
+    expect(updated.body.spent).toBe(20)
+
+    await request(app)
+      .delete(`/api/clients/${clientId}/platforms/${platformId}/ad-daily/${id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+
+    const list = await request(app)
+      .get(
+        `/api/clients/${clientId}/platforms/${platformId}/ad-daily?start=2024-05-01&end=2024-05-01`
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    expect(list.body.length).toBe(0)
+  })
 })

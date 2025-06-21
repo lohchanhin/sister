@@ -37,3 +37,16 @@ export const bulkCreateDaily = async (clientId, platformId, records) => {
   }
 }
 
+export const updateDaily = (clientId, platformId, id, data) =>
+  api
+    .put(
+      `/clients/${clientId}/platforms/${platformId}/ad-daily/${id}`,
+      data
+    )
+    .then(r => r.data)
+
+export const deleteDaily = (clientId, platformId, id) =>
+  api
+    .delete(`/clients/${clientId}/platforms/${platformId}/ad-daily/${id}`)
+    .then(r => r.data)
+

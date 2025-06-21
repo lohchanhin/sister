@@ -6,7 +6,9 @@ import {
   getAdDaily,
   getWeeklyData,
   importAdDaily,
-  bulkCreateAdDaily
+  bulkCreateAdDaily,
+  updateAdDaily,
+  deleteAdDaily
 } from '../controllers/adDaily.controller.js'
 
 const router = Router({ mergeParams: true })
@@ -20,5 +22,9 @@ router.route('/')
 router.get('/weekly', getWeeklyData)
 router.post('/import', upload.single('file'), importAdDaily)
 router.post('/bulk', bulkCreateAdDaily)
+
+router.route('/:id')
+  .put(updateAdDaily)
+  .delete(deleteAdDaily)
 
 export default router
