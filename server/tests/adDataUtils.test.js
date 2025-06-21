@@ -4,7 +4,8 @@ import dayjs from 'dayjs'
 describe('adData helpers', () => {
   const fields = [
     { name: 'foo', type: 'number' },
-    { name: 'bar', type: 'text' }
+    { name: 'bar', type: 'text' },
+    { name: 'baz', type: 'date' }
   ]
 
   test('excel spec and template order', () => {
@@ -23,13 +24,13 @@ describe('adData helpers', () => {
 
   test('normalizeRows keeps field order', () => {
     const rows = normalizeRows([
-      { date:'2025-06-02', foo:'A', bar:'B', spent:100 }
+      { date:'2025-06-02', foo:'A', bar:'B', baz:'2025-06-01', spent:100 }
     ], fields)
     expect(Object.keys(rows[0].extraData)).toEqual(fields.map(f => f.name))
   })
 
   test('export rows follow field order', () => {
-    const daily = [{ date:'2025-06-01', spent:100, enquiries:1, reach:10, impressions:20, clicks:5, avgCost:'100.00', extraData:{ foo:'X', bar:'Y' } }]
+    const daily = [{ date:'2025-06-01', spent:100, enquiries:1, reach:10, impressions:20, clicks:5, avgCost:'100.00', extraData:{ foo:'X', bar:'Y', baz:'2025-06-03' } }]
     const rows = buildExportRows(
       daily,
       fields,
