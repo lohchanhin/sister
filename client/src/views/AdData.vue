@@ -318,9 +318,13 @@ const formatExtraDate = val =>
 /**** --------------------------------------------------- 資料載入 --------------------------------------------------- ****/
 const loadPlatform = async () => {
   platform.value = await getPlatform(clientId, platformId)
-  customColumns.value = (platform.value?.fields || []).map(f =>
-    typeof f === 'string' ? { name: f, type: 'text' } : f
-  )
+  customColumns.value = (platform.value?.fields || [])
+    .map(f =>
+      typeof f === 'string'
+        ? { name: f, type: 'text', order: 0 }
+        : { name: f.name, type: f.type || 'text', order: f.order || 0 }
+    )
+    .sort((a, b) => a.order - b.order)
   // 預設 Y 軸選第一個欄位
   if (!yMetric.value) {
     const first = customColumns.value.find(f => f.type === 'number')
