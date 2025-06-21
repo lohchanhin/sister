@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import draggable from 'vuedraggable'
+import { VueDraggableNext as draggable } from 'vue-draggable-next'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { fetchPlatforms, createPlatform, updatePlatform, deletePlatform } from '../services/platforms'
