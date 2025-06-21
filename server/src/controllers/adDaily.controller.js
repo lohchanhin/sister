@@ -118,7 +118,11 @@ export const importAdDaily = async (req, res) => {
   const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
   const ext = path.extname(req.file.originalname)
   const filename = unique + ext
-  const fileUrl = await uploadBuffer(req.file.buffer, filename, req.file.mimetype)
+  const filePath = await uploadBuffer(
+    req.file.buffer,
+    filename,
+    req.file.mimetype
+  )
 
   const xlsx = await import('xlsx')
   const wb = xlsx.read(req.file.buffer, { type: 'buffer' })
@@ -160,5 +164,5 @@ export const importAdDaily = async (req, res) => {
     .map(r => ({ ...r, date: new Date(r.date) }))
 
   const docs = await AdDaily.insertMany(records)
-  res.status(201).json({ docs, fileUrl })
+  res.status(201).json({ docs, filePath })
 }
