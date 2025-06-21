@@ -40,7 +40,8 @@ npm start                 # 啟動伺服器
 
 若要讓某角色具備設定檔案或資料夾「可查看者」的能力，請分別為其啟用 `asset:update` 或 `folder:manage` 權限。
 
-啟動後，上傳檔案會回傳 GCS 連結，API 根路徑為 `/api/*`。
+啟動後僅會儲存檔名，API 根路徑為 `/api/*`，
+預覽或下載請呼叫相應 API 取得 signed URL。
 亦可執行 `GET /api/health` 測試伺服器是否正常連線。
 
 ---

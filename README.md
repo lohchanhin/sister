@@ -42,8 +42,8 @@
    ```bash
    npm start
    ```
- 伺服器啟動後，API 根路徑為 `http://localhost:3000/api`，
- 上傳的檔案會回傳 GCS 連結，可直接於瀏覽器開啟。
+伺服器啟動後，API 根路徑為 `http://localhost:3000/api`，
+上傳後僅會儲存檔名，需另外呼叫 API 取得 signed URL 才能預覽或下載檔案。
 3. 執行測試前請先在 `server` 目錄安裝相依套件：
    ```bash
    npm install
