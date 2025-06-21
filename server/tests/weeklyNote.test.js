@@ -93,4 +93,13 @@ describe('WeeklyNote API', () => {
     expect(weeks).toContain('2024-W01')
     expect(weeks).toContain('2024-W02')
   })
+
+  it('get signed url for image', async () => {
+    const res = await request(app)
+      .get(`/api/clients/${clientId}/platforms/${platformId}/weekly-notes/image-url`)
+      .query({ path: 'test/file.txt' })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    expect(res.body.url).toBe('https://signed.example.com/test/file.txt')
+  })
 })
