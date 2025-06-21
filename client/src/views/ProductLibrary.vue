@@ -544,7 +544,7 @@ async function previewAsset(a) {
 }
 
 async function downloadAsset(asset) {
-  const url = await getAssetUrl(asset._id)
+  const url = await getAssetUrl(asset._id, true)
   const link = document.createElement('a')
   link.href = url
   link.download = asset.title || asset.filename

@@ -44,6 +44,8 @@
    ```
 伺服器啟動後，API 根路徑為 `http://localhost:3000/api`，
 上傳後僅會儲存檔名，需另外呼叫 API 取得 signed URL 才能預覽或下載檔案。
+若需強制瀏覽器下載檔案，可對 `GET /api/assets/:id/url` 加入 `?download=1`
+參數取得下載專用的 URL。
 3. 執行測試前請先在 `server` 目錄安裝相依套件：
    ```bash
    npm install
