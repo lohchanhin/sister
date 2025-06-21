@@ -6,7 +6,7 @@ import Folder from '../models/folder.model.js'
 import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import path from 'node:path'
-import { uploadBuffer } from '../utils/gcs.js'
+import { uploadBuffer, getSignedUrl } from '../utils/gcs.js'
 import { getDescendantFolderIds } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
 import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
@@ -199,6 +199,13 @@ export const getRecentAssets = async (req, res) => {
       uploaderName: a.uploadedBy?.name || a.uploadedBy?.username
     }))
   )
+}
+
+export const getAssetSignedUrl = async (req, res) => {
+  const asset = await Asset.findById(req.params.id)
+  if (!asset) return res.status(404).json({ message: '找不到素材' })
+  const url = await getSignedUrl(asset.path)
+  res.json({ url })
 }
 
 /* ---------- PUT /api/assets/viewers ---------- */
