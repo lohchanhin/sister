@@ -1,10 +1,9 @@
 /**
  * 伺服器入口 (server.js)
  * ------------------------------------------------------------
- * • 嚴謹 CORS allow-list：確保 Access-Control-Allow-Origin
- *   與 Access-Control-Allow-Credentials 正確返回。
- * • 內建 OPTIONS logging，方便你在 Heroku logs 追 preflight。
- * • 其餘程式碼與原版相同，僅整理 import 與加入少量註解。
+ * 1. 嚴謹 CORS allow-list + credentials
+ * 2. Heroku 上自動還原 GCP Service-Account
+ * 3. 內建 OPTIONS logging，快速檢查預檢是否命中
  * ------------------------------------------------------------
  */
 
@@ -19,11 +18,11 @@ import { fileURLToPath }  from 'node:url'
 import connectDB                    from './config/db.js'
 import { notFound, errorHandler }   from './utils/handleError.js'
 
-/* ---------- Service-Account 金鑰還原 ---------- */
+/* ────────────────────────── 0. Service-Account 還原 ───────────────────────── */
 const base64Key = process.env.GCS_KEY_JSON || process.env.GCP_SA_KEY
 if (base64Key && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
   try {
-    const keyPath = '/tmp/gcp-key.json'   // Heroku 的可寫目錄
+    const keyPath = '/tmp/gcp-key.json'
     fs.writeFileSync(keyPath, Buffer.from(base64Key, 'base64'))
     process.env.GOOGLE_APPLICATION_CREDENTIALS = keyPath
     console.log('✅ GCP service-account key restored to /tmp/gcp-key.json')
@@ -32,37 +31,43 @@ if (base64Key && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
   }
 }
 
-/* ---------- 初始化 ---------- */
+/* ────────────────────────── 1. 初始化 ───────────────────────── */
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 connectDB()
 
 const app = express()
+app.enable('trust proxy')                  // Heroku 需開啟，否則 secure cookie 不生效
 
-/* ---------- CORS 設定 ---------- */
+/* ────────────────────────── 2. CORS (放最前) ───────────────────────── */
 const allowList = [
-  'https://www.golden-goose-media.com',   // 🚩 你的正式前端網域
-  'http://localhost:5173',                // 本機開發 vite
+  'https://www.golden-goose-media.com',
+  'https://golden-goose-media.com',
+  'http://localhost:5173',
   'http://localhost:3000'
 ]
 
 const corsOptions = {
+  /**
+   * 動態驗證 Origin：
+   * 無 Origin（Postman / SSR）直接放行；前端請求需在 allowList
+   */
   origin: (origin, cb) => {
-    // allow Postman / server-to-server（沒有 Origin header）
     if (!origin) return cb(null, true)
     if (allowList.includes(origin)) return cb(null, true)
-    console.warn('[CORS] block origin =', origin)
+    console.warn('[CORS] Blocked Origin =', origin)
     return cb(new Error('Not allowed by CORS'))
   },
   credentials: true,
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-  allowedHeaders: 'Content-Type,Authorization,Accept'
+  allowedHeaders:
+    'Content-Type,Authorization,Accept,Origin,X-Requested-With',
+  methods: 'GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS'
 }
 
 app.use(cors(corsOptions))
-app.options('*', cors(corsOptions))     // 處理所有預檢
+app.options('*', cors(corsOptions))        // 處理所有預檢
 
-/* --- 觀察每一次請求（尤其是 OPTIONS） ----------------------- */
+/* 觀察每一次 OPTIONS 預檢 ─ 助於除錯 */
 app.use((req, _res, next) => {
   if (req.method === 'OPTIONS') {
     console.log(`[OPTIONS] ${req.path}  Origin=${req.headers.origin}`)
@@ -70,11 +75,11 @@ app.use((req, _res, next) => {
   next()
 })
 
-/* ---------- 通用中介層 ---------- */
+/* ────────────────────────── 3. 通用中介層 ───────────────────────── */
 app.use(express.json())
 app.use(cookieParser())
 
-/* ---------- 路由 ---------- */
+/* ────────────────────────── 4. 路由載入 ───────────────────────── */
 import authRoutes         from './routes/auth.routes.js'
 import userRoutes         from './routes/user.routes.js'
 import assetRoutes        from './routes/asset.routes.js'
@@ -109,16 +114,16 @@ app.use('/api/menus', menusRoutes)
 app.use('/api/review-stages', reviewStageRoutes)
 app.use('/api/health', healthRoutes)
 
-/* ---------- 靜態檔 (前端) ---------- */
+/* ────────────────────────── 5. 前端靜態檔案 ───────────────────────── */
 const clientDist = path.resolve(__dirname, '../../client/dist')
 app.use(express.static(clientDist))
 app.get('*', (_, res) => res.sendFile(path.join(clientDist, 'index.html')))
 
-/* ---------- 404 / 全域錯誤 ---------- */
+/* ────────────────────────── 6. 404 & 全域錯誤 ───────────────────────── */
 app.use(notFound)
 app.use(errorHandler)
 
-/* ---------- 啟動 ---------- */
+/* ────────────────────────── 7. 啟動 ───────────────────────── */
 const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`)
