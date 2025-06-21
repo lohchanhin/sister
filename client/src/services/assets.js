@@ -71,7 +71,9 @@ export const updateAssetsViewers = async (ids, users) => {
   }
 }
 
-export const getAssetUrl = id =>
-  api.get(`/assets/${id}/url`).then(res => res.data.url)
+export const getAssetUrl = (id, download = false) =>
+  api
+    .get(`/assets/${id}/url`, { params: download ? { download: 1 } : {} })
+    .then(res => res.data.url)
 
 

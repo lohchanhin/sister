@@ -207,7 +207,14 @@ export const getRecentAssets = async (req, res) => {
 export const getAssetSignedUrl = async (req, res) => {
   const asset = await Asset.findById(req.params.id)
   if (!asset) return res.status(404).json({ message: '找不到素材' })
-  const url = await getSignedUrl(asset.path)
+
+  const options = {}
+  if (req.query.download === '1') {
+    const name = encodeURIComponent(asset.title || asset.filename)
+    options.responseDisposition = `attachment; filename="${name}"`
+  }
+
+  const url = await getSignedUrl(asset.path, options)
   res.json({ url })
 }
 
