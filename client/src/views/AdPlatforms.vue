@@ -128,6 +128,7 @@ onMounted(loadPlatforms)
             <el-select v-model="newFieldType" style="width:100px">
               <el-option label="數字" value="number" />
               <el-option label="文字" value="text" />
+              <el-option label="日期" value="date" />
             </el-select>
             <el-button type="primary" @click="addField">新增</el-button>
           </div>

@@ -11,8 +11,10 @@ export const buildExcelSpec = customFields => [
   ...baseSpec,
   ...customFields.map(c => ({
     field: c.name,
-    type: c.type === 'number' ? '數字' : '文字',
-    sample: ''
+    type: c.type === 'number' ? '數字'
+      : c.type === 'date' ? '日期 (YYYY-MM-DD)'
+      : '文字',
+    sample: c.type === 'date' ? '2025-06-01' : ''
   }))
 ]
 
@@ -26,7 +28,7 @@ export const buildTemplateRow = customFields => {
     clicks: 23
   }
   customFields.forEach(c => {
-    row[c.name] = ''
+    row[c.name] = c.type === 'date' ? '2025-06-01' : ''
   })
   return row
 }
@@ -45,7 +47,8 @@ export const normalizeRows = (arr, customFields) => arr
     customFields.forEach(c => {
       if (r[c.name] !== undefined) {
         const val = r[c.name]
-        extra[c.name] = c.type === 'number' ? Number(val) || 0 : val
+        if (c.type === 'number') extra[c.name] = Number(val) || 0
+        else extra[c.name] = val
       }
     })
     const ignore = new Set([
@@ -73,7 +76,10 @@ export const buildExportRows = (dailyData, customFields, dateFmt) =>
       點擊: r.clicks
     }
     customFields.forEach(c => {
-      obj[c.name] = r.extraData?.[c.name] ?? ''
+      const val = r.extraData?.[c.name]
+      obj[c.name] = c.type === 'date'
+        ? (val ? dateFmt({ date: val }) : '')
+        : (val ?? '')
     })
     return obj
   })

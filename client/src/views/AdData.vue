@@ -34,7 +34,12 @@
         <el-table :data="dailyData" stripe style="width:100%" empty-text="尚無資料">
           <el-table-column prop="date" label="日期" :formatter="dateFmt" width="140" />
           <el-table-column v-for="field in customColumns" :key="field.name" :label="field.name">
-            <template #default="{ row }">{{ row.extraData?.[field.name] ?? '' }}</template>
+            <template #default="{ row }">
+              <span v-if="field.type === 'date'">
+                {{ formatExtraDate(row.extraData?.[field.name]) }}
+              </span>
+              <span v-else>{{ row.extraData?.[field.name] ?? '' }}</span>
+            </template>
           </el-table-column>
           <el-table-column label="操作" width="160">
             <template #default="{ row }">
@@ -108,7 +113,13 @@
         </el-form-item>
         <!-- 動態欄位輸入 -->
         <el-form-item v-for="field in customColumns" :key="field.name" :label="field.name">
-          <el-input v-model="recordForm.extraData[field.name]" />
+          <el-date-picker
+            v-if="field.type === 'date'"
+            v-model="recordForm.extraData[field.name]"
+            type="date"
+            style="width:100%"
+          />
+          <el-input v-else v-model="recordForm.extraData[field.name]" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -291,14 +302,18 @@ const excelSpec = computed(() => {
   return base.concat(
     customColumns.value.map(f => ({
       field: f.name,
-      type: f.type === 'number' ? '數字' : '文字',
-      sample: ''
+      type: f.type === 'number' ? '數字'
+        : f.type === 'date' ? '日期 (YYYY-MM-DD)'
+        : '文字',
+      sample: f.type === 'date' ? dayjs().format('YYYY-MM-DD') : ''
     }))
   )
 })
 
 /**** 日期 formatter ****/
 const dateFmt = row => dayjs(row.date).format('YYYY-MM-DD')
+const formatExtraDate = val =>
+  val ? dayjs(val).format('YYYY-MM-DD') : ''
 
 /**** --------------------------------------------------- 資料載入 --------------------------------------------------- ****/
 const loadPlatform = async () => {
@@ -458,7 +473,8 @@ const normalize = arr => {
     const extraData = {}
     customColumns.value.forEach(col => {
       const val = r[col.name] || ''
-      extraData[col.name] = col.type === 'number' ? Number(val) || 0 : val
+      if (col.type === 'number') extraData[col.name] = Number(val) || 0
+      else extraData[col.name] = val
     })
     return { date: r['日期'] || r.date || '', extraData }
   }).filter(r => r.date)
@@ -470,7 +486,8 @@ const exportDaily = () => {
   const rows = dailyData.value.map(r => {
     const row = { 日期: dateFmt(r) }
     customColumns.value.forEach(col => {
-      row[col.name] = r.extraData[col.name] ?? ''
+      const val = r.extraData[col.name]
+      row[col.name] = col.type === 'date' ? formatExtraDate(val) : (val ?? '')
     })
     return row
   })
