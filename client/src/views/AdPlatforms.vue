@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import draggable from 'vuedraggable'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { fetchPlatforms, createPlatform, updatePlatform, deletePlatform } from '../services/platforms'
@@ -133,11 +134,14 @@ onMounted(loadPlatforms)
             <el-button type="primary" @click="addField">新增</el-button>
           </div>
           <!-- 自訂欄位 tag 容器加個 class -->
-          <div class="tag-wrap flex flex-wrap gap-2">
-            <el-tag v-for="(f, i) in form.fields" :key="i" closable @close="removeField(i)">
-              {{ f.name }}<span class="ml-1 text-xs">({{ f.type }})</span>
-            </el-tag>
-          </div>
+          <draggable v-model="form.fields" item-key="name" class="tag-wrap flex flex-wrap gap-2" handle=".drag-handle">
+            <template #item="{ element, index }">
+              <el-tag closable @close="removeField(index)">
+                <span class="drag-handle mr-1 cursor-move">☰</span>
+                {{ element.name }}<span class="ml-1 text-xs">({{ element.type }})</span>
+              </el-tag>
+            </template>
+          </draggable>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -155,5 +159,8 @@ onMounted(loadPlatforms)
   display: flex;
   flex-wrap: wrap;
   gap: .5rem;          /* 與 template 的 gap-2 對應 */
+}
+.drag-handle {
+  cursor: move;
 }
 </style>

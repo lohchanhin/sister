@@ -99,6 +99,8 @@ server/  # 後端 API
 後端對應 `/api/clients/:clientId/platforms/:platformId/ad-daily`，`/weekly` 回傳週統計。
 若需批次匯入，可 POST 至 `/api/clients/:clientId/platforms/:platformId/ad-daily/import` 上傳 CSV 或 Excel。
 
+在「平台管理」的自訂欄位區塊，可拖曳標籤調整顯示順序。
+
 
 
 ## Heroku 部署
