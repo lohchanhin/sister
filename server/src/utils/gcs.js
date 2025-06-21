@@ -19,10 +19,13 @@ export const uploadBuffer = async (buffer, destination, contentType) => {
     resumable: false,
     metadata: { contentType }
   })
-  await file.makePublic().catch(err => {
-    console.error('makePublic error:', err)
-  })
-  return `https://storage.googleapis.com/${process.env.GCS_BUCKET}/${destination}`
+  return destination
+}
+
+export const getSignedUrl = async (filename, options) => {
+  const file = bucket.file(filename)
+  const [url] = await file.getSignedUrl(options)
+  return url
 }
 
 export default bucket

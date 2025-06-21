@@ -32,7 +32,11 @@ export const uploadFile = async (req, res) => {
   const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
   const ext = path.extname(req.file.originalname)
   const filename = unique + ext
-  const url = await uploadBuffer(req.file.buffer, filename, req.file.mimetype)
+  const gcsPath = await uploadBuffer(
+    req.file.buffer,
+    filename,
+    req.file.mimetype
+  )
 
   const baseUsers = Array.isArray(req.body.allowedUsers)
     ? Array.from(new Set([...req.body.allowedUsers, req.user._id]))
@@ -40,8 +44,7 @@ export const uploadFile = async (req, res) => {
   const asset = await Asset.create({
     title: req.file.originalname,     // 顯示用標題
     filename,         // 實際檔名
-    path: filename,
-    url,
+    path: gcsPath,
     type: req.body.type || 'raw',
     reviewStatus: req.body.type === 'edited' ? 'pending' : undefined,
     uploadedBy: req.user._id,

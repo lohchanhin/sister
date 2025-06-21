@@ -4,7 +4,7 @@ import { uploadBuffer } from '../utils/gcs.js'
 
 const uploadImages = async files => {
   if (!files?.length) return []
-  const urls = await Promise.all(
+  const paths = await Promise.all(
     files.map(async f => {
       const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
       const ext = path.extname(f.originalname)
@@ -12,7 +12,7 @@ const uploadImages = async files => {
       return uploadBuffer(f.buffer, filename, f.mimetype)
     })
   )
-  return urls
+  return paths
 }
 
 export const createWeeklyNote = async (req, res) => {
