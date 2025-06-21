@@ -19,7 +19,7 @@
 5. 素材庫詳情視窗可設定可查看使用者，管理者可指定具有瀏覽權限的帳號。
 6. 於素材庫與成品區可批次設定可查看者，選取多項後點擊「批次設定可查看者」。
 7. 系統現在支援 `.doc`、`.docx` 與 `.pdf` 檔案預覽，將於對話框以 Google Docs Viewer 內嵌顯示。
-8. 拖曳標籤功能使用 `vue-draggable-next` 套件，若自行安裝請執行 `npm i vue-draggable-next`。
+8. 可輸入數字設定欄位順序。
 
 ## 後端 (server)
 1. 進入 `server` 目錄安裝依賴：
@@ -100,7 +100,7 @@ server/  # 後端 API
 後端對應 `/api/clients/:clientId/platforms/:platformId/ad-daily`，`/weekly` 回傳週統計。
 若需批次匯入，可 POST 至 `/api/clients/:clientId/platforms/:platformId/ad-daily/import` 上傳 CSV 或 Excel。
 
-在「平台管理」的自訂欄位區塊，可拖曳標籤調整顯示順序。
+
 
 
 
