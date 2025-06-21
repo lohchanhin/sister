@@ -180,7 +180,7 @@ onMounted(loadPlatforms)
             <el-button type="primary" @click="addField">新增</el-button>
           </div>
 
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-2" style="display: flex;flex-direction: column;">
             <div v-for="(field, index) in form.fields" :key="field.name" class="flex items-center gap-2">
               <el-tag closable @close="removeField(index)">
                 {{ field.name }}
