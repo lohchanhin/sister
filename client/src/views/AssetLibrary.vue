@@ -251,6 +251,11 @@
       <!-- 讓媒體自適應：max-width:100% + max-height:70vh -->
       <div class="w-full flex justify-center">
         <img v-if="isImage(previewItem)" :src="previewItem.url" class="preview-media" />
+        <iframe
+          v-else-if="isDocument(previewItem)"
+          :src="docPreviewUrl(previewItem)"
+          class="preview-media"
+        ></iframe>
         <video v-else controls class="preview-media">
           <source :src="previewItem.url" type="video/mp4" />
         </video>
@@ -336,6 +341,9 @@ const loadTags = async () => {
 const previewVisible = ref(false)
 const previewItem = ref(null)
 const isImage = a => /\.(png|jpe?g|gif|webp)$/i.test(a?.filename || '')
+const isDocument = a => /\.(docx?|pdf)$/i.test(a?.filename || '')
+const docPreviewUrl = a =>
+  `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(a?.url || '')}`
 
 /* 主題色 */
 const sidebarBg = computed(() => getComputedStyle(document.querySelector('.sidebar')).backgroundColor || '#1f2937')
