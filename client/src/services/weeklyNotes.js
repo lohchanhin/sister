@@ -28,3 +28,11 @@ export const updateWeeklyNote = (clientId, platformId, week, data) => {
     { headers: { 'Content-Type': 'multipart/form-data' } }
   ).then(r => r.data)
 }
+
+export const getWeeklyNoteImageUrl = (clientId, platformId, path) =>
+  api
+    .get(
+      `/clients/${clientId}/platforms/${platformId}/weekly-notes/image-url`,
+      { params: { path } }
+    )
+    .then(r => r.data.url)
