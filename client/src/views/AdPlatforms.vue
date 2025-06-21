@@ -1,8 +1,7 @@
-<!-- src/views/AdPlatforms.vue – 完整版（VueDraggableNext 整合） -->
+<!-- src/views/AdPlatforms.vue – 平台管理 -->
 <script setup>
 /* ────────────────────────── 依賴 ────────────────────────── */
 import { ref, onMounted, watch } from 'vue'
-import { VueDraggableNext as Draggable } from 'vue-draggable-next'   // ✅ 直接改名
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -27,16 +26,16 @@ const form = ref({
   name: '',
   platformType: '',
   mode: 'custom',       // default | custom
-  fields: []              // [{ name, type }]
+  fields: []              // [{ name, type, order }]
 })
 
 /* ── 預設欄位 ── */
 const defaultFields = [
-  { name: 'spent', type: 'number' },
-  { name: 'enquiries', type: 'number' },
-  { name: 'reach', type: 'number' },
-  { name: 'impressions', type: 'number' },
-  { name: 'clicks', type: 'number' }
+  { name: 'spent', type: 'number', order: 1 },
+  { name: 'enquiries', type: 'number', order: 2 },
+  { name: 'reach', type: 'number', order: 3 },
+  { name: 'impressions', type: 'number', order: 4 },
+  { name: 'clicks', type: 'number', order: 5 }
 ]
 
 /* ── 新增欄位輸入 ── */
@@ -47,7 +46,8 @@ const addField = () => {
   const name = newFieldName.value.trim()
   const type = newFieldType.value
   if (name && !form.value.fields.find(f => f.name === name)) {
-    form.value.fields.push({ name, type })
+    const order = form.value.fields.length + 1
+    form.value.fields.push({ name, type, order })
   }
   newFieldName.value = ''
 }
@@ -70,7 +70,9 @@ const openEdit = p => {
   form.value = {
     ...p,
     fields: (p.fields || []).map(f =>
-      typeof f === 'string' ? { name: f, type: 'text' } : f
+      typeof f === 'string'
+        ? { name: f, type: 'text', order: 0 }
+        : { name: f.name, type: f.type || 'text', order: f.order || 0 }
     ),
     mode: p.mode || 'custom'
   }
@@ -79,6 +81,7 @@ const openEdit = p => {
 
 const submit = async () => {
   try {
+    form.value.fields.sort((a, b) => a.order - b.order)
     if (editing.value) {
       await updatePlatform(clientId, form.value._id, form.value)
       ElMessage.success('已更新平台')
@@ -177,17 +180,15 @@ onMounted(loadPlatforms)
             <el-button type="primary" @click="addField">新增</el-button>
           </div>
 
-          <!-- 拖曳排序 + 刪除 -->
-          <!-- ✅ 大寫開頭，Vue 一眼就認得 -->
-          <Draggable v-model="form.fields" item-key="name" handle=".drag-handle" class="tag-wrap flex flex-wrap gap-2">
-            <template #item="{ element, index }">
+          <div class="flex flex-col gap-2">
+            <div v-for="(field, index) in form.fields" :key="field.name" class="flex items-center gap-2">
               <el-tag closable @close="removeField(index)">
-                <span class="drag-handle mr-1 cursor-move">☰</span>
-                {{ element.name }}
-                <span class="ml-1 text-xs">({{ element.type }})</span>
+                {{ field.name }}
+                <span class="ml-1 text-xs">({{ field.type }})</span>
               </el-tag>
-            </template>
-          </Draggable>
+              <el-input-number v-model="field.order" :min="0" />
+            </div>
+          </div>
 
         </el-form-item>
       </el-form>
@@ -204,17 +205,4 @@ onMounted(loadPlatforms)
 </template>
 
 <style scoped>
-/* 讓 el-form-item 的 tag wrap 能自動換行 */
-:deep(.el-form-item__content) .tag-wrap {
-  white-space: normal !important;
-  display: flex;
-  flex-wrap: wrap;
-  gap: .5rem;
-  /* 與 template 的 gap-2 對應 */
-}
-
-/* 拖曳把手樣式 */
-.drag-handle {
-  cursor: move;
-}
 </style>

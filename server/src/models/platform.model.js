@@ -12,7 +12,8 @@ const platformSchema = new mongoose.Schema(
         new mongoose.Schema(
           {
             name: { type: String, required: true },
-            type: { type: String, default: 'text' }
+            type: { type: String, default: 'text' },
+            order: { type: Number, default: 0 }
           },
           { _id: false }
         )
