@@ -121,7 +121,7 @@
             <div class="flex items-center mb-2 gap-2 w-full min-w-0">
               <el-checkbox v-model="selectedItems" :label="p._id" @click.stop
                 class="mr-1 flex-1 min-w-0 flex items-center gap-2">
-                <span class="font-medium truncate">{{ p.name }}</span>
+                <span class="font-medium truncate">{{ p.title || p.filename }}</span>
               </el-checkbox>
               <el-button link size="small" class="flex-shrink-0" @click.stop="showDetailFor(p, 'product')">
                 <el-icon style="font-size:24px;">
@@ -131,10 +131,15 @@
             </div>
           </template>
 
-          <!-- 顯示進度或價錢等資訊 -->
+          <!-- 描述 -->
           <el-scrollbar max-height="60">
             <div class="desc-line">
-              {{ p.price ? `RM ${p.price}` : '—' }}
+              <template v-if="p.description && p.description.includes('\n')">
+                <ul>
+                  <li v-for="(line, i) in p.description.split('\n')" :key="i">{{ line }}</li>
+                </ul>
+              </template>
+              <template v-else>{{ p.description || '—' }}</template>
             </div>
           </el-scrollbar>
 
@@ -168,7 +173,7 @@
         <!-- □□□ Product Row □□□ -->
         <div v-for="p in products" :key="p._id" class="list-row" :class="{ approved: p.reviewStatus === 'approved' }">
           <el-checkbox v-model="selectedItems" :label="p._id" class="mr-2" @click.stop />
-          <span class="name cursor-pointer" @click="previewProduct(p)">{{ p.name }}</span>
+          <span class="name cursor-pointer" @click="previewProduct(p)">{{ p.title || p.filename }}</span>
           <span v-if="p.price" class="ml-2 text-xs font-medium">RM {{ p.price }}</span>
           <div class="flex-1"></div>
           <div v-if="p.tags?.length" class="mr-2">
@@ -401,7 +406,7 @@ async function showDetailFor(item, type) {
   detailType.value = type
   if (type === 'folder') editingFolder.value = item
 
-  detail.value.title = type === 'product' ? (item.name || '') : (item.name || '')
+  detail.value.title = type === 'product' ? (item.title || item.filename || '') : (item.name || '')
   detail.value.description = item.description || ''
   detail.value.script = item.script || ''
   detail.value.tags = Array.isArray(item.tags) ? [...item.tags] : []
@@ -424,7 +429,7 @@ async function saveDetail() {
     })
   } else if (detailType.value === 'product' && previewItem.value) {
     await updateProduct(previewItem.value._id, {
-      name: detail.value.title, description: detail.value.description, tags: detail.value.tags,
+      title: detail.value.title, description: detail.value.description, tags: detail.value.tags,
       ...(canManageViewers.value ? { allowedUsers: detail.value.allowedUsers } : {})
     })
   }
@@ -488,7 +493,7 @@ async function downloadProduct(p) {
   const url = await getProductUrl(p._id, true)
   const link = document.createElement('a')
   link.href = url
-  link.download = p.name || p.filename
+  link.download = p.title || p.filename
   document.body.appendChild(link); link.click(); document.body.removeChild(link)
 }
 
