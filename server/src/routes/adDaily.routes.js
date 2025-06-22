@@ -10,21 +10,22 @@ import {
   updateAdDaily,
   deleteAdDaily
 } from '../controllers/adDaily.controller.js'
+import asyncHandler from '../utils/asyncHandler.js'
 
 const router = Router({ mergeParams: true })
 
 router.use(protect)
 
 router.route('/')
-  .post(createAdDaily)
-  .get(getAdDaily)
+  .post(asyncHandler(createAdDaily))
+  .get(asyncHandler(getAdDaily))
 
-router.get('/weekly', getWeeklyData)
-router.post('/import', upload.single('file'), importAdDaily)
-router.post('/bulk', bulkCreateAdDaily)
+router.get('/weekly', asyncHandler(getWeeklyData))
+router.post('/import', upload.single('file'), asyncHandler(importAdDaily))
+router.post('/bulk', asyncHandler(bulkCreateAdDaily))
 
 router.route('/:id')
-  .put(updateAdDaily)
-  .delete(deleteAdDaily)
+  .put(asyncHandler(updateAdDaily))
+  .delete(asyncHandler(deleteAdDaily))
 
 export default router

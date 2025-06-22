@@ -15,8 +15,10 @@ import path               from 'node:path'
 import fs                 from 'node:fs'
 import { fileURLToPath }  from 'node:url'
 
-import connectDB                    from './config/db.js'
-import { notFound, errorHandler }   from './utils/handleError.js'
+import mongoose                    from 'mongoose'
+import connectDB                   from './config/db.js'
+import { notFound, errorHandler }  from './utils/handleError.js'
+import AdDaily                     from './models/adDaily.model.js'
 
 /* ────────────────────────── 0. Service-Account 還原 ───────────────────────── */
 const base64Key = process.env.GCS_KEY_JSON || process.env.GCP_SA_KEY
@@ -35,6 +37,14 @@ if (base64Key && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 connectDB()
+mongoose.connection.once('open', async () => {
+  try {
+    await AdDaily.syncIndexes()
+    console.log('✅ AdDaily indexes synced')
+  } catch (err) {
+    console.error('❌ Failed to sync AdDaily indexes:', err.message)
+  }
+})
 
 const app = express()
 app.enable('trust proxy')                  // Heroku 需開啟，否則 secure cookie 不生效

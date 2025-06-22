@@ -19,7 +19,7 @@ const sanitizeExtraData = obj => {
 }
 
 export const createAdDaily = async (req, res) => {
-  const rec = await AdDaily.create({
+  const payload = {
     date: req.body.date,
     spent: sanitizeNumber(req.body.spent),
     enquiries: sanitizeNumber(req.body.enquiries),
@@ -29,7 +29,12 @@ export const createAdDaily = async (req, res) => {
     clientId: req.params.clientId,
     platformId: req.params.platformId,
     extraData: sanitizeExtraData(req.body.extraData)
-  })
+  }
+  const rec = await AdDaily.findOneAndUpdate(
+    { clientId: payload.clientId, platformId: payload.platformId, date: payload.date },
+    payload,
+    { new: true, upsert: true, setDefaultsOnInsert: true }
+  )
   res.status(201).json(rec)
 }
 
@@ -106,7 +111,13 @@ export const bulkCreateAdDaily = async (req, res) => {
     .filter(r => r.date)
     .map(r => ({ ...r, date: new Date(r.date) }))
 
-  const docs = await AdDaily.insertMany(records)
+  let docs
+  try {
+    docs = await AdDaily.insertMany(records, { ordered: false })
+  } catch (err) {
+    if (err.insertedDocs) docs = err.insertedDocs
+    else throw err
+  }
   res.status(201).json(docs)
 }
 
@@ -163,7 +174,13 @@ export const importAdDaily = async (req, res) => {
     .filter(r => r.date)
     .map(r => ({ ...r, date: new Date(r.date) }))
 
-  const docs = await AdDaily.insertMany(records)
+  let docs
+  try {
+    docs = await AdDaily.insertMany(records, { ordered: false })
+  } catch (err) {
+    if (err.insertedDocs) docs = err.insertedDocs
+    else throw err
+  }
   res.status(201).json({ docs, filePath })
 }
 
