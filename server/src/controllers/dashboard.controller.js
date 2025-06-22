@@ -60,5 +60,21 @@ export const getSummary = async (req, res) => {
 
   const adSummary = adAgg[0] || { spent: 0, enquiries: 0, reach: 0, impressions: 0, clicks: 0 }
 
-  res.json({ recentAssets, recentReviews, adSummary })
+  // ===== 素材與成品統計 =====
+  const [rawTotal, editedTotal, pending, approved, rejected] = await Promise.all([
+    Asset.countDocuments({ type: 'raw' }),
+    Asset.countDocuments({ type: 'edited' }),
+    Asset.countDocuments({ type: 'edited', reviewStatus: 'pending' }),
+    Asset.countDocuments({ type: 'edited', reviewStatus: 'approved' }),
+    Asset.countDocuments({ type: 'edited', reviewStatus: 'rejected' })
+  ])
+  const assetStats = {
+    rawTotal,
+    editedTotal,
+    pending,
+    approved,
+    rejected
+  }
+
+  res.json({ recentAssets, recentReviews, adSummary, assetStats })
 }
