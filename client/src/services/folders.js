@@ -1,11 +1,18 @@
 import api from './api'
 
-export const fetchFolders = (parentId = null, tags = [], type, deep = false) => {
+export const fetchFolders = (
+  parentId = null,
+  tags = [],
+  type,
+  deep = false,
+  withProgress = false
+) => {
   const params = {}
   if (parentId) params.parentId = parentId
   if (tags.length) params.tags = tags
   if (type) params.type = type
   if (deep) params.deep = 'true'
+  if (withProgress) params.progress = 'true'
   return api.get('/folders', { params }).then((res) => res.data)
 }
 

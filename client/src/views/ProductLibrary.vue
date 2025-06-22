@@ -108,6 +108,9 @@
           <div v-if="f.tags?.length" class="tag-list mt-1">
             <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
           </div>
+          <el-tag v-if="f.progress" size="small" class="progress-tag mt-1">
+            {{ f.progress.done }}/{{ f.progress.total }}
+          </el-tag>
         </el-card>
 
         <!-- □□□ Product Card □□□ -->
@@ -131,7 +134,7 @@
           <!-- 顯示進度或價錢等資訊 -->
           <el-scrollbar max-height="60">
             <div class="desc-line">
-              {{ p.progress ? `${p.progress.done}/${p.progress.total} 流程完成` : (p.price ? `RM ${p.price}` : '—') }}
+              {{ p.price ? `RM ${p.price}` : '—' }}
             </div>
           </el-scrollbar>
 
@@ -152,6 +155,9 @@
           <div v-if="f.tags?.length" class="mr-2">
             <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
           </div>
+          <el-tag v-if="f.progress" size="small" class="progress-tag mr-2">
+            {{ f.progress.done }}/{{ f.progress.total }}
+          </el-tag>
           <el-button link size="small" @click="showDetailFor(f, 'folder')">
             <el-icon>
               <InfoFilled />
@@ -356,7 +362,7 @@ async function buildBreadcrumb(folder) {
   return chain
 }
 async function loadData(id = null) {
-  folders.value = await fetchFolders(id, filterTags.value, 'edited')
+  folders.value = await fetchFolders(id, filterTags.value, 'edited', false, true)
   products.value = id ? await fetchProducts(id, filterTags.value, true) : []
   currentFolder.value = id ? await getFolder(id) : null
   breadcrumb.value = currentFolder.value ? await buildBreadcrumb(currentFolder.value) : []
@@ -534,6 +540,11 @@ const docPreviewUrl = a => `https://docs.google.com/gview?embedded=1&url=${encod
 
 .tag-list .el-tag {
   margin-bottom: .25rem;
+}
+
+.progress-tag {
+  font-size: .75rem;
+  line-height: 1.1rem;
 }
 
 :not(.dark) .desc-line,
