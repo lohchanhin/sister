@@ -168,10 +168,10 @@ watch(metrics, m => { if (!m.includes(yMetric.value)) yMetric.value = m[0] })
     <el-card shadow="hover">
       <template #header><span class="text-lg font-semibold">素材統計</span></template>
       <el-row :gutter="20" class="text-center">
-        <el-col :span="4"><div>素材總數<br><b>{{ assetStats.rawTotal || 0 }}</b></div></el-col>
-        <el-col :span="4"><div>成品總數<br><b>{{ assetStats.editedTotal || 0 }}</b></div></el-col>
-        <el-col :span="4"><div>待審<br><b>{{ assetStats.pending || 0 }}</b></div></el-col>
-        <el-col :span="4"><div>通過<br><b>{{ assetStats.approved || 0 }}</b></div></el-col>
+        <el-col :span="5"><div>素材總數<br><b>{{ assetStats.rawTotal || 0 }}</b></div></el-col>
+        <el-col :span="5"><div>成品總數<br><b>{{ assetStats.editedTotal || 0 }}</b></div></el-col>
+        <el-col :span="5"><div>待審<br><b>{{ assetStats.pending || 0 }}</b></div></el-col>
+        <el-col :span="5"><div>通過<br><b>{{ assetStats.approved || 0 }}</b></div></el-col>
       </el-row>
     </el-card>
 
