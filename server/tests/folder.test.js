@@ -32,7 +32,7 @@ beforeAll(async () => {
 
   const managerRole = await Role.create({
     name: 'manager',
-    permissions: ['folder:manage', 'folder:read']
+    permissions: ['folder:manage', 'folder:read', 'review:manage']
   })
   const empRole = await Role.create({
     name: 'employee',
@@ -157,6 +157,17 @@ describe('Batch update folder viewers', () => {
   const f = await Folder.findById(folderId)
   const ids = f.allowedUsers.map(id => id.toString())
   expect(ids).toContain(newUser._id.toString())
+  })
+})
+
+describe('Folder review', () => {
+  it('update reviewStatus', async () => {
+    const res = await request(app)
+      .put(`/api/folders/${folderId}/review`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ reviewStatus: 'approved' })
+      .expect(200)
+    expect(res.body.reviewStatus).toBe('approved')
   })
 })
 

@@ -7,6 +7,11 @@ const folderSchema = new mongoose.Schema(
     description: { type: String },
     script: { type: String },
     type: { type: String, enum: ['raw', 'edited'], default: 'raw' },
+    reviewStatus: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending'
+    },
 
     /* 可存取使用者 */
     allowedUsers: { type: [mongoose.Schema.Types.ObjectId], ref: 'User', default: [] },

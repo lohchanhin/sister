@@ -263,8 +263,12 @@
             cancel-button-text="取消" confirm-button-type="danger" @confirm="handleDelete">
             <template #reference><el-button size="small" type="danger">刪除</el-button></template>
           </el-popconfirm>
-          <el-button v-if="detailType === 'asset' && canReview" size="small" type="warning"
-            @click="review('rejected')">退回</el-button>
+          <el-button
+            v-if="(detailType === 'asset' || detailType === 'folder') && canReview"
+            size="small"
+            type="warning"
+            @click="review('rejected')"
+          >退回</el-button>
 
           <el-button size="small" @click="showDetail = false">取消</el-button>
           <el-button size="small" type="primary" @click="saveDetail">儲存</el-button>
@@ -309,7 +313,15 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers } from '../services/folders'
+import {
+  fetchFolders,
+  createFolder,
+  updateFolder,
+  getFolder,
+  deleteFolder,
+  updateFoldersViewers,
+  reviewFolder
+} from '../services/folders'
 import { ArrowLeft, Plus, UploadFilled, Grid, Menu, UserFilled, InfoFilled } from '@element-plus/icons-vue'
 import { fetchUsers } from '../services/user'
 import {
@@ -525,8 +537,13 @@ async function uploadRequest({ file, onProgress, onSuccess, onError }) {
 
 
 async function review(status) {
-  if (!previewItem.value) return
-  await reviewAsset(previewItem.value._id, status)
+  if (detailType.value === 'asset' && previewItem.value) {
+    await reviewAsset(previewItem.value._id, status)
+  } else if (detailType.value === 'folder' && editingFolder.value) {
+    await reviewFolder(editingFolder.value._id, status)
+  } else {
+    return
+  }
   ElMessage.success('已更新狀態')
   showDetail.value = false
   loadData(currentFolder.value?._id)
