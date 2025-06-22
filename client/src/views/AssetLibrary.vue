@@ -1,6 +1,11 @@
 <!-- AssetLibrary.vue – 修正版 -->
 <template>
   <section class="asset-library p-6 flex gap-6 relative">
+    <el-button link size="small" class="absolute top-2 right-2" @click="showHelp = true">
+      <el-icon>
+        <InfoFilled />
+      </el-icon>
+    </el-button>
 
     <!-- =============== 左側格線區 =============== -->
     <div class="flex-1">
@@ -279,6 +284,18 @@
       </template>
     </el-dialog>
 
+    <el-dialog v-model="showHelp" title="素材庫使用說明" width="380px">
+      <ul class="list-disc pl-5 leading-7 text-sm">
+        <li>僅顯示 type=raw 的素材，可依資料夾分類管理。</li>
+        <li>點擊卡片可編輯名稱、描述、標籤與可查看者。</li>
+        <li>可多選後執行批次設定可查看者。</li>
+        <li>更新日期在 3 天內會標記為 <b>最近更新</b>。</li>
+      </ul>
+      <template #footer>
+        <el-button type="primary" @click="showHelp = false">了解</el-button>
+      </template>
+    </el-dialog>
+
 
   </section>
 </template>
@@ -321,6 +338,7 @@ const users = ref([])
 const selectedItems = ref([])
 const batchDialog = ref(false)
 const batchUsers = ref([])
+const showHelp = ref(false)
 
 const breadcrumb = ref([])
 

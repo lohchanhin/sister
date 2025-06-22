@@ -1,6 +1,11 @@
 <!-- src/views/ProductLibrary.vue -->
 <template>
   <section class="product-library p-6 flex gap-6 relative">
+    <el-button link size="small" class="absolute top-2 right-2" @click="showHelp = true">
+      <el-icon>
+        <InfoFilled />
+      </el-icon>
+    </el-button>
     <!-- =============== 左側格線區 =============== -->
     <div class="flex-1">
       <!-- ────────────── 工具列 (統一版) ────────────── -->
@@ -289,6 +294,19 @@
         <el-button type="primary" @click="applyBatch">確定</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="showHelp" title="成品區使用說明" width="380px">
+      <ul class="list-disc pl-5 leading-7 text-sm">
+        <li>僅顯示 type=edited 的成品，依資料夾管理。</li>
+        <li>資料夾只列出直接包含的成品，不會展開子資料夾。</li>
+        <li>管理者可在詳情視窗審核並勾選審查關卡。</li>
+        <li>若資料夾有進度，會顯示完成數/總數。</li>
+        <li>更新日期在 3 天內會標記為 <b>最近更新</b>。</li>
+      </ul>
+      <template #footer>
+        <el-button type="primary" @click="showHelp = false">了解</el-button>
+      </template>
+    </el-dialog>
   </section>
 </template>
 
@@ -324,6 +342,7 @@ const allTags = ref([])
 const selectedItems = ref([])
 const batchDialog = ref(false)
 const batchUsers = ref([])
+const showHelp = ref(false)
 const previewVisible = ref(false)
 const previewItem = ref(null)
 const detail = ref({ title: '', description: '', script: '', tags: [], allowedUsers: [] })
