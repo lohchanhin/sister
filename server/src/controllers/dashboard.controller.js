@@ -62,3 +62,37 @@ export const getSummary = async (req, res) => {
 
   res.json({ recentAssets, recentReviews, adSummary })
 }
+
+export const getDaily = async (req, res) => {
+  const days = Math.min(parseInt(req.query.days) || 7, 30)
+
+  const end = new Date()
+  const start = new Date()
+  start.setDate(end.getDate() - days + 1)
+
+  const list = await AdDaily.aggregate([
+    { $match: { date: { $gte: start, $lte: end } } },
+    {
+      $group: {
+        _id: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
+        spent: { $sum: '$spent' },
+        enquiries: { $sum: '$enquiries' },
+        reach: { $sum: '$reach' },
+        impressions: { $sum: '$impressions' },
+        clicks: { $sum: '$clicks' }
+      }
+    },
+    { $sort: { _id: 1 } }
+  ])
+
+  res.json(
+    list.map(d => ({
+      date: d._id,
+      spent: d.spent,
+      enquiries: d.enquiries,
+      reach: d.reach,
+      impressions: d.impressions,
+      clicks: d.clicks
+    }))
+  )
+}
