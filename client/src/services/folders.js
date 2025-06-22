@@ -13,7 +13,8 @@ export const fetchFolders = (
   if (type) params.type = type
   if (deep) params.deep = 'true'
   if (withProgress) params.progress = 'true'
-  return api.get('/folders', { params }).then(res => res.data)
+  return api.get('/folders', { params }).then((res) => res.data)
+
 }
 
 export const createFolder = (data, type) => {
