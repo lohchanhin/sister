@@ -1,6 +1,6 @@
 <!-- Dashboard.vue -->
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import api from '../services/api'
 import { fetchDailyData } from '../services/dashboard'
 import { fetchClients } from '../services/clients'
@@ -34,7 +34,15 @@ const platforms      = ref([])
 const clientId       = ref('')
 const platformId     = ref('')
 const yMetric        = ref('')
-const metrics        = ['spent', 'enquiries', 'reach', 'impressions', 'clicks']
+const defaultMetrics = ['spent', 'enquiries', 'reach', 'impressions', 'clicks']
+const metrics        = computed(() => {
+  const plat = platforms.value.find(p => p._id === platformId.value)
+  const nums = (plat?.fields || [])
+    .map(f => typeof f === 'string' ? { name: f, type: 'text' } : f)
+    .filter(f => f.type === 'number')
+    .map(f => f.name)
+  return nums.length ? nums : defaultMetrics
+})
 let chartCtx = null
 let chart = null
 const assetStats     = ref({})
@@ -99,7 +107,7 @@ async function loadPlatforms () {
 
 onMounted(async () => {
   await loadClients()
-  yMetric.value = metrics[0]
+  yMetric.value = metrics.value[0]
 })
 
 watch(clientId, async () => {
@@ -115,6 +123,11 @@ onMounted(fetchDashboard)
 onMounted(fetchDaily)
 watch(days, fetchDaily)
 watch(yMetric, drawChart)
+watch(metrics, m => {
+  if (!m.includes(yMetric.value)) {
+    yMetric.value = m[0]
+  }
+})
 </script>
 
 <template>
