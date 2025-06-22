@@ -88,7 +88,7 @@
               <el-checkbox v-model="selectedItems" :label="f._id" @click.stop
                 class="mr-1 flex-1 min-w-0 flex items-center gap-2">
                 <span class="font-medium truncate">{{ f.name }}</span>
-                <el-tag v-if="isRecent(f.updatedAt)" type="warning" size="small" class="ml-1">最近更新</el-tag>
+                <el-tag v-if="isRecent(f.updatedAt)" type="warning" size="small" class="ml-1">1天內有更新</el-tag>
               </el-checkbox>
               <el-button link size="small" class="flex-shrink-0" @click.stop="showDetailFor(f, 'folder')">
                 <el-icon style="font-size:24px;">
@@ -163,7 +163,7 @@
             <template #default></template>
           </el-checkbox>
           <span class="name cursor-pointer" @click="openFolder(f)">{{ f.name }}</span>
-          <el-tag v-if="isRecent(f.updatedAt)" type="warning" size="small" class="ml-1">最近更新</el-tag>
+          <el-tag v-if="isRecent(f.updatedAt)" type="warning" size="small" class="ml-1">1天內有更新</el-tag>
           <div class="flex-1"></div>
           <div v-if="f.tags?.length" class="mr-2">
             <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
@@ -302,7 +302,7 @@
         <li>資料夾只列出直接包含的成品，不會展開子資料夾。</li>
         <li>管理者可在詳情視窗審核並勾選審查關卡。</li>
         <li>若資料夾有進度，會顯示完成數/總數。</li>
-        <li>更新日期在 3 天內會標記為 <b>最近更新</b>。</li>
+        <li>更新日期在 1 天內會標記為 <b>1天內有更新</b>。</li>
       </ul>
       <template #footer>
         <el-button type="primary" @click="showHelp = false">了解</el-button>
@@ -360,7 +360,7 @@ const canManageViewers = computed(
 )
 
 /* ---------- 工具 ---------- */
-const RECENT_DAYS = 3
+const RECENT_DAYS = 1
 const isRecent = date => date ? (Date.now() - new Date(date).getTime()) < RECENT_DAYS * 86400000 : false
 const sidebarBg = computed(() => getComputedStyle(document.querySelector('.sidebar'))?.backgroundColor || '#1f2937')
 const detailTitle = computed(() =>
