@@ -153,7 +153,9 @@
       <div v-else class="list-view">
         <!-- □□□ Folder Row □□□ -->
         <div v-for="f in folders" :key="f._id" class="list-row" :class="{ approved: f.reviewStatus === 'approved' }">
-          <el-checkbox v-model="selectedItems" :label="f._id" class="mr-2" @click.stop />
+          <el-checkbox v-model="selectedItems" :label="f._id" class="mr-2" @click.stop>
+            <template #default></template>
+          </el-checkbox>
           <span class="name cursor-pointer" @click="openFolder(f)">{{ f.name }}</span>
           <el-tag v-if="isRecent(f.updatedAt)" type="warning" size="small" class="ml-1">最近更新</el-tag>
           <div class="flex-1"></div>
@@ -172,7 +174,9 @@
 
         <!-- □□□ Product Row □□□ -->
         <div v-for="p in products" :key="p._id" class="list-row" :class="{ approved: p.reviewStatus === 'approved' }">
-          <el-checkbox v-model="selectedItems" :label="p._id" class="mr-2" @click.stop />
+          <el-checkbox v-model="selectedItems" :label="p._id" class="mr-2" @click.stop>
+            <template #default></template>
+          </el-checkbox>
           <span class="name cursor-pointer" @click="previewProduct(p)">{{ p.title || p.filename }}</span>
           <span v-if="p.price" class="ml-2 text-xs font-medium">RM {{ p.price }}</span>
           <div class="flex-1"></div>
@@ -233,8 +237,7 @@
         </el-scrollbar>
 
         <!-- 审查关卡 -->
-        <el-scrollbar v-if="detailType === 'folder'" class="panel-body stage-body"
-          style="max-width:260px">
+        <el-scrollbar v-if="detailType === 'folder'" class="panel-body stage-body" style="max-width:260px">
           <div class="stage-list">
             <div v-for="s in stageList" :key="s._id" class="stage-row">
               <span class="stage-label">
@@ -252,8 +255,8 @@
             cancel-button-text="取消" confirm-button-type="danger" @confirm="handleDelete">
             <template #reference><el-button size="small" type="danger">刪除</el-button></template>
           </el-popconfirm>
-          <el-button v-if="detailType === 'folder' && canReview" size="small"
-            type="warning" @click="review('rejected')">退回</el-button>
+          <el-button v-if="detailType === 'folder' && canReview" size="small" type="warning"
+            @click="review('rejected')">退回</el-button>
           <el-button size="small" @click="showDetail = false">取消</el-button>
           <el-button size="small" type="primary" @click="saveDetail">儲存</el-button>
         </div>
