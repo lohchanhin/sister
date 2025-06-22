@@ -3,6 +3,8 @@
 import { ref, onMounted, watch } from 'vue'
 import api from '../services/api'
 import { fetchDailyData } from '../services/dashboard'
+import { fetchClients } from '../services/clients'
+import { fetchPlatforms } from '../services/platforms'
 import {
   Chart,
   LineController,
@@ -27,6 +29,12 @@ const recentReviews  = ref([])
 const adSummary      = ref({})
 const dailyData      = ref([])
 const days           = ref(7)
+const clients        = ref([])
+const platforms      = ref([])
+const clientId       = ref('')
+const platformId     = ref('')
+const yMetric        = ref('')
+const metrics        = ['spent', 'enquiries', 'reach', 'impressions', 'clicks']
 let chartCtx = null
 let chart = null
 const assetStats     = ref({})
@@ -34,7 +42,9 @@ const assetStats     = ref({})
 
 /* ===== API 請求 ===== */
 async function fetchDashboard () {
-  const { data } = await api.get('/dashboard/summary')
+  const { data } = await api.get('/dashboard/summary', {
+    params: { clientId: clientId.value, platformId: platformId.value }
+  })
   recentAssets.value = data.recentAssets
   recentReviews.value = data.recentReviews
   adSummary.value = data.adSummary
@@ -42,37 +52,90 @@ async function fetchDashboard () {
 }
 
 async function fetchDaily () {
-  dailyData.value = await fetchDailyData(days.value)
+  dailyData.value = await fetchDailyData(
+    days.value,
+    clientId.value,
+    platformId.value
+  )
   drawChart()
 }
 
 function drawChart () {
   if (!chartCtx) chartCtx = document.getElementById('daily-chart')
-  if (!chartCtx) return
+  if (!chartCtx || !yMetric.value) return
   const labels = dailyData.value.map(d => d.date)
-  const metrics = ['spent', 'enquiries', 'reach', 'impressions', 'clicks']
-  const colors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399']
-  const datasets = metrics.map((m, i) => ({
-    label: m,
-    data: dailyData.value.map(d => d[m] ?? 0),
-    borderColor: colors[i],
-    tension: 0.35
-  }))
+  const data = dailyData.value.map(d => d[yMetric.value] ?? 0)
   chart && chart.destroy()
   chart = new Chart(chartCtx, {
     type: 'line',
-    data: { labels, datasets },
+    data: {
+      labels,
+      datasets: [{
+        label: yMetric.value,
+        data,
+        borderColor: '#409EFF',
+        tension: 0.35
+      }]
+    },
     options: { responsive: true, maintainAspectRatio: false }
   })
 }
 
+async function loadClients () {
+  clients.value = await fetchClients()
+}
+
+async function loadPlatforms () {
+  if (!clientId.value) {
+    platforms.value = []
+    platformId.value = ''
+    return
+  }
+  platforms.value = await fetchPlatforms(clientId.value)
+  if (!platforms.value.find(p => p._id === platformId.value)) {
+    platformId.value = platforms.value[0]?._id || ''
+  }
+}
+
+onMounted(async () => {
+  await loadClients()
+  yMetric.value = metrics[0]
+})
+
+watch(clientId, async () => {
+  await loadPlatforms()
+})
+
+watch([clientId, platformId], () => {
+  fetchDashboard()
+  fetchDaily()
+})
+
 onMounted(fetchDashboard)
 onMounted(fetchDaily)
 watch(days, fetchDaily)
+watch(yMetric, drawChart)
 </script>
 
 <template>
   <h1 class="text-2xl font-bold mb-6">儀表板</h1>
+  <el-row :gutter="20" class="mb-4">
+    <el-col :span="8">
+      <el-select v-model="clientId" placeholder="選擇客戶" clearable style="width:100%">
+        <el-option v-for="c in clients" :key="c._id" :label="c.name" :value="c._id" />
+      </el-select>
+    </el-col>
+    <el-col :span="8">
+      <el-select v-model="platformId" placeholder="選擇平台" clearable style="width:100%">
+        <el-option v-for="p in platforms" :key="p._id" :label="p.name" :value="p._id" />
+      </el-select>
+    </el-col>
+    <el-col :span="8">
+      <el-select v-model="yMetric" size="small" style="width:100%">
+        <el-option v-for="m in metrics" :key="m" :label="m" :value="m" />
+      </el-select>
+    </el-col>
+  </el-row>
 
   <!-- === 素材統計 === -->
   <el-card shadow="hover" class="mb-6">

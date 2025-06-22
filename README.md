@@ -102,6 +102,8 @@ server/  # 後端 API
 後端對應 `/api/clients/:clientId/platforms/:platformId/ad-daily`，`/weekly` 回傳週統計。
 若需批次匯入，可 POST 至 `/api/clients/:clientId/platforms/:platformId/ad-daily/import` 上傳 CSV 或 Excel。
 
+儀表板可透過客戶與平台選單篩選廣告統計。
+
 
 
 

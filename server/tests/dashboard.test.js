@@ -64,4 +64,22 @@ describe('GET /api/dashboard/daily', () => {
     expect(res.body[0].date).toBe('2024-06-08')
     expect(res.body[2].spent).toBe(1)
   })
+
+  it('filters by client and platform', async () => {
+    const c1 = new mongoose.Types.ObjectId()
+    const p1 = new mongoose.Types.ObjectId()
+    const c2 = new mongoose.Types.ObjectId()
+    const p2 = new mongoose.Types.ObjectId()
+
+    await AdDaily.create({ clientId: c1, platformId: p1, date: new Date('2024-06-10'), spent: 5 })
+    await AdDaily.create({ clientId: c2, platformId: p2, date: new Date('2024-06-10'), spent: 2 })
+
+    const res = await request(app)
+      .get(`/api/dashboard/daily?clientId=${c1}&platformId=${p1}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+
+    expect(res.body.length).toBe(1)
+    expect(res.body[0].spent).toBe(5)
+  })
 })
