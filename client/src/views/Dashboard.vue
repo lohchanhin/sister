@@ -29,6 +29,8 @@ const dailyData      = ref([])
 const days           = ref(7)
 let chartCtx = null
 let chart = null
+const assetStats     = ref({})
+
 
 /* ===== API 請求 ===== */
 async function fetchDashboard () {
@@ -36,6 +38,7 @@ async function fetchDashboard () {
   recentAssets.value = data.recentAssets
   recentReviews.value = data.recentReviews
   adSummary.value = data.adSummary
+  assetStats.value = data.assetStats
 }
 
 async function fetchDaily () {
@@ -70,6 +73,30 @@ watch(days, fetchDaily)
 
 <template>
   <h1 class="text-2xl font-bold mb-6">儀表板</h1>
+
+  <!-- === 素材統計 === -->
+  <el-card shadow="hover" class="mb-6">
+    <template #header>
+      <span class="text-lg font-semibold">素材統計</span>
+    </template>
+    <el-row :gutter="20" class="text-center">
+      <el-col :span="4">
+        <div>素材總數<br><b>{{ assetStats.rawTotal || 0 }}</b></div>
+      </el-col>
+      <el-col :span="4">
+        <div>成品總數<br><b>{{ assetStats.editedTotal || 0 }}</b></div>
+      </el-col>
+      <el-col :span="4">
+        <div>待審<br><b>{{ assetStats.pending || 0 }}</b></div>
+      </el-col>
+      <el-col :span="4">
+        <div>通過<br><b>{{ assetStats.approved || 0 }}</b></div>
+      </el-col>
+      <el-col :span="4">
+        <div>退回<br><b>{{ assetStats.rejected || 0 }}</b></div>
+      </el-col>
+    </el-row>
+  </el-card>
 
 
   <!-- === 最近素材上傳 === -->
