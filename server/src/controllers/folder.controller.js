@@ -18,6 +18,12 @@ const parseTags = (t) => {
 }
 
 export const createFolder = async (req, res) => {
+  if (req.body.parentId) {
+    const exists = await Folder.findById(req.body.parentId)
+    if (!exists) {
+      return res.status(400).json({ message: '父層資料夾不存在' })
+    }
+  }
   const baseUsers = Array.isArray(req.body.allowedUsers)
     ? Array.from(new Set([...req.body.allowedUsers, req.user._id]))
     : [req.user._id]

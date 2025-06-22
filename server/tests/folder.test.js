@@ -93,6 +93,15 @@ describe('Folder type', () => {
     expect(res.body.type).toBe('edited')
   })
 
+  it('create folder with invalid parent should fail', async () => {
+    const fakeId = new mongoose.Types.ObjectId()
+    await request(app)
+      .post('/api/folders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'bad', parentId: fakeId })
+      .expect(400)
+  })
+
   it('default query should return 0', async () => {
     const res = await request(app)
       .get('/api/folders')

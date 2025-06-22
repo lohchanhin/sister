@@ -366,7 +366,7 @@ async function buildBreadcrumb(folder) {
 }
 async function loadData(id = null) {
   folders.value = await fetchFolders(id, filterTags.value, 'edited', false, true)
-  products.value = id ? await fetchProducts(id, filterTags.value, true) : []
+  products.value = id ? await fetchProducts(id, filterTags.value) : []
   currentFolder.value = id ? await getFolder(id) : null
   breadcrumb.value = currentFolder.value ? await buildBreadcrumb(currentFolder.value) : []
   selectedItems.value = []
