@@ -1,8 +1,14 @@
 import Asset from '../models/asset.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import AdDaily from '../models/adDaily.model.js'
+import { getCache, setCache } from '../utils/cache.js'
 
 export const getSummary = async (req, res) => {
+  const cacheKey = `dashboard:${req.user._id}`
+  const cached = await getCache(cacheKey)
+  if (cached) {
+    return res.json(cached)
+  }
   const assetLimit = 7
   const reviewLimit = 7
 
@@ -60,5 +66,7 @@ export const getSummary = async (req, res) => {
 
   const adSummary = adAgg[0] || { spent: 0, enquiries: 0, reach: 0, impressions: 0, clicks: 0 }
 
-  res.json({ recentAssets, recentReviews, adSummary })
+  const result = { recentAssets, recentReviews, adSummary }
+  await setCache(cacheKey, result, 60)
+  res.json(result)
 }
