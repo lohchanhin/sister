@@ -1,10 +1,12 @@
+import mongoose from 'mongoose'
 import Asset from '../models/asset.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import AdDaily from '../models/adDaily.model.js'
 import { getCache, setCache } from '../utils/cache.js'
 
 export const getSummary = async (req, res) => {
-  const cacheKey = `dashboard:${req.user._id}`
+  const { clientId, platformId } = req.query
+  const cacheKey = `dashboard:${req.user._id}:${clientId || 'all'}:${platformId || 'all'}`
   const cached = await getCache(cacheKey)
   if (cached) return res.json(cached)
 
@@ -50,8 +52,12 @@ export const getSummary = async (req, res) => {
   const start = new Date(end)
   start.setDate(end.getDate() - 6)
 
+  const match = { date: { $gte: start, $lte: end } }
+  if (clientId) match.clientId = new mongoose.Types.ObjectId(clientId)
+  if (platformId) match.platformId = new mongoose.Types.ObjectId(platformId)
+
   const [adAgg] = await AdDaily.aggregate([
-    { $match: { date: { $gte: start, $lte: end } } },
+    { $match: match },
     {
       $group: {
         _id: null,
@@ -91,13 +97,18 @@ export const getSummary = async (req, res) => {
 
 export const getDaily = async (req, res) => {
   const days = Math.min(parseInt(req.query.days) || 7, 30)
+  const { clientId, platformId } = req.query
 
   const end = new Date()
   const start = new Date()
   start.setDate(end.getDate() - days + 1)
 
+  const match = { date: { $gte: start, $lte: end } }
+  if (clientId) match.clientId = new mongoose.Types.ObjectId(clientId)
+  if (platformId) match.platformId = new mongoose.Types.ObjectId(platformId)
+
   const list = await AdDaily.aggregate([
-    { $match: { date: { $gte: start, $lte: end } } },
+    { $match: match },
     {
       $group: {
         _id: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
