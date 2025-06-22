@@ -106,6 +106,7 @@ import clientRoutes       from './routes/client.routes.js'
 import platformRoutes     from './routes/platform.routes.js'
 import adDailyRoutes      from './routes/adDaily.routes.js'
 import weeklyNoteRoutes   from './routes/weeklyNote.routes.js'
+import dashboardRoutes    from './routes/dashboard.routes.js'
 
 app.use('/api/auth',     authRoutes)
 app.use('/api/user',     userRoutes)
@@ -123,6 +124,7 @@ app.use('/api/permissions', permissionsRoutes)
 app.use('/api/menus', menusRoutes)
 app.use('/api/review-stages', reviewStageRoutes)
 app.use('/api/health', healthRoutes)
+app.use('/api/dashboard', dashboardRoutes)
 
 /* ────────────────────────── 5. 前端靜態檔案 ───────────────────────── */
 const clientDist = path.resolve(__dirname, '../../client/dist')

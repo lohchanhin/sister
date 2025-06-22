@@ -4,12 +4,16 @@ import { ref, onMounted } from 'vue'
 import api from '../services/api'
 
 /* ===== 響應式狀態 ===== */
-const recentAssets   = ref([])  // 近 7 筆素材
+const recentAssets   = ref([])
+const recentReviews  = ref([])
+const adSummary      = ref({})
 
 /* ===== API 請求 ===== */
 async function fetchDashboard () {
-  const { data: assets } = await api.get('/assets/recent?limit=7')
-  recentAssets.value = assets
+  const { data } = await api.get('/dashboard/summary')
+  recentAssets.value = data.recentAssets
+  recentReviews.value = data.recentReviews
+  adSummary.value = data.adSummary
 }
 
 onMounted(fetchDashboard)
@@ -52,6 +56,51 @@ onMounted(fetchDashboard)
 
       <el-table-column prop="uploaderName" label="上傳者" width="120" />
     </el-table>
+  </el-card>
+
+  <!-- === 最近審查結果 === -->
+  <el-card shadow="hover" class="mt-6">
+    <template #header>
+      <span class="text-lg font-semibold">最近審查結果</span>
+    </template>
+    <el-table :data="recentReviews" stripe style="width:100%" empty-text="尚無審查紀錄">
+      <el-table-column label="時間" width="180">
+        <template #default="{ row }">{{ new Date(row.updatedAt).toLocaleString() }}</template>
+      </el-table-column>
+      <el-table-column prop="assetFile" label="素材" />
+      <el-table-column prop="stage" label="階段" />
+      <el-table-column label="狀態" width="100">
+        <template #default="{ row }">
+          <el-tag type="success" v-if="row.completed">完成</el-tag>
+          <el-tag v-else>未完成</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="updatedBy" label="審核者" width="120" />
+    </el-table>
+  </el-card>
+
+  <!-- === 最新廣告數據 === -->
+  <el-card shadow="hover" class="mt-6">
+    <template #header>
+      <span class="text-lg font-semibold">最新廣告數據 (近 7 天)</span>
+    </template>
+    <el-row :gutter="20" class="text-center">
+      <el-col :span="4">
+        <div>花費<br><b>{{ adSummary.spent || 0 }}</b></div>
+      </el-col>
+      <el-col :span="4">
+        <div>詢問<br><b>{{ adSummary.enquiries || 0 }}</b></div>
+      </el-col>
+      <el-col :span="4">
+        <div>觸及<br><b>{{ adSummary.reach || 0 }}</b></div>
+      </el-col>
+      <el-col :span="4">
+        <div>曝光<br><b>{{ adSummary.impressions || 0 }}</b></div>
+      </el-col>
+      <el-col :span="4">
+        <div>點擊<br><b>{{ adSummary.clicks || 0 }}</b></div>
+      </el-col>
+    </el-row>
   </el-card>
 </template>
 
