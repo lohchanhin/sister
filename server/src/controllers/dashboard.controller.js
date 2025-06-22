@@ -1,14 +1,17 @@
 import Asset from '../models/asset.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import AdDaily from '../models/adDaily.model.js'
+import { getCache, setCache } from '../utils/cache.js'
 
 export const getSummary = async (req, res) => {
-  const assetLimit = 7
-  const reviewLimit = 7
+  const cacheKey = `dashboard:${req.user._id}`
+  const cached = await getCache(cacheKey)
+  if (cached) return res.json(cached)
 
+  /* -------- 最近素材 -------- */
   const assetDocs = await Asset.find()
     .sort({ createdAt: -1 })
-    .limit(assetLimit)
+    .limit(7)
     .populate('uploadedBy', 'username name')
     .lean()
 
@@ -22,9 +25,10 @@ export const getSummary = async (req, res) => {
       createdAt: a.createdAt
     }))
 
+  /* -------- 最近審查紀錄 -------- */
   const reviewDocs = await ReviewRecord.find()
     .sort({ updatedAt: -1 })
-    .limit(reviewLimit)
+    .limit(7)
     .populate('assetId', 'filename allowedUsers')
     .populate('stageId', 'name')
     .populate('updatedBy', 'username name')
@@ -41,40 +45,46 @@ export const getSummary = async (req, res) => {
       updatedBy: r.updatedBy?.name || r.updatedBy?.username
     }))
 
-  const end = new Date()
-  const start = new Date()
+  /* -------- 廣告 7 日匯總 -------- */
+  const end   = new Date()
+  const start = new Date(end)
   start.setDate(end.getDate() - 6)
-  const adAgg = await AdDaily.aggregate([
+
+  const [adAgg] = await AdDaily.aggregate([
     { $match: { date: { $gte: start, $lte: end } } },
     {
       $group: {
         _id: null,
-        spent: { $sum: '$spent' },
-        enquiries: { $sum: '$enquiries' },
-        reach: { $sum: '$reach' },
+        spent:       { $sum: '$spent' },
+        enquiries:   { $sum: '$enquiries' },
+        reach:       { $sum: '$reach' },
         impressions: { $sum: '$impressions' },
-        clicks: { $sum: '$clicks' }
+        clicks:      { $sum: '$clicks' }
       }
     }
   ])
 
-  const adSummary = adAgg[0] || { spent: 0, enquiries: 0, reach: 0, impressions: 0, clicks: 0 }
+  const adSummary = adAgg || { spent:0, enquiries:0, reach:0, impressions:0, clicks:0 }
 
-  // ===== 素材與成品統計 =====
-  const [rawTotal, editedTotal, pending, approved, rejected] = await Promise.all([
+  /* -------- 素材統計 -------- */
+  const [
+    rawTotal,
+    editedTotal,
+    pending,
+    approved,
+    rejected
+  ] = await Promise.all([
     Asset.countDocuments({ type: 'raw' }),
     Asset.countDocuments({ type: 'edited' }),
     Asset.countDocuments({ type: 'edited', reviewStatus: 'pending' }),
     Asset.countDocuments({ type: 'edited', reviewStatus: 'approved' }),
     Asset.countDocuments({ type: 'edited', reviewStatus: 'rejected' })
   ])
-  const assetStats = {
-    rawTotal,
-    editedTotal,
-    pending,
-    approved,
-    rejected
-  }
 
-  res.json({ recentAssets, recentReviews, adSummary, assetStats })
+  const assetStats = { rawTotal, editedTotal, pending, approved, rejected }
+
+  /* -------- 統整 & 快取 -------- */
+  const result = { recentAssets, recentReviews, adSummary, assetStats }
+  await setCache(cacheKey, result, 60)   // 快取 60 秒
+  res.json(result)
 }
