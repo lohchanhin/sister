@@ -70,6 +70,19 @@ export const getFolder = async (req, res) => {
   res.json(folder)
 }
 
+export const reviewFolder = async (req, res) => {
+  const { reviewStatus } = req.body
+  if (!['pending', 'approved', 'rejected'].includes(reviewStatus)) {
+    return res.status(400).json({ message: '狀態錯誤' })
+  }
+  const folder = await Folder.findById(req.params.id)
+  if (!folder) return res.status(404).json({ message: '資料夾不存在' })
+  folder.reviewStatus = reviewStatus
+  await folder.save()
+  await clearCacheByPrefix('folders:')
+  res.json(folder)
+}
+
 export const updateFolder = async (req, res) => {
   if (req.body.tags) req.body.tags = parseTags(req.body.tags)
   if (req.body.type && !['raw', 'edited'].includes(req.body.type)) {

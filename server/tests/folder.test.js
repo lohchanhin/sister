@@ -33,7 +33,7 @@ beforeAll(async () => {
 
   const managerRole = await Role.create({
     name: 'manager',
-    permissions: ['folder:manage', 'folder:read']
+    permissions: ['folder:manage', 'folder:read', 'review:manage']
   })
   const empRole = await Role.create({
     name: 'employee',
@@ -161,6 +161,16 @@ describe('Batch update folder viewers', () => {
   })
 })
 
+
+describe('Folder review', () => {
+  it('update reviewStatus', async () => {
+    const res = await request(app)
+      .put(`/api/folders/${folderId}/review`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ reviewStatus: 'approved' })
+      .expect(200)
+    expect(res.body.reviewStatus).toBe('approved')
+
 describe('Delete folder', () => {
   it('should remove subfolders and assets', async () => {
     const child = await Folder.create({ name: 'c1', parentId: folderId })
@@ -177,6 +187,7 @@ describe('Delete folder', () => {
     const assetsLeft = await Asset.countDocuments({ _id: { $in: [a1._id, a2._id] } })
     expect(foldersLeft).toBe(0)
     expect(assetsLeft).toBe(0)
+
   })
 })
 
