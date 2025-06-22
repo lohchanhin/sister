@@ -60,8 +60,30 @@ export const getFolders = async (req, res) => {
   const folders = await Folder.find(query)
   let result = folders
   if (req.user.roleId?.name !== 'manager') {
-    result = folders.filter(f => !f.allowedUsers?.length || f.allowedUsers.some(id => id.equals(req.user._id)))
+    result = folders.filter(f =>
+      !f.allowedUsers?.length || f.allowedUsers.some(id => id.equals(req.user._id))
+    )
   }
+
+  if (req.query.progress === 'true') {
+    const total = await ReviewStage.countDocuments()
+    const ids = result.map(f => f._id)
+    const records = await FolderReviewRecord.aggregate([
+      { $match: { folderId: { $in: ids }, completed: true } },
+      { $group: { _id: '$folderId', done: { $sum: 1 } } }
+    ])
+    const map = {}
+    records.forEach(r => {
+      map[r._id.toString()] = r.done
+    })
+    const data = result.map(f => ({
+      ...f.toObject(),
+      progress: { done: map[f._id.toString()] || 0, total }
+    }))
+    await setCache(cacheKey, data)
+    return res.json(data)
+  }
+
   await setCache(cacheKey, result)
   res.json(result)
 }

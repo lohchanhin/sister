@@ -19,7 +19,7 @@ import {
 const router = Router()
 
 router.post('/', protect, requirePerm(PERMISSIONS.FOLDER_MANAGE), createFolder)
-router.get('/', protect, requirePerm(PERMISSIONS.FOLDER_READ), getFolders)
+router.get('/', protect, requirePerm(PERMISSIONS.FOLDER_READ), getFolders) // GET  /api/folders?progress=true 可取得進度
 router.get('/:id', protect, requirePerm(PERMISSIONS.FOLDER_READ), getFolder)
 router.put(
   '/viewers',
