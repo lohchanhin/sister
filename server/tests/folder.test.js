@@ -7,6 +7,7 @@ import authRoutes from '../src/routes/auth.routes.js'
 import User from '../src/models/user.model.js'
 import Role from '../src/models/role.model.js'
 import Folder from '../src/models/folder.model.js'
+import Asset from '../src/models/asset.model.js'
 import dotenv from 'dotenv'
 
 dotenv.config({ override: true })
@@ -157,6 +158,25 @@ describe('Batch update folder viewers', () => {
   const f = await Folder.findById(folderId)
   const ids = f.allowedUsers.map(id => id.toString())
   expect(ids).toContain(newUser._id.toString())
+  })
+})
+
+describe('Delete folder', () => {
+  it('should remove subfolders and assets', async () => {
+    const child = await Folder.create({ name: 'c1', parentId: folderId })
+    const grand = await Folder.create({ name: 'c2', parentId: child._id })
+    const a1 = await Asset.create({ filename: 'f1.mp4', path: '/tmp/f1', folderId: child._id })
+    const a2 = await Asset.create({ filename: 'f2.mp4', path: '/tmp/f2', folderId: grand._id })
+
+    await request(app)
+      .delete(`/api/folders/${folderId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+
+    const foldersLeft = await Folder.countDocuments({ _id: { $in: [folderId, child._id, grand._id] } })
+    const assetsLeft = await Asset.countDocuments({ _id: { $in: [a1._id, a2._id] } })
+    expect(foldersLeft).toBe(0)
+    expect(assetsLeft).toBe(0)
   })
 })
 
