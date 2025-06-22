@@ -7,7 +7,7 @@ import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import path from 'node:path'
 import { uploadBuffer, getSignedUrl } from '../utils/gcs.js'
-import { getDescendantFolderIds } from '../utils/folderTree.js'
+import { getDescendantFolderIds, getAncestorFolderIds } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
 import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
 
@@ -56,8 +56,13 @@ export const uploadFile = async (req, res) => {
 
   if (asset.folderId) {
     await Folder.findByIdAndUpdate(asset.folderId, {
-      $addToSet: { allowedUsers: req.user._id }
+      $addToSet: { allowedUsers: req.user._id },
+      $set: { updatedAt: new Date() }
     })
+    const parents = await getAncestorFolderIds(asset.folderId)
+    if (parents.length) {
+      await Folder.updateMany({ _id: { $in: parents } }, { $set: { updatedAt: new Date() } })
+    }
   }
 
   await clearCacheByPrefix('assets:')
@@ -137,6 +142,13 @@ export const addComment = async (req, res) => {
 
   asset.comments.push({ userId: req.user._id, message: req.body.message })
   await asset.save()
+  if (asset.folderId) {
+    await Folder.updateOne({ _id: asset.folderId }, { $set: { updatedAt: new Date() } })
+    const parents = await getAncestorFolderIds(asset.folderId)
+    if (parents.length) {
+      await Folder.updateMany({ _id: { $in: parents } }, { $set: { updatedAt: new Date() } })
+    }
+  }
   await clearCacheByPrefix('assets:')
   res.json(asset)
 }
@@ -158,6 +170,13 @@ export const updateAsset = async (req, res) => {
   // filename 不可修改，故不處理
 
   await asset.save()
+  if (asset.folderId) {
+    await Folder.updateOne({ _id: asset.folderId }, { $set: { updatedAt: new Date() } })
+    const parents = await getAncestorFolderIds(asset.folderId)
+    if (parents.length) {
+      await Folder.updateMany({ _id: { $in: parents } }, { $set: { updatedAt: new Date() } })
+    }
+  }
   await clearCacheByPrefix('assets:')
   res.json(asset)
 }
@@ -176,7 +195,14 @@ export const reviewAsset = async (req, res) => {
 }
 
 export const deleteAsset = async (req, res) => {
-  await Asset.findByIdAndDelete(req.params.id)
+  const asset = await Asset.findByIdAndDelete(req.params.id)
+  if (asset?.folderId) {
+    await Folder.updateOne({ _id: asset.folderId }, { $set: { updatedAt: new Date() } })
+    const parents = await getAncestorFolderIds(asset.folderId)
+    if (parents.length) {
+      await Folder.updateMany({ _id: { $in: parents } }, { $set: { updatedAt: new Date() } })
+    }
+  }
   await clearCacheByPrefix('assets:')
   res.json({ message: '素材已刪除' })
 }

@@ -13,3 +13,15 @@ export const getDescendantFolderIds = async (parentId = null) => {
   }
   return ids
 }
+
+export const getAncestorFolderIds = async (folderId = null) => {
+  const ids = []
+  let current = folderId
+  while (current) {
+    const folder = await Folder.findById(current)
+    if (!folder || !folder.parentId) break
+    ids.push(folder.parentId)
+    current = folder.parentId
+  }
+  return ids
+}
