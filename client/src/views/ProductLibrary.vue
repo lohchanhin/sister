@@ -1,11 +1,6 @@
 <!-- src/views/ProductLibrary.vue -->
 <template>
   <section class="product-library p-6 flex gap-6 relative">
-    <el-button link size="small" class="absolute top-2 right-2" @click="showHelp = true">
-      <el-icon>
-        <InfoFilled />
-      </el-icon>
-    </el-button>
     <!-- =============== 左側格線區 =============== -->
     <div class="flex-1">
       <!-- ────────────── 工具列 (統一版) ────────────── -->
@@ -44,6 +39,12 @@
           <el-select v-model="filterTags" multiple placeholder="標籤篩選" class="min-w-[150px]">
             <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
           </el-select>
+
+          <el-button link size="small" class="absolute top-2 right-2" @click="showHelp = true">
+            <el-icon>
+              <InfoFilled />
+            </el-icon>
+          </el-button>
         </div>
 
         <!-- ◤ 右側：檢視 / 批次動作 ◢ -->

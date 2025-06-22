@@ -1,12 +1,6 @@
 <!-- AssetLibrary.vue – 修正版 -->
 <template>
   <section class="asset-library p-6 flex gap-6 relative">
-    <el-button link size="small" class="absolute top-2 right-2" @click="showHelp = true">
-      <el-icon>
-        <InfoFilled />
-      </el-icon>
-    </el-button>
-
     <!-- =============== 左側格線區 =============== -->
     <div class="flex-1">
       <!-- ────────────── 工具列 (新版) ────────────── -->
@@ -70,6 +64,12 @@
             <el-icon class="mr-1">
               <UserFilled />
             </el-icon> 批次設定
+          </el-button>
+
+          <el-button link size="small" class="absolute top-2 right-2" @click="showHelp = true">
+            <el-icon>
+              <InfoFilled />
+            </el-icon>
           </el-button>
 
         </div>
@@ -258,11 +258,7 @@
       <!-- 讓媒體自適應：max-width:100% + max-height:70vh -->
       <div class="w-full flex justify-center">
         <img v-if="isImage(previewItem)" :src="previewItem.url" class="preview-media" />
-        <iframe
-          v-else-if="isDocument(previewItem)"
-          :src="docPreviewUrl(previewItem)"
-          class="preview-media"
-        ></iframe>
+        <iframe v-else-if="isDocument(previewItem)" :src="docPreviewUrl(previewItem)" class="preview-media"></iframe>
         <video v-else controls class="preview-media">
           <source :src="previewItem.url" type="video/mp4" />
         </video>
@@ -700,10 +696,14 @@ async function downloadAsset(asset) {
 }
 
 /* 工具列 – 左右區塊在窄螢幕斷行時保留間距 */
-.tool-bar > div { flex: 1 1 auto; }
+.tool-bar>div {
+  flex: 1 1 auto;
+}
 
 /* 讓「新增資料夾」輸入框在窄螢幕不會被壓縮太小 */
 @media (max-width: 640px) {
-  .tool-bar .w-52 { width: 100% !important; }
+  .tool-bar .w-52 {
+    width: 100% !important;
+  }
 }
 </style>
