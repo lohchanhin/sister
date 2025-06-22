@@ -1,5 +1,7 @@
 import Folder from '../models/folder.model.js'
 import Asset from '../models/asset.model.js'
+import ReviewStage from '../models/reviewStage.model.js'
+import FolderReviewRecord from '../models/folderReviewRecord.model.js'
 import { getDescendantFolderIds } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
 import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
@@ -78,6 +80,14 @@ export const reviewFolder = async (req, res) => {
   const folder = await Folder.findById(req.params.id)
   if (!folder) return res.status(404).json({ message: '資料夾不存在' })
   folder.reviewStatus = reviewStatus
+
+  const total = await ReviewStage.countDocuments()
+  if (total) {
+    const done = await FolderReviewRecord.countDocuments({ folderId: folder._id, completed: true })
+    if (done === total) {
+      folder.reviewStatus = 'approved'
+    }
+  }
   await folder.save()
   await clearCacheByPrefix('folders:')
   res.json(folder)

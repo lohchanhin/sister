@@ -11,6 +11,10 @@ import {
   updateFoldersViewers,
   reviewFolder
 } from '../controllers/folder.controller.js'
+import {
+  getFolderStages,
+  updateFolderStageStatus
+} from '../controllers/folderReviewRecord.controller.js'
 
 const router = Router()
 
@@ -29,6 +33,8 @@ router.put(
   requirePerm(PERMISSIONS.REVIEW_MANAGE),
   reviewFolder
 )
+router.get('/:id/stages', protect, getFolderStages)
+router.put('/:id/stages/:stageId', protect, updateFolderStageStatus)
 router.put('/:id', protect, requirePerm(PERMISSIONS.FOLDER_MANAGE), updateFolder)
 router.delete(
   '/:id',

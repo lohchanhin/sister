@@ -38,3 +38,9 @@ export const updateFoldersViewers = async (ids, users) => {
 export const reviewFolder = (id, status) =>
   api.put(`/folders/${id}/review`, { reviewStatus: status }).then(res => res.data)
 
+export const fetchFolderStages = id =>
+  api.get(`/folders/${id}/stages`).then(res => res.data)
+
+export const updateFolderStage = (folderId, stageId, completed) =>
+  api.put(`/folders/${folderId}/stages/${stageId}`, { completed }).then(res => res.data)
+
