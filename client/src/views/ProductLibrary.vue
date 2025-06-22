@@ -86,7 +86,8 @@
       <!-- 卡片格線 -->
       <transition-group v-if="viewMode === 'card'" name="fade-slide" tag="div" class="flex flex-wrap gap-5">
         <!-- ===== 資料夾卡 ===== -->
-        <el-card v-for="f in folders" :key="f._id" class="folder-card card-base cursor-pointer" shadow="hover"
+        <el-card v-for="f in folders" :key="f._id"
+          :class="['folder-card', 'card-base', 'cursor-pointer', { approved: f.reviewStatus === 'approved' }]" shadow="hover"
           @click="openFolder(f)">
           <template #header>
             <div class="flex items-center mb-2 gap-2 w-full min-w-0">
@@ -152,7 +153,7 @@
       <!-- ==================== 列表檢視 ==================== -->
       <div v-else class="list-view">
         <!-- ─── 資料夾列 ─── -->
-        <div class="list-row" v-for="f in folders" :key="f._id">
+        <div class="list-row" v-for="f in folders" :key="f._id" :class="{ approved: f.reviewStatus === 'approved' }">
           <el-checkbox v-model="selectedItems" :label="f._id" class="mr-2" @click.stop>
             <template #default></template> <!-- 隱藏文字 -->
           </el-checkbox>
@@ -244,7 +245,7 @@
           </el-form>
         </el-scrollbar>
 
-        <el-scrollbar v-if="detailType === 'asset'" class="panel-body stage-body" style="max-width:260px">
+        <el-scrollbar v-if="detailType === 'asset' || detailType === 'folder'" class="panel-body stage-body" style="max-width:260px">
           <div class="stage-list">
             <div v-for="s in stageList" :key="s._id" class="stage-row">
               <!-- 左側文字 -->
@@ -322,7 +323,9 @@ import {
   getFolder,
   deleteFolder,
   updateFoldersViewers,
-  reviewFolder
+  reviewFolder,
+  fetchFolderStages,
+  updateFolderStage
 } from '../services/folders'
 import { ArrowLeft, Plus, UploadFilled, Grid, Menu, UserFilled, InfoFilled } from '@element-plus/icons-vue'
 import { fetchUsers } from '../services/user'
@@ -466,6 +469,9 @@ async function showDetailFor(item, type) {
   if (type === 'asset') {
     stageAsset.value = item
     stageList.value = await fetchAssetStages(item._id)
+  } else if (type === 'folder') {
+    stageAsset.value = null
+    stageList.value = await fetchFolderStages(item._id)
   }
   showDetail.value = true
 }
@@ -564,7 +570,13 @@ function canModify(stage) {
 }
 
 async function toggleStage(stage) {
-  await updateAssetStage(stageAsset.value._id, stage._id, stage.completed)
+  if (detailType.value === 'asset') {
+    await updateAssetStage(stageAsset.value._id, stage._id, stage.completed)
+  } else if (detailType.value === 'folder' && editingFolder.value) {
+    await updateFolderStage(editingFolder.value._id, stage._id, stage.completed)
+  } else {
+    return
+  }
   if (stage.completed) ElMessage.success('已完成階段')
 }
 
