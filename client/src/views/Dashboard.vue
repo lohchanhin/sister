@@ -172,7 +172,6 @@ watch(metrics, m => { if (!m.includes(yMetric.value)) yMetric.value = m[0] })
         <el-col :span="4"><div>成品總數<br><b>{{ assetStats.editedTotal || 0 }}</b></div></el-col>
         <el-col :span="4"><div>待審<br><b>{{ assetStats.pending || 0 }}</b></div></el-col>
         <el-col :span="4"><div>通過<br><b>{{ assetStats.approved || 0 }}</b></div></el-col>
-        <el-col :span="4"><div>退回<br><b>{{ assetStats.rejected || 0 }}</b></div></el-col>
       </el-row>
     </el-card>
 
