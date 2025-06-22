@@ -475,7 +475,7 @@ const handleSuccess = (_, f) => { progressList.value[f.uid] = 100; setTimeout(()
 const handleError = (_, f) => delete progressList.value[f.uid]
 async function uploadRequest({ file, onProgress, onSuccess, onError }) {
   try {
-    await uploadProduct(file, currentFolder.value?._id, null, onProgress)
+    await uploadProduct(file, currentFolder.value?._id, onProgress)
     onSuccess()
   } catch (e) { onError(e) }
 }
