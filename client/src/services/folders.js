@@ -14,6 +14,7 @@ export const fetchFolders = (
   if (deep) params.deep = 'true'
   if (withProgress) params.progress = 'true'
   return api.get('/folders', { params }).then((res) => res.data)
+
 }
 
 export const createFolder = (data, type) => {
