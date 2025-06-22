@@ -1,4 +1,5 @@
 import Folder from '../models/folder.model.js'
+import Asset from '../models/asset.model.js'
 import { getDescendantFolderIds } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
 import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
@@ -99,8 +100,14 @@ export const updateFolder = async (req, res) => {
 }
 
 export const deleteFolder = async (req, res) => {
-  await Folder.findByIdAndDelete(req.params.id)
+  const folderIds = await getDescendantFolderIds(req.params.id)
+  folderIds.push(req.params.id)
+
+  await Asset.deleteMany({ folderId: { $in: folderIds } })
+  await Folder.deleteMany({ _id: { $in: folderIds } })
+
   await clearCacheByPrefix('folders:')
+  await clearCacheByPrefix('assets:')
   res.json({ message: '資料夾已刪除' })
 }
 

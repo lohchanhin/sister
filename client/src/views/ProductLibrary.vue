@@ -93,6 +93,7 @@
               <el-checkbox v-model="selectedItems" :label="f._id" @click.stop
                 class="mr-1 flex-1 min-w-0 flex items-center gap-2">
                 <span class="font-medium truncate">{{ f.name }}</span>
+                <el-tag v-if="isRecent(f.updatedAt)" type="warning" size="small" class="ml-1">最近更新</el-tag>
               </el-checkbox>
               <el-button link size="small" class="flex-shrink-0" @click.stop="showDetailFor(f, 'folder')">
                 <el-icon style="font-size:24px;" class="flex-shrink-0">
@@ -157,6 +158,7 @@
           </el-checkbox>
 
           <span class="name cursor-pointer" @click="openFolder(f)">{{ f.name }}</span>
+          <el-tag v-if="isRecent(f.updatedAt)" type="warning" size="small" class="ml-1">最近更新</el-tag>
 
           <div class="flex-1"></div>
 
@@ -358,6 +360,12 @@ const detailType = ref('folder')   // 'folder' | 'asset'
 const newFolderName = ref('')
 const filterTags = ref([])
 const allTags = ref([])
+
+const RECENT_DAYS = 3
+const isRecent = date => {
+  if (!date) return false
+  return Date.now() - new Date(date).getTime() < RECENT_DAYS * 86400000
+}
 
 const users = ref([])
 const selectedItems = ref([])
