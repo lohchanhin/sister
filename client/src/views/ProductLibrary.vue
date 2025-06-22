@@ -222,7 +222,7 @@
         </el-scrollbar>
 
         <!-- 审查关卡 -->
-        <el-scrollbar v-if="detailType === 'product' || detailType === 'folder'" class="panel-body stage-body"
+        <el-scrollbar v-if="detailType === 'folder'" class="panel-body stage-body"
           style="max-width:260px">
           <div class="stage-list">
             <div v-for="s in stageList" :key="s._id" class="stage-row">
@@ -241,7 +241,7 @@
             cancel-button-text="取消" confirm-button-type="danger" @confirm="handleDelete">
             <template #reference><el-button size="small" type="danger">刪除</el-button></template>
           </el-popconfirm>
-          <el-button v-if="(detailType === 'product' || detailType === 'folder') && canReview" size="small"
+          <el-button v-if="detailType === 'folder' && canReview" size="small"
             type="warning" @click="review('rejected')">退回</el-button>
           <el-button size="small" @click="showDetail = false">取消</el-button>
           <el-button size="small" type="primary" @click="saveDetail">儲存</el-button>
@@ -286,7 +286,6 @@ import {
 } from '../services/folders'
 import {
   fetchProducts, uploadProduct, updateProduct, deleteProduct,
-  reviewProduct, fetchProductStages, updateProductStage,
   updateProductsViewers, getProductUrl
 } from '../services/products'
 import { fetchUsers } from '../services/user'
@@ -336,7 +335,6 @@ const detailTitle = computed(() =>
 
 /* ---------- 審查關卡 ---------- */
 const stageList = ref([])
-const stageProduct = ref(null)
 const canModify = s => (s.responsible?._id === store.user?._id) &&
   !stageList.value.some(prev => prev.order < s.order && !prev.completed)
 
@@ -405,12 +403,10 @@ async function showDetailFor(item, type) {
 
   previewItem.value = type === 'product' ? item : null
 
-  if (type === 'product') {
-    stageProduct.value = item
-    stageList.value = await fetchProductStages(item._id)
-  } else {
-    stageProduct.value = null
+  if (type === 'folder') {
     stageList.value = await fetchFolderStages(item._id)
+  } else {
+    stageList.value = []
   }
   showDetail.value = true
 }
@@ -442,22 +438,18 @@ async function handleDelete() {
   loadData(currentFolder.value?._id)
 }
 async function review(status) {
-  if (detailType.value === 'product' && previewItem.value) {
-    await reviewProduct(previewItem.value._id, status)
-  } else if (detailType.value === 'folder' && editingFolder.value) {
+  if (detailType.value === 'folder' && editingFolder.value) {
     await reviewFolder(editingFolder.value._id, status)
+    ElMessage.success('已更新狀態')
+    showDetail.value = false
+    loadData(currentFolder.value?._id)
   }
-  ElMessage.success('已更新狀態')
-  showDetail.value = false
-  loadData(currentFolder.value?._id)
 }
 async function toggleStage(stage) {
-  if (detailType.value === 'product' && stageProduct.value) {
-    await updateProductStage(stageProduct.value._id, stage._id, stage.completed)
-  } else if (detailType.value === 'folder' && editingFolder.value) {
+  if (detailType.value === 'folder' && editingFolder.value) {
     await updateFolderStage(editingFolder.value._id, stage._id, stage.completed)
+    if (stage.completed) ElMessage.success('已完成階段')
   }
-  if (stage.completed) ElMessage.success('已完成階段')
 }
 
 /* ---------- 新增資料夾 ---------- */
