@@ -1,17 +1,18 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
 const username = ref('')
 const password = ref('')
 const router = useRouter()
+const route = useRoute()
 const store = useAuthStore()
 
 const onSubmit = async () => {
   try {
     await store.login(username.value, password.value)
-    router.push('/') // 轉向首頁
+    router.push(route.query.redirect || '/')
   } catch (e) {
     // 已在 api 攔截器 alert
   }

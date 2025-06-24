@@ -55,8 +55,13 @@ router.beforeEach((to) => {
   const store = useAuthStore()
   if (to.meta.public) return true // 公開頁面
 
-  // 若尚未登入，導向 login
-  if (!store.isAuthenticated) return '/login'
+  // 若尚未登入，導向 login 並帶上 redirect
+  if (!store.isAuthenticated) {
+    return {
+      path: '/login',
+      query: { redirect: to.fullPath }
+    }
+  }
   const menus = store.user?.menus || []
   if (to.meta.menu && !menus.includes(to.meta.menu)) return '/'
   return true
