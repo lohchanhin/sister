@@ -72,7 +72,8 @@
 
       <!-- □□□ 麵包屑 □□□ -->
       <el-breadcrumb separator="/" class="mb-2" style="font-size:larger; margin:1rem;">
-        <el-breadcrumb-item v-for="b in breadcrumb" :key="b._id" class="cursor-pointer" @click="loadData(b._id)">
+        <el-breadcrumb-item v-for="b in breadcrumb" :key="b._id" class="cursor-pointer"
+          @click="router.push({ name: 'Products', params: { folderId: b._id } })">
           {{ b.name }}
         </el-breadcrumb-item>
       </el-breadcrumb>
@@ -313,6 +314,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   fetchFolders, createFolder, updateFolder, getFolder, deleteFolder,
   updateFoldersViewers, reviewFolder, fetchFolderStages, updateFolderStage
@@ -354,6 +356,8 @@ const users = ref([])
 const breadcrumb = ref([])
 
 const store = useAuthStore()
+const router = useRouter()
+const route = useRoute()
 const canReview = computed(() => store.hasPermission('review:manage'))
 const canManageViewers = computed(
   () => store.hasPermission('product:update') || store.hasPermission('folder:manage')
@@ -397,15 +401,18 @@ async function loadData(id = null) {
 
 /* ---------- 監聽 / 初始化 ---------- */
 onMounted(async () => {
-  await loadData()
+  await loadData(route.params.folderId || null)
   await loadTags()
   if (canManageViewers.value) await loadUsers()
 })
 watch(filterTags, () => loadData(currentFolder.value?._id || null))
+watch(() => route.params.folderId, id => loadData(id || null))
 
 /* ---------- 導航 ---------- */
-const openFolder = f => loadData(f._id)
-const goUp = () => loadData(currentFolder.value?.parentId || null)
+const openFolder = f =>
+  router.push({ name: 'Products', params: { folderId: f._id } })
+const goUp = () =>
+  router.push({ name: 'Products', params: { folderId: currentFolder.value?.parentId } })
 
 /* ---------- 批次 ---------- */
 function openBatchDialog() {
