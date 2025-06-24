@@ -51,7 +51,7 @@ const router = createRouter({
 })
 
 /* -------- 路由守衛：驗證 JWT & 權限 -------- */
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const store = useAuthStore()
   if (to.meta.public) return true // 公開頁面
 
@@ -62,6 +62,12 @@ router.beforeEach((to) => {
       query: { redirect: to.fullPath }
     }
   }
+
+  // 若已登入但尚未取得個人資料，先讀取
+  if (store.isAuthenticated && store.user.menus.length === 0) {
+    await store.fetchProfile()
+  }
+
   const menus = store.user?.menus || []
   if (to.meta.menu && !menus.includes(to.meta.menu)) return '/'
   return true
