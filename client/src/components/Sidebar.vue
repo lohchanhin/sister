@@ -12,7 +12,7 @@
     </div>
 
     <!-- ===== 導航選單 ===== -->
-    <el-menu :default-active="route.path" :collapse="isCollapsed" :collapse-transition="false" router
+    <el-menu :default-active="activePath" :collapse="isCollapsed" :collapse-transition="false" router
       class="sidebar__menu" @select="handleSelect" background-color="transparent" text-color="inherit"
       active-text-color="#409EFF">
       <el-menu-item v-for="item in navItems" :key="item.path" :index="item.path">
@@ -59,6 +59,11 @@ const isCollapsed = ref(false)
 const store = useAuthStore()
 const router = useRouter()
 const route = useRoute()
+const activePath = computed(() => {
+  if (route.path.startsWith('/assets')) return '/assets'
+  if (route.path.startsWith('/products')) return '/products'
+  return route.path
+})
 
 /* 全部選單定義 */
 const allMenus = {

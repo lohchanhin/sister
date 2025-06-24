@@ -76,8 +76,10 @@
 
 
       <el-breadcrumb separator="/" class="mb-2" style="font-size: larger;margin: 1rem;">
-        <el-breadcrumb-item v-for="b in breadcrumb" :key="b._id" class="cursor-pointer" @click="loadData(b._id)">{{
-          b.name }}</el-breadcrumb-item>
+        <el-breadcrumb-item v-for="b in breadcrumb" :key="b._id" class="cursor-pointer"
+          @click="router.push({ name: 'Assets', params: { folderId: b._id } })">
+          {{ b.name }}
+        </el-breadcrumb-item>
       </el-breadcrumb>
 
       <!-- 卡片格線 -->
@@ -297,6 +299,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers } from '../services/folders'
 import { fetchAssets, uploadAsset, updateAsset, deleteAsset, updateAssetsViewers, getAssetUrl } from '../services/assets'
 import { fetchUsers } from '../services/user'
@@ -312,6 +315,8 @@ const editingFolder = ref(null)
 const viewMode = ref('card')
 
 const store = useAuthStore()
+const router = useRouter()
+const route = useRoute()
 const canManageViewers = computed(
   () => store.hasPermission('asset:update') || store.hasPermission('folder:manage')
 )
@@ -384,14 +389,19 @@ async function loadData(id = null) {
 }
 
 onMounted(() => {
-  loadData()
+  loadData(route.params.folderId || null)
   loadTags()
   if (canManageViewers.value) loadUsers()
 })
 watch(filterTags, () => loadData(currentFolder.value?._id || null))
+watch(() => route.params.folderId, id => loadData(id || null))
 
-function openFolder(f) { loadData(f._id) }
-function goUp() { loadData(currentFolder.value?.parentId || null) }
+function openFolder(f) {
+  router.push({ name: 'Assets', params: { folderId: f._id } })
+}
+function goUp() {
+  router.push({ name: 'Assets', params: { folderId: currentFolder.value?.parentId } })
+}
 
 function openBatchDialog() {
   if (!users.value.length) loadUsers()
