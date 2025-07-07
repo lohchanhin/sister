@@ -94,6 +94,27 @@ describe('WeeklyNote API', () => {
     expect(weeks).toContain('2024-W02')
   })
 
+  it('clear images when keepImages empty and no new upload', async () => {
+    const week = '2024-W02'
+    const res = await request(app)
+      .put(
+        `/api/clients/${clientId}/platforms/${platformId}/weekly-notes/${week}`
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .field('text', '')
+      .field('keepImages', '')
+      .expect(200)
+    expect(res.body.images).toEqual([])
+
+    const resG = await request(app)
+      .get(
+        `/api/clients/${clientId}/platforms/${platformId}/weekly-notes/${week}`
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    expect(resG.body.images).toEqual([])
+  })
+
   it('get signed url for image', async () => {
     const res = await request(app)
       .get(`/api/clients/${clientId}/platforms/${platformId}/weekly-notes/image-url`)
