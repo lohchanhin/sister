@@ -5,6 +5,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server'
 import authRoutes from '../src/routes/auth.routes.js'
 import clientRoutes from '../src/routes/client.routes.js'
 import platformRoutes from '../src/routes/platform.routes.js'
+import platformTransferRoutes from '../src/routes/platformTransfer.routes.js'
 import User from '../src/models/user.model.js'
 import Role from '../src/models/role.model.js'
 import dotenv from 'dotenv'
@@ -35,6 +36,7 @@ beforeAll(async () => {
   app.use('/api/auth', authRoutes)
   app.use('/api/clients', clientRoutes)
   app.use('/api/clients/:clientId/platforms', platformRoutes)
+  app.use('/api/platforms', platformTransferRoutes)
 
   const role = await Role.create({ name: 'manager' })
   await User.create({ username: 'admin', password: 'pwd', email: 'test@test', roleId: role._id })
@@ -127,5 +129,55 @@ describe('Platform API', () => {
       .send({ name: 'Dup', platformType: 'Meta' })
       .expect(409)
     expect(res.body.message).toBe('平台名稱重複')
+  })
+
+  it('transfer platform to another client', async () => {
+    const resNewClient = await request(app)
+      .post('/api/clients')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'ClientB' })
+      .expect(201)
+    const newClientId = resNewClient.body._id
+
+    const list = await request(app)
+      .get(`/api/clients/${clientId}/platforms`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    const id = list.body[0]._id
+
+    await request(app)
+      .post(`/api/clients/${clientId}/platforms/${id}/ad-daily`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ date: new Date().toISOString(), spent: 1 })
+      .expect(201)
+
+    await request(app)
+      .post(`/api/clients/${clientId}/platforms/${id}/weekly-notes`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ week: '2024-W10', text: 'note' })
+      .expect(201)
+
+    await request(app)
+      .put(`/api/platforms/${id}/transfer`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ clientId: newClientId })
+      .expect(200)
+
+    await request(app)
+      .get(`/api/clients/${newClientId}/platforms/${id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+
+    const resDaily = await request(app)
+      .get(`/api/clients/${newClientId}/platforms/${id}/ad-daily`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    expect(resDaily.body.length).toBe(1)
+
+    const resNote = await request(app)
+      .get(`/api/clients/${newClientId}/platforms/${id}/weekly-notes`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    expect(resNote.body.length).toBe(1)
   })
 })

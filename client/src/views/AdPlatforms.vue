@@ -10,8 +10,10 @@ import {
   fetchPlatforms,
   createPlatform,
   updatePlatform,
-  deletePlatform
+  deletePlatform,
+  transferPlatform
 } from '../services/platforms'
+import { fetchClients } from '../services/clients'
 
 /* ────────────────────────── 路由 & 狀態 ─────────────────── */
 const route = useRoute()
@@ -21,6 +23,10 @@ const clientId = route.params.clientId
 const platforms = ref([])
 const dialog = ref(false)
 const editing = ref(false)
+const transferDialog = ref(false)
+const transferTarget = ref('')
+const transferId = ref('')
+const clients = ref([])
 
 const form = ref({
   name: '',
@@ -111,6 +117,21 @@ const removePlatform = async p => {
   await loadPlatforms()
 }
 
+const openTransfer = async p => {
+  clients.value = await fetchClients()
+  transferTarget.value = ''
+  transferId.value = p._id
+  transferDialog.value = true
+}
+
+const submitTransfer = async () => {
+  if (!transferTarget.value) return
+  await transferPlatform(transferId.value, transferTarget.value)
+  ElMessage.success('已轉移平台')
+  transferDialog.value = false
+  await loadPlatforms()
+}
+
 /* ────────────────────────── 監看模式切換 ───────────────── */
 watch(
   () => form.value.mode,
@@ -144,6 +165,7 @@ onMounted(loadPlatforms)
         <template #default="{ row }">
           <el-button link type="primary" @click="manageData(row)">數據</el-button>
           <el-button link type="primary" @click="openEdit(row)">編輯</el-button>
+          <el-button link type="primary" @click="openTransfer(row)">轉移</el-button>
           <el-button link type="danger" @click="removePlatform(row)">刪除</el-button>
         </template>
       </el-table-column>
@@ -199,6 +221,20 @@ onMounted(loadPlatforms)
         <el-button type="primary" @click="submit">
           {{ editing ? '更新' : '建立' }}
         </el-button>
+      </template>
+    </el-dialog>
+    <!-- 轉移對話框 -->
+    <el-dialog v-model="transferDialog" title="轉移平台" width="320px">
+      <el-form label-position="top" @submit.prevent>
+        <el-form-item label="目標客戶">
+          <el-select v-model="transferTarget" placeholder="選擇客戶">
+            <el-option v-for="c in clients" :key="c._id" :label="c.name" :value="c._id" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="transferDialog = false">取消</el-button>
+        <el-button type="primary" @click="submitTransfer">確認</el-button>
       </template>
     </el-dialog>
   </section>

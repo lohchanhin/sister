@@ -1,4 +1,6 @@
 import Platform from '../models/platform.model.js'
+import AdDaily from '../models/adDaily.model.js'
+import WeeklyNote from '../models/weeklyNote.model.js'
 
 export const createPlatform = async (req, res) => {
   try {
@@ -51,4 +53,18 @@ export const updatePlatform = async (req, res) => {
 export const deletePlatform = async (req, res) => {
   await Platform.findOneAndDelete({ _id: req.params.id, clientId: req.params.clientId })
   res.json({ message: '平台已刪除' })
+}
+
+export const transferPlatform = async (req, res) => {
+  const { clientId } = req.body
+  if (!clientId) {
+    return res.status(400).json({ message: '缺少 clientId' })
+  }
+  const platform = await Platform.findById(req.params.id)
+  if (!platform) return res.status(404).json({ message: '平台不存在' })
+  platform.clientId = clientId
+  await platform.save()
+  await AdDaily.updateMany({ platformId: req.params.id }, { clientId })
+  await WeeklyNote.updateMany({ platformId: req.params.id }, { clientId })
+  res.json(platform)
 }
