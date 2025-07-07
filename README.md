@@ -104,6 +104,16 @@ server/  # 後端 API
 
 儀表板可透過客戶與平台選單篩選廣告統計。
 
+### 週備註圖片管理
+
+更新週備註（`PUT /api/clients/:clientId/platforms/:platformId/weekly-notes/:week`）
+時，如需保留或刪除既有圖片，必須在 `multipart/form-data` 中傳入 `keepImages`：
+
+- `keepImages` 可出現多次，每個值為要**保留**的舊檔名。
+- 若 `keepImages` 為空陣列或傳入空字串 `''`，且未上傳新圖片，將會清除所有圖片。
+- 未傳入 `keepImages` 時，舊有圖片維持不變。
+- `images` 欄位則用來上傳新增的檔案，最終圖片清單會合併 `keepImages` 與新檔案。
+
 
 
 
