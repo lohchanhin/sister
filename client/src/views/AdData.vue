@@ -568,7 +568,19 @@ const openNote = async row => {
   try { note = await fetchWeeklyNote(clientId, platformId, week) }
   catch { /* ignore */ }
   if (note) weeklyNotes.value[week] = note
-  noteForm.value = { week, text: note?.text || '', images: [] }
+  let images = []
+  if (note?.images && note.images.length) {
+    const promises = note.images.map(async p => {
+      try {
+        const url = await getWeeklyNoteImageUrl(clientId, platformId, p)
+        return { name: p, url }
+      } catch {
+        return null
+      }
+    })
+    images = (await Promise.all(promises)).filter(Boolean)
+  }
+  noteForm.value = { week, text: note?.text || '', images }
   noteDialog.value = true
 }
 
@@ -585,8 +597,16 @@ const saveNote = async () => {
   noteDialog.value = false
 }
 
-const previewImages = (imgs) => {
-  imgList.value = imgs
+const previewImages = async imgs => {
+  if (!imgs || !imgs.length) return
+  if (imgs[0].url) {
+    imgList.value = imgs.map(i => i.url)
+  } else {
+    const urls = await Promise.all(
+      imgs.map(p => getWeeklyNoteImageUrl(clientId, platformId, p))
+    )
+    imgList.value = urls
+  }
   imgPreviewDialog.value = true
 }
 </script>
