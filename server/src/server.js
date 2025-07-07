@@ -104,6 +104,7 @@ import menusRoutes        from './routes/menus.routes.js'
 import reviewStageRoutes  from './routes/reviewStage.routes.js'
 import clientRoutes       from './routes/client.routes.js'
 import platformRoutes     from './routes/platform.routes.js'
+import platformTransferRoutes from './routes/platformTransfer.routes.js'
 import adDailyRoutes      from './routes/adDaily.routes.js'
 import weeklyNoteRoutes   from './routes/weeklyNote.routes.js'
 import dashboardRoutes    from './routes/dashboard.routes.js'
@@ -118,6 +119,7 @@ app.use('/api/roles',    roleRoutes)
 app.use('/api/tags',     tagRoutes)
 app.use('/api/clients',  clientRoutes)
 app.use('/api/clients/:clientId/platforms', platformRoutes)
+app.use('/api/platforms', platformTransferRoutes)
 app.use('/api/clients/:clientId/platforms/:platformId/ad-daily', adDailyRoutes)
 app.use('/api/clients/:clientId/platforms/:platformId/weekly-notes', weeklyNoteRoutes)
 app.use('/api/permissions', permissionsRoutes)

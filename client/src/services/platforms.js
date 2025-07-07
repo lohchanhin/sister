@@ -14,3 +14,6 @@ export const deletePlatform = (clientId, id) =>
 
 export const getPlatform = (clientId, id) =>
   api.get(`/clients/${clientId}/platforms/${id}`).then(r => r.data)
+
+export const transferPlatform = (id, clientId) =>
+  api.put(`/platforms/${id}/transfer`, { clientId }).then(r => r.data)
