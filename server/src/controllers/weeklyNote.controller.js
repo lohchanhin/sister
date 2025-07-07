@@ -15,6 +15,12 @@ const uploadImages = async files => {
   return paths
 }
 
+const parseKeepImages = value => {
+  if (value === undefined) return undefined
+  const arr = Array.isArray(value) ? value : [value]
+  return arr.filter(Boolean)
+}
+
 export const createWeeklyNote = async (req, res) => {
   const note = await WeeklyNote.create({
     clientId: req.params.clientId,
@@ -40,8 +46,15 @@ export const updateWeeklyNote = async (req, res) => {
   const update = {
     text: req.body.text
   }
+  const keep = parseKeepImages(req.body.keepImages)
+  let newImages = []
+  if (keep !== undefined) newImages = keep
   if (req.files?.length) {
-    update.images = await uploadImages(req.files)
+    const uploaded = await uploadImages(req.files)
+    newImages = [...newImages, ...uploaded]
+  }
+  if (keep !== undefined || req.files?.length) {
+    update.images = newImages
   }
   const note = await WeeklyNote.findOneAndUpdate(
     {
