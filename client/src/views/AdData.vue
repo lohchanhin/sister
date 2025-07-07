@@ -158,6 +158,18 @@
     <el-dialog v-model="noteDialog" title="週備註" width="460px" destroy-on-close>
       <p class="text-sm text-gray-500 mb-2">週別：{{ noteForm.week }}</p>
       <el-input v-model="noteForm.text" type="textarea" rows="4" placeholder="輸入文字筆記" />
+      <div v-if="noteForm.existingImages.length" class="mb-2">
+        <p class="text-sm text-gray-500 mb-1">既有圖片（取消勾選將刪除）</p>
+        <el-checkbox-group v-model="noteForm.keepImages" class="flex flex-wrap gap-2">
+          <el-checkbox
+            v-for="(img, i) in noteForm.existingImages"
+            :key="img"
+            :label="img"
+            class="flex flex-col items-center">
+            <img :src="img" class="w-16 h-16 object-cover mb-1" />
+          </el-checkbox>
+        </el-checkbox-group>
+      </div>
       <!-- 上傳圖片（僅本地暫存） -->
       <el-upload multiple list-type="picture-card" :auto-upload="false" v-model:file-list="noteForm.images">
         <el-icon>
@@ -560,7 +572,7 @@ const downloadTemplate = () => {
 }
 
 /**** ------------------------------------------------------- 週備註 ------------------------------------------------------- ****/
-const noteForm = ref({ week: '', text: '', images: [] })
+const noteForm = ref({ week: '', text: '', images: [], existingImages: [], keepImages: [] })
 
 const openNote = async row => {
   const week = row.week
@@ -568,15 +580,25 @@ const openNote = async row => {
   try { note = await fetchWeeklyNote(clientId, platformId, week) }
   catch { /* ignore */ }
   if (note) weeklyNotes.value[week] = note
-  noteForm.value = { week, text: note?.text || '', images: [] }
+  noteForm.value = {
+    week,
+    text: note?.text || '',
+    images: [],
+    existingImages: note?.images || [],
+    keepImages: note?.images ? [...note.images] : []
+  }
   noteDialog.value = true
 }
 
 const saveNote = async () => {
-  const { week, text, images } = noteForm.value
+  const { week, text, images, keepImages } = noteForm.value
   let note
   try {
-    note = await updateWeeklyNote(clientId, platformId, week, { text, images: images.map(f => f.raw) })
+    note = await updateWeeklyNote(clientId, platformId, week, {
+      text,
+      images: images.map(f => f.raw),
+      keepImages
+    })
   } catch {
     note = await createWeeklyNote(clientId, platformId, { week, text, images: images.map(f => f.raw) })
   }

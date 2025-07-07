@@ -37,11 +37,22 @@ export const getWeeklyNote = async (req, res) => {
 }
 
 export const updateWeeklyNote = async (req, res) => {
-  const update = {
-    text: req.body.text
-  }
+  const update = { text: req.body.text }
+
+  const hasKeep = Object.prototype.hasOwnProperty.call(req.body, 'keepImages')
+  const keepImages = hasKeep
+    ? Array.isArray(req.body.keepImages)
+      ? req.body.keepImages.filter(Boolean)
+      : [req.body.keepImages].filter(Boolean)
+    : []
+
+  let uploaded = []
   if (req.files?.length) {
-    update.images = await uploadImages(req.files)
+    uploaded = await uploadImages(req.files)
+  }
+
+  if (hasKeep || uploaded.length) {
+    update.images = [...keepImages, ...uploaded]
   }
   const note = await WeeklyNote.findOneAndUpdate(
     {

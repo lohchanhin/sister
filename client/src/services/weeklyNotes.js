@@ -22,6 +22,7 @@ export const updateWeeklyNote = (clientId, platformId, week, data) => {
   const formData = new FormData()
   formData.append('text', data.text || '')
   ;(data.images || []).forEach(f => formData.append('images', f))
+  ;(data.keepImages || []).forEach(p => formData.append('keepImages', p))
   return api.put(
     `/clients/${clientId}/platforms/${platformId}/weekly-notes/${week}`,
     formData,

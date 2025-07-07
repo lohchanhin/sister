@@ -102,4 +102,29 @@ describe('WeeklyNote API', () => {
       .expect(200)
     expect(res.body.url).toBe('https://signed.example.com/test/file.txt')
   })
+
+  it('update weekly note with keepImages', async () => {
+    const week = '2024-W03'
+    const create = await request(app)
+      .post(`/api/clients/${clientId}/platforms/${platformId}/weekly-notes`)
+      .set('Authorization', `Bearer ${token}`)
+      .field('week', week)
+      .field('text', '')
+      .attach('images', Buffer.from('a'), 'a.txt')
+      .attach('images', Buffer.from('b'), 'b.txt')
+      .expect(201)
+
+    const keep = create.body.images[0]
+    const update = await request(app)
+      .put(`/api/clients/${clientId}/platforms/${platformId}/weekly-notes/${week}`)
+      .set('Authorization', `Bearer ${token}`)
+      .field('text', 'u')
+      .field('keepImages', keep)
+      .attach('images', Buffer.from('c'), 'c.txt')
+      .expect(200)
+
+    expect(update.body.images.length).toBe(2)
+    expect(update.body.images).toContain(keep)
+    expect(update.body.images).not.toContain(create.body.images[1])
+  })
 })
