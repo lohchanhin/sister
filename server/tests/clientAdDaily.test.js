@@ -122,6 +122,26 @@ describe('Client and AdDaily', () => {
     expect(list.body[0].extraData).toEqual({ metricA: 10, metricB: 5 })
   })
 
+  it('create adDaily with colors and update it', async () => {
+    const res = await request(app)
+      .post(`/api/clients/${clientId}/platforms/${platformId}/ad-daily`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        date: new Date('2024-04-02').toISOString(),
+        colors: { metricA: '#fff' }
+      })
+      .expect(201)
+    expect(res.body.colors).toEqual({ metricA: '#fff' })
+
+    const id = res.body._id
+    const updated = await request(app)
+      .put(`/api/clients/${clientId}/platforms/${platformId}/ad-daily/${id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ colors: { metricA: '#000' } })
+      .expect(200)
+    expect(updated.body.colors).toEqual({ metricA: '#000' })
+  })
+
   it('bulk create adDaily', async () => {
     const records = [
       { date: new Date('2024-03-01').toISOString(), spent: 5, extraData: { metric: '1' } },

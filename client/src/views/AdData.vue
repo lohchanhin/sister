@@ -35,10 +35,16 @@
           <el-table-column prop="date" label="日期" :formatter="dateFmt" width="140" />
           <el-table-column v-for="field in customColumns" :key="field.name" :label="field.name">
             <template #default="{ row }">
-              <span v-if="field.type === 'date'">
+              <span
+                v-if="field.type === 'date'"
+                :style="{ backgroundColor: row.colors?.[field.name] }"
+              >
                 {{ formatExtraDate(row.extraData?.[field.name]) }}
               </span>
-              <span v-else>{{ row.extraData?.[field.name] ?? '' }}</span>
+              <span
+                v-else
+                :style="{ backgroundColor: row.colors?.[field.name] }"
+              >{{ row.extraData?.[field.name] ?? '' }}</span>
             </template>
           </el-table-column>
           <el-table-column label="操作" width="160">
@@ -113,13 +119,16 @@
         </el-form-item>
         <!-- 動態欄位輸入 -->
         <el-form-item v-for="field in customColumns" :key="field.name" :label="field.name">
-          <el-date-picker
-            v-if="field.type === 'date'"
-            v-model="recordForm.extraData[field.name]"
-            type="date"
-            style="width:100%"
-          />
-          <el-input v-else v-model="recordForm.extraData[field.name]" />
+          <div class="flex items-center gap-2 w-full">
+            <el-date-picker
+              v-if="field.type === 'date'"
+              v-model="recordForm.extraData[field.name]"
+              type="date"
+              style="flex:1"
+            />
+            <el-input v-else v-model="recordForm.extraData[field.name]" style="flex:1" />
+            <el-color-picker v-model="recordForm.colors[field.name]" />
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -238,7 +247,7 @@ const numericColumns = computed(() =>
 
 /**** 每日資料 ****/
 const dailyData = ref([])         // [{ date:'2025-06-16', extraData:{ 花費:100, 詢問:5 } }]
-const recordForm = ref({ date: '', extraData: {} })
+const recordForm = ref({ date: '', extraData: {}, colors: {} })
 
 /* 週備註狀態 */
 const weeklyNotes = ref({})       // { '2025-W25': { week:'2025-W25', text:'...' } }
@@ -411,7 +420,10 @@ watch(activeTab, tab => {
 onMounted(async () => {
   await loadPlatform()
   // 初始化 recordForm.extraData
-  customColumns.value.forEach(f => (recordForm.value.extraData[f.name] = ''))
+  customColumns.value.forEach(f => {
+    recordForm.value.extraData[f.name] = ''
+    recordForm.value.colors[f.name] = ''
+  })
   await loadDaily()
   await loadWeeklyNotes()
 })
@@ -421,7 +433,10 @@ const openCreateDialog = () => {
   editing.value = false
   editingId.value = ''
   recordForm.value.date = ''
-  customColumns.value.forEach(f => (recordForm.value.extraData[f.name] = ''))
+  customColumns.value.forEach(f => {
+    recordForm.value.extraData[f.name] = ''
+    recordForm.value.colors[f.name] = ''
+  })
   dialogVisible.value = true
 }
 
@@ -449,6 +464,7 @@ const openEdit = row => {
   editingId.value = row._id
   recordForm.value.date = row.date
   recordForm.value.extraData = { ...row.extraData }
+  recordForm.value.colors = { ...row.colors }
   dialogVisible.value = true
 }
 
@@ -502,12 +518,16 @@ const parseCSV = file => new Promise((res, rej) => {
 const normalize = arr => {
   return arr.map(r => {
     const extraData = {}
+    const colors = {}
     customColumns.value.forEach(col => {
       const val = r[col.name] || ''
       if (col.type === 'number') extraData[col.name] = Number(val) || 0
       else extraData[col.name] = val
+      if (r[`color_${col.name}`]) colors[col.name] = r[`color_${col.name}`]
     })
-    return { date: r['日期'] || r.date || '', extraData }
+    const obj = { date: r['日期'] || r.date || '', extraData }
+    if (Object.keys(colors).length) obj.colors = colors
+    return obj
   }).filter(r => r.date)
 }
 
@@ -519,6 +539,9 @@ const exportDaily = () => {
     customColumns.value.forEach(col => {
       const val = r.extraData[col.name]
       row[col.name] = col.type === 'date' ? formatExtraDate(val) : (val ?? '')
+      if (r.colors && r.colors[col.name]) {
+        row[`color_${col.name}`] = r.colors[col.name]
+      }
     })
     return row
   })

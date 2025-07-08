@@ -10,7 +10,8 @@ const adDailySchema = new mongoose.Schema(
     reach: { type: Number, default: 0 },
     impressions: { type: Number, default: 0 },
     clicks: { type: Number, default: 0 },
-    extraData: { type: mongoose.Schema.Types.Mixed }
+    extraData: { type: mongoose.Schema.Types.Mixed },
+    colors: { type: mongoose.Schema.Types.Mixed, default: {} }
   },
   { timestamps: true }
 )

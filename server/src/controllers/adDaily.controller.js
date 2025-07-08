@@ -28,7 +28,8 @@ export const createAdDaily = async (req, res) => {
     clicks: sanitizeNumber(req.body.clicks),
     clientId: req.params.clientId,
     platformId: req.params.platformId,
-    extraData: sanitizeExtraData(req.body.extraData)
+    extraData: sanitizeExtraData(req.body.extraData),
+    colors: req.body.colors || {}
   }
   const rec = await AdDaily.findOneAndUpdate(
     { clientId: payload.clientId, platformId: payload.platformId, date: payload.date },
@@ -86,7 +87,7 @@ export const bulkCreateAdDaily = async (req, res) => {
     return res.status(400).json({ message: '資料格式錯誤' })
   }
 
-  const known = ['date', 'spent', 'enquiries', 'reach', 'impressions', 'clicks', 'extraData']
+  const known = ['date', 'spent', 'enquiries', 'reach', 'impressions', 'clicks', 'extraData', 'colors']
 
   const records = req.body
     .map(row => {
@@ -105,7 +106,8 @@ export const bulkCreateAdDaily = async (req, res) => {
         clicks: sanitizeNumber(row.clicks),
         clientId: req.params.clientId,
         platformId: req.params.platformId,
-        extraData: Object.keys(extra).length ? extra : undefined
+        extraData: Object.keys(extra).length ? extra : undefined,
+        colors: row.colors || undefined
       }
     })
     .filter(r => r.date)
@@ -147,7 +149,8 @@ export const importAdDaily = async (req, res) => {
     'reach', 'Reach', '觸及',
     'impressions', 'Impressions', '曝光',
     'clicks', 'Clicks', '點擊',
-    'extraData'
+    'extraData',
+    'colors'
   ]
 
   const records = rows
@@ -168,7 +171,8 @@ export const importAdDaily = async (req, res) => {
         clicks: sanitizeNumber(row.clicks || row.Clicks || row['點擊']),
         clientId: req.params.clientId,
         platformId: req.params.platformId,
-        extraData: Object.keys(extra).length ? extra : undefined
+        extraData: Object.keys(extra).length ? extra : undefined,
+        colors: row.colors || undefined
       }
     })
     .filter(r => r.date)
@@ -194,7 +198,8 @@ export const updateAdDaily = async (req, res) => {
       reach: sanitizeNumber(req.body.reach),
       impressions: sanitizeNumber(req.body.impressions),
       clicks: sanitizeNumber(req.body.clicks),
-      extraData: sanitizeExtraData(req.body.extraData)
+      extraData: sanitizeExtraData(req.body.extraData),
+      colors: req.body.colors || {}
     },
     { new: true }
   )
