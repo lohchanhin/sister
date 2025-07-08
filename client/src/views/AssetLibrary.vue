@@ -226,12 +226,12 @@
           <el-form-item v-if="detailType === 'folder'" label="腳本需求">
             <el-input v-model="detail.script" type="textarea" rows="4" resize="vertical" />
           </el-form-item>
-          <el-form-item v-if="detailType === 'folder' && canManageViewers" label="可存取使用者">
+          <el-form-item v-if="detailType === 'folder' && canManageViewers && isRootFolder" label="可存取使用者">
             <el-select v-model="detail.allowedUsers" multiple filterable style="width:100%">
               <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
             </el-select>
           </el-form-item>
-          <el-form-item v-if="detailType === 'asset' && canManageViewers" label="可查看使用者">
+          <el-form-item v-if="detailType === 'asset' && canManageViewers && isRootAsset" label="可查看使用者">
             <el-select v-model="detail.allowedUsers" multiple filterable style="width:100%">
               <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
             </el-select>
@@ -319,6 +319,13 @@ const router = useRouter()
 const route = useRoute()
 const canManageViewers = computed(
   () => store.hasPermission('asset:update') || store.hasPermission('folder:manage')
+)
+
+const isRootFolder = computed(
+  () => detailType.value === 'folder' && editingFolder.value && !editingFolder.value.parentId
+)
+const isRootAsset = computed(
+  () => detailType.value === 'asset' && currentFolder.value && !currentFolder.value.parentId
 )
 
 const detail = ref({ title: '', description: '', script: '', tags: [], allowedUsers: [] })
@@ -439,22 +446,26 @@ async function showDetailFor(item, type) {
 
 async function saveDetail() {
   if (detailType.value === 'folder' && editingFolder.value) {
-    await updateFolder(editingFolder.value._id, {
+    const payload = {
       name: detail.value.title,
       description: detail.value.description,
       script: detail.value.script,
-      tags: detail.value.tags,
-      allowedUsers: detail.value.allowedUsers
-    })
+      tags: detail.value.tags
+    }
+    if (isRootFolder.value && canManageViewers.value) {
+      payload.allowedUsers = detail.value.allowedUsers
+    }
+    await updateFolder(editingFolder.value._id, payload)
   } else if (detailType.value === 'asset' && previewItem.value) {
-    await updateAsset(previewItem.value._id, {
+    const payload = {
       title: detail.value.title,
       description: detail.value.description,
-      tags: detail.value.tags,
-      ...(canManageViewers.value ? {
-        allowedUsers: detail.value.allowedUsers
-      } : {})
-    })
+      tags: detail.value.tags
+    }
+    if (canManageViewers.value && isRootAsset.value) {
+      payload.allowedUsers = detail.value.allowedUsers
+    }
+    await updateAsset(previewItem.value._id, payload)
   }
   ElMessage.success('已儲存')
   showDetail.value = false
