@@ -170,6 +170,57 @@ describe('Batch update folder viewers', () => {
   })
 })
 
+describe('Folder allowedUsers cascade', () => {
+  let rootId
+  let childId
+  let assetId
+
+  it('create hierarchy with inherited allowedUsers', async () => {
+    const rootRes = await request(app)
+      .post('/api/folders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'rootCascade', allowedUsers: [user1Id] })
+      .expect(201)
+    rootId = rootRes.body._id
+
+    const childRes = await request(app)
+      .post('/api/folders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'child', parentId: rootId })
+      .expect(201)
+    childId = childRes.body._id
+
+    const asset = await Asset.create({
+      filename: 'c.mp4',
+      path: '/tmp/c.mp4',
+      folderId: childId,
+      allowedUsers: childRes.body.allowedUsers
+    })
+    assetId = asset._id
+
+    const child = await Folder.findById(childId)
+    const idsRoot = rootRes.body.allowedUsers.map(id => id.toString()).sort()
+    expect(child.allowedUsers.map(id => id.toString()).sort()).toEqual(idsRoot)
+    const a = await Asset.findById(assetId)
+    expect(a.allowedUsers.map(id => id.toString()).sort()).toEqual(idsRoot)
+  })
+
+  it('update root allowedUsers should sync descendants', async () => {
+    const newIds = [user1Id.toString(), user2Id.toString()]
+    await request(app)
+      .put(`/api/folders/${rootId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ allowedUsers: newIds })
+      .expect(200)
+
+    const updatedChild = await Folder.findById(childId)
+    const updatedAsset = await Asset.findById(assetId)
+    const sorted = newIds.sort()
+    expect(updatedChild.allowedUsers.map(id => id.toString()).sort()).toEqual(sorted)
+    expect(updatedAsset.allowedUsers.map(id => id.toString()).sort()).toEqual(sorted)
+  })
+})
+
 
 describe('Folder review', () => {
   it('update reviewStatus', async () => {

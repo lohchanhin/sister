@@ -2,11 +2,15 @@ import request from 'supertest'
 import express from 'express'
 import mongoose from 'mongoose'
 import { MongoMemoryServer } from 'mongodb-memory-server'
+import { jest } from '@jest/globals'
 import assetRoutes from '../src/routes/asset.routes.js'
 import authRoutes from '../src/routes/auth.routes.js'
+import folderRoutes from '../src/routes/folder.routes.js'
 import Asset from '../src/models/asset.model.js'
+import Folder from '../src/models/folder.model.js'
 import User from '../src/models/user.model.js'
 import Role from '../src/models/role.model.js'
+import * as gcs from '../src/utils/gcs.js'
 import dotenv from 'dotenv'
 
 dotenv.config({ override: true })
@@ -24,15 +28,17 @@ let empId
 let adminId
 
 beforeAll(async () => {
+  jest.spyOn(gcs, 'uploadBuffer').mockResolvedValue('mockpath')
   mongo = await MongoMemoryServer.create()
   await mongoose.connect(mongo.getUri())
 
   app = express()
   app.use(express.json())
   app.use('/api/auth', authRoutes)
+  app.use('/api/folders', folderRoutes)
   app.use('/api/assets', assetRoutes)
 
-  const managerRole = await Role.create({ name: 'manager', permissions: ['review:manage', 'asset:read'] })
+  const managerRole = await Role.create({ name: 'manager', permissions: ['review:manage', 'asset:read', 'asset:create', 'folder:manage'] })
   const empRole = await Role.create({ name: 'employee', permissions: ['asset:read'] })
 
   const admin = await User.create({
@@ -80,6 +86,33 @@ describe('Asset review', () => {
       .send({ reviewStatus: 'approved' })
       .expect(200)
     expect(res.body.reviewStatus).toBe('approved')
+  })
+})
+
+describe('Upload asset to subfolder', () => {
+  it('should inherit root allowedUsers', async () => {
+    const rootRes = await request(app)
+      .post('/api/folders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'rootA', allowedUsers: [empId] })
+      .expect(201)
+
+    const childRes = await request(app)
+      .post('/api/folders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'sub', parentId: rootRes.body._id })
+      .expect(201)
+
+    const res = await request(app)
+      .post('/api/assets/upload')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', Buffer.from('hi'), 'test.txt')
+      .field('folderId', childRes.body._id)
+      .expect(201)
+
+    const uploaded = await Asset.findById(res.body._id)
+    const rootIds = rootRes.body.allowedUsers.map(id => id.toString()).sort()
+    expect(uploaded.allowedUsers.map(id => id.toString()).sort()).toEqual(rootIds)
   })
 })
 
