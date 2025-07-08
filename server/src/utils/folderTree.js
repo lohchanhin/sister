@@ -25,3 +25,14 @@ export const getAncestorFolderIds = async (folderId = null) => {
   }
   return ids
 }
+
+export const getRootFolder = async (folderId) => {
+  let currentId = folderId
+  let folder = null
+  while (currentId) {
+    folder = await Folder.findById(currentId)
+    if (!folder || !folder.parentId) break
+    currentId = folder.parentId
+  }
+  return folder
+}
