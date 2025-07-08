@@ -230,12 +230,12 @@
             <el-form-item v-if="detailType === 'folder'" label="腳本需求">
               <el-input v-model="detail.script" type="textarea" rows="4" resize="vertical" />
             </el-form-item>
-            <el-form-item v-if="detailType === 'folder' && canManageViewers" label="可存取使用者">
+            <el-form-item v-if="detailType === 'folder' && canManageViewers && isRootFolder" label="可存取使用者">
               <el-select v-model="detail.allowedUsers" multiple filterable style="width:100%">
                 <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
               </el-select>
             </el-form-item>
-            <el-form-item v-if="detailType === 'product' && canManageViewers" label="可查看使用者">
+            <el-form-item v-if="detailType === 'product' && canManageViewers && isRootProduct" label="可查看使用者">
               <el-select v-model="detail.allowedUsers" multiple filterable style="width:100%">
                 <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
               </el-select>
@@ -363,6 +363,13 @@ const canManageViewers = computed(
   () => store.hasPermission('product:update') || store.hasPermission('folder:manage')
 )
 
+const isRootFolder = computed(
+  () => detailType.value === 'folder' && editingFolder.value && !editingFolder.value.parentId
+)
+const isRootProduct = computed(
+  () => detailType.value === 'product' && currentFolder.value && !currentFolder.value.parentId
+)
+
 /* ---------- 工具 ---------- */
 const RECENT_DAYS = 1
 const isRecent = date => date ? (Date.now() - new Date(date).getTime()) < RECENT_DAYS * 86400000 : false
@@ -453,15 +460,26 @@ async function showDetailFor(item, type) {
 }
 async function saveDetail() {
   if (detailType.value === 'folder' && editingFolder.value) {
-    await updateFolder(editingFolder.value._id, {
-      name: detail.value.title, description: detail.value.description, script: detail.value.script,
-      tags: detail.value.tags, allowedUsers: detail.value.allowedUsers
-    })
+    const payload = {
+      name: detail.value.title,
+      description: detail.value.description,
+      script: detail.value.script,
+      tags: detail.value.tags
+    }
+    if (isRootFolder.value && canManageViewers.value) {
+      payload.allowedUsers = detail.value.allowedUsers
+    }
+    await updateFolder(editingFolder.value._id, payload)
   } else if (detailType.value === 'product' && previewItem.value) {
-    await updateProduct(previewItem.value._id, {
-      title: detail.value.title, description: detail.value.description, tags: detail.value.tags,
-      ...(canManageViewers.value ? { allowedUsers: detail.value.allowedUsers } : {})
-    })
+    const payload = {
+      title: detail.value.title,
+      description: detail.value.description,
+      tags: detail.value.tags
+    }
+    if (canManageViewers.value && isRootProduct.value) {
+      payload.allowedUsers = detail.value.allowedUsers
+    }
+    await updateProduct(previewItem.value._id, payload)
   }
   ElMessage.success('已儲存')
   showDetail.value = false
