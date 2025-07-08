@@ -84,7 +84,7 @@
           <!-- 筆記欄 -->
           <el-table-column label="筆記" width="160">
             <template #default="{ row }">
-              <span>{{ row.note }}</span>
+              <span v-html="formatNote(row.note)" />
             </template>
           </el-table-column>
 
@@ -314,6 +314,33 @@ const excelSpec = computed(() => {
 const dateFmt = row => dayjs(row.date).format('YYYY-MM-DD')
 const formatExtraDate = val =>
   val ? dayjs(val).format('YYYY-MM-DD') : ''
+
+/** 格式化筆記文字為 HTML */
+const escapeHtml = str =>
+  str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+
+const formatNote = text => {
+  if (!text) return ''
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim())
+  const bulletRE = /^\s*[-*•]\s+/
+  const numberRE = /^\s*\d+[.)、]\s+/
+  if (lines.length === 1 && !bulletRE.test(lines[0]) && !numberRE.test(lines[0])) {
+    return `<p>${escapeHtml(lines[0])}</p>`
+  }
+  const isOrdered = lines.every(l => numberRE.test(l))
+  const tag = isOrdered ? 'ol' : 'ul'
+  const itemRE = isOrdered ? numberRE : bulletRE
+  const items = lines
+    .map(l => l.replace(itemRE, ''))
+    .map(l => `<li>${escapeHtml(l)}</li>`)
+    .join('')
+  return `<${tag}>${items}</${tag}>`
+}
 
 /**** --------------------------------------------------- 資料載入 --------------------------------------------------- ****/
 const loadPlatform = async () => {
