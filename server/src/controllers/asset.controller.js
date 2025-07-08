@@ -7,7 +7,7 @@ import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import path from 'node:path'
 import { uploadBuffer, getSignedUrl } from '../utils/gcs.js'
-import { getDescendantFolderIds, getAncestorFolderIds } from '../utils/folderTree.js'
+import { getDescendantFolderIds, getAncestorFolderIds, getRootFolder } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
 import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
 
@@ -38,9 +38,15 @@ export const uploadFile = async (req, res) => {
     req.file.mimetype
   )
 
-  const baseUsers = Array.isArray(req.body.allowedUsers)
-    ? Array.from(new Set([...req.body.allowedUsers, req.user._id]))
-    : [req.user._id]
+  let baseUsers = []
+  if (req.body.folderId) {
+    const root = await getRootFolder(req.body.folderId)
+    baseUsers = root?.allowedUsers || []
+  } else {
+    baseUsers = Array.isArray(req.body.allowedUsers)
+      ? Array.from(new Set([...req.body.allowedUsers, req.user._id]))
+      : [req.user._id]
+  }
   const asset = await Asset.create({
     title: req.file.originalname,     // 顯示用標題
     filename,         // 實際檔名
@@ -252,7 +258,16 @@ export const updateAssetsViewers = async (req, res) => {
   }
 
   const users = await includeManagers(allowedUsers)
-  await Asset.updateMany({ _id: { $in: ids } }, { allowedUsers: users })
+  const assets = await Asset.find({ _id: { $in: ids } })
+  for (const asset of assets) {
+    if (!asset.folderId) {
+      asset.allowedUsers = users
+    } else {
+      const root = await getRootFolder(asset.folderId)
+      asset.allowedUsers = root?.allowedUsers || []
+    }
+    await asset.save()
+  }
   await clearCacheByPrefix('assets:')
   res.json({ message: '已更新' })
 }

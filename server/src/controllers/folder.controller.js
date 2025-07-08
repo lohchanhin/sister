@@ -2,7 +2,7 @@ import Folder from '../models/folder.model.js'
 import Asset from '../models/asset.model.js'
 import ReviewStage from '../models/reviewStage.model.js'
 import FolderReviewRecord from '../models/folderReviewRecord.model.js'
-import { getDescendantFolderIds } from '../utils/folderTree.js'
+import { getDescendantFolderIds, getRootFolder } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
 import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
 
@@ -18,15 +18,19 @@ const parseTags = (t) => {
 }
 
 export const createFolder = async (req, res) => {
+  let baseUsers = []
   if (req.body.parentId) {
     const exists = await Folder.findById(req.body.parentId)
     if (!exists) {
       return res.status(400).json({ message: '父層資料夾不存在' })
     }
+    const root = await getRootFolder(req.body.parentId)
+    baseUsers = root?.allowedUsers || []
+  } else {
+    baseUsers = Array.isArray(req.body.allowedUsers)
+      ? Array.from(new Set([...req.body.allowedUsers, req.user._id]))
+      : [req.user._id]
   }
-  const baseUsers = Array.isArray(req.body.allowedUsers)
-    ? Array.from(new Set([...req.body.allowedUsers, req.user._id]))
-    : [req.user._id]
   const folder = await Folder.create({
     name: req.body.name,
     parentId: req.body.parentId || null,
@@ -133,6 +137,19 @@ export const updateFolder = async (req, res) => {
   }
   const folder = await Folder.findByIdAndUpdate(req.params.id, req.body, { new: true })
   if (!folder) return res.status(404).json({ message: '資料夾不存在' })
+  if (!folder.parentId && req.body.allowedUsers) {
+    const descendants = await getDescendantFolderIds(folder._id)
+    if (descendants.length) {
+      await Folder.updateMany(
+        { _id: { $in: descendants } },
+        { allowedUsers: folder.allowedUsers }
+      )
+    }
+    await Asset.updateMany(
+      { folderId: { $in: [folder._id, ...descendants] } },
+      { allowedUsers: folder.allowedUsers }
+    )
+  }
   await clearCacheByPrefix('folders:')
   res.json(folder)
 }
@@ -156,6 +173,22 @@ export const updateFoldersViewers = async (req, res) => {
   }
   const users = await includeManagers(allowedUsers)
   await Folder.updateMany({ _id: { $in: ids } }, { allowedUsers: users })
+  for (const id of ids) {
+    const folder = await Folder.findById(id)
+    if (folder && !folder.parentId) {
+      const descendants = await getDescendantFolderIds(folder._id)
+      if (descendants.length) {
+        await Folder.updateMany(
+          { _id: { $in: descendants } },
+          { allowedUsers: users }
+        )
+      }
+      await Asset.updateMany(
+        { folderId: { $in: [folder._id, ...descendants] } },
+        { allowedUsers: users }
+      )
+    }
+  }
   await clearCacheByPrefix('folders:')
   res.json({ message: '已更新' })
 }
