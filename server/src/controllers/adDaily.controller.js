@@ -6,7 +6,8 @@ import { uploadBuffer } from '../utils/gcs.js'
 const sanitizeNumber = val =>
   parseFloat(String(val).replace(/[^\d.]/g, '')) || 0
 
-const numericPattern = /^[\d\s,.$]+$/
+// accepts optional currency prefix like RM or USD
+const numericPattern = /^[^\d-]*[\d\s,.$]+$/
 const sanitizeExtraData = obj => {
   const result = {}
   if (!obj) return result

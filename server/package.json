@@ -6,7 +6,8 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "test": "jest --experimental-vm-modules",
-    "seed": "node src/scripts/seedUsers.js"
+    "seed": "node src/scripts/seedUsers.js",
+    "sanitize-ad-daily": "node src/scripts/sanitizeAdDaily.js"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.16.0",
