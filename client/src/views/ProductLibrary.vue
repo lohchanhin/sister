@@ -26,7 +26,7 @@
           </div>
 
           <!-- 上傳（產品主圖等資源） -->
-          <el-upload v-if="currentFolder" :http-request="uploadRequest" :on-progress="handleProgress"
+          <el-upload v-if="currentFolder" multiple :http-request="uploadRequest" :on-progress="handleProgress"
             :on-success="handleSuccess" :on-error="handleError" :show-file-list="false">
             <el-button type="success">
               <el-icon class="mr-1">
@@ -326,6 +326,7 @@ import {
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
+import { useUiStore } from '../stores/ui'
 import { ElMessage } from 'element-plus'
 import {
   ArrowLeft, Plus, UploadFilled, Grid, Menu, UserFilled, InfoFilled
@@ -356,6 +357,7 @@ const users = ref([])
 const breadcrumb = ref([])
 
 const store = useAuthStore()
+const ui = useUiStore()
 const router = useRouter()
 const route = useRoute()
 const canReview = computed(() => store.hasPermission('review:manage'))
@@ -525,10 +527,15 @@ const handleProgress = (evt, f) => progressList.value[f.uid] = Math.round(evt.pe
 const handleSuccess = (_, f) => { progressList.value[f.uid] = 100; setTimeout(() => delete progressList.value[f.uid], 500); ElMessage.success('上傳完成'); loadData(currentFolder.value?._id) }
 const handleError = (_, f) => delete progressList.value[f.uid]
 async function uploadRequest({ file, onProgress, onSuccess, onError }) {
+  ui.startUpload()
   try {
     await uploadProduct(file, currentFolder.value?._id, onProgress)
     onSuccess()
-  } catch (e) { onError(e) }
+  } catch (e) {
+    onError(e)
+  } finally {
+    ui.finishUpload()
+  }
 }
 
 /* ---------- 預覽 / 下載 ---------- */

@@ -26,7 +26,7 @@
           </div>
 
           <!-- 上傳檔案 -->
-          <el-upload v-if="currentFolder" :http-request="uploadRequest" :on-progress="handleProgress"
+          <el-upload v-if="currentFolder" multiple :http-request="uploadRequest" :on-progress="handleProgress"
             :on-success="handleSuccess" :on-error="handleError" :show-file-list="false">
             <el-button type="success">
               <el-icon class="mr-1">
@@ -305,6 +305,7 @@ import { fetchAssets, uploadAsset, updateAsset, deleteAsset, updateAssetsViewers
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
+import { useUiStore } from '../stores/ui'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, Plus, UploadFilled, Grid, Menu, UserFilled, InfoFilled } from '@element-plus/icons-vue'
 
@@ -315,6 +316,7 @@ const editingFolder = ref(null)
 const viewMode = ref('card')
 
 const store = useAuthStore()
+const ui = useUiStore()
 const router = useRouter()
 const route = useRoute()
 const canManageViewers = computed(
@@ -513,11 +515,14 @@ function handleError(_, file) {
 
 
 async function uploadRequest({ file, onProgress, onSuccess, onError }) {
+  ui.startUpload()
   try {
     await uploadAsset(file, currentFolder.value?._id, null, onProgress)
     onSuccess()
   } catch (e) {
     onError(e)
+  } finally {
+    ui.finishUpload()
   }
 }
 
