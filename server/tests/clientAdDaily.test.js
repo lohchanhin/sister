@@ -122,6 +122,24 @@ describe('Client and AdDaily', () => {
     expect(list.body[0].extraData).toEqual({ metricA: 10, metricB: 5 })
   })
 
+  it('create adDaily with currency prefix in extraData', async () => {
+    const date = new Date('2024-04-03').toISOString()
+    const res = await request(app)
+      .post(`/api/clients/${clientId}/platforms/${platformId}/ad-daily`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ date, extraData: { cost: 'RM500.12' } })
+      .expect(201)
+    expect(res.body.extraData).toEqual({ cost: 500.12 })
+
+    const list = await request(app)
+      .get(
+        `/api/clients/${clientId}/platforms/${platformId}/ad-daily?start=${date}&end=${date}`
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    expect(list.body[0].extraData).toEqual({ cost: 500.12 })
+  })
+
   it('create adDaily with colors and update it', async () => {
     const res = await request(app)
       .post(`/api/clients/${clientId}/platforms/${platformId}/ad-daily`)

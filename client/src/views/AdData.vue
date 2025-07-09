@@ -515,13 +515,16 @@ const parseCSV = file => new Promise((res, rej) => {
   })
 })
 
+const sanitizeNumber = val =>
+  parseFloat(String(val).replace(/[^\d.]/g, '')) || 0
+
 const normalize = arr => {
   return arr.map(r => {
     const extraData = {}
     const colors = {}
     customColumns.value.forEach(col => {
       const val = r[col.name] || ''
-      if (col.type === 'number') extraData[col.name] = Number(val) || 0
+      if (col.type === 'number') extraData[col.name] = sanitizeNumber(val)
       else extraData[col.name] = val
       if (r[`color_${col.name}`]) colors[col.name] = r[`color_${col.name}`]
     })
