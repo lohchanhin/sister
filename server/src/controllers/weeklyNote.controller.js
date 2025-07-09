@@ -1,6 +1,7 @@
 import WeeklyNote from '../models/weeklyNote.model.js'
 import path from 'node:path'
-import { uploadBuffer, getSignedUrl } from '../utils/gcs.js'
+import { uploadStream, getSignedUrl } from '../utils/gcs.js'
+import fs from 'node:fs/promises'
 
 const uploadImages = async files => {
   if (!files?.length) return []
@@ -9,7 +10,9 @@ const uploadImages = async files => {
       const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
       const ext = path.extname(f.originalname)
       const filename = unique + ext
-      return uploadBuffer(f.buffer, filename, f.mimetype)
+      const p = await uploadStream(f.path, filename, f.mimetype)
+      await fs.unlink(f.path)
+      return p
     })
   )
   return paths

@@ -6,7 +6,8 @@ import Folder from '../models/folder.model.js'
 import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import path from 'node:path'
-import { uploadBuffer, getSignedUrl } from '../utils/gcs.js'
+import { uploadStream, getSignedUrl } from '../utils/gcs.js'
+import fs from 'node:fs/promises'
 import { getDescendantFolderIds, getAncestorFolderIds, getRootFolder } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
 import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
@@ -32,11 +33,12 @@ export const uploadFile = async (req, res) => {
   const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
   const ext = path.extname(req.file.originalname)
   const filename = unique + ext
-  const gcsPath = await uploadBuffer(
-    req.file.buffer,
+  const gcsPath = await uploadStream(
+    req.file.path,
     filename,
     req.file.mimetype
   )
+  await fs.unlink(req.file.path)
 
   let baseUsers = []
   if (req.body.folderId) {
