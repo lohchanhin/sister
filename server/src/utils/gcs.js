@@ -22,6 +22,12 @@ export const uploadBuffer = async (buffer, destination, contentType) => {
   return destination
 }
 
+export const uploadStream = async (filePath, destination, contentType) => {
+  const opts = { destination, resumable: false, metadata: { contentType } }
+  await bucket.upload(filePath, opts)
+  return destination
+}
+
 
 export const getSignedUrl = async (filePath, options = {}) => {
   if (process.env.NODE_ENV === 'test') {

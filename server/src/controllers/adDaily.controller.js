@@ -1,7 +1,8 @@
 import mongoose from 'mongoose'
 import AdDaily from '../models/adDaily.model.js'
 import path from 'node:path'
-import { uploadBuffer } from '../utils/gcs.js'
+import { uploadStream } from '../utils/gcs.js'
+import fs from 'node:fs/promises'
 
 const sanitizeNumber = val =>
   parseFloat(String(val).replace(/[^\d.]/g, '')) || 0
@@ -132,14 +133,16 @@ export const importAdDaily = async (req, res) => {
   const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
   const ext = path.extname(req.file.originalname)
   const filename = unique + ext
-  const filePath = await uploadBuffer(
-    req.file.buffer,
+  const filePath = await uploadStream(
+    req.file.path,
     filename,
     req.file.mimetype
   )
+  const xlsxBuffer = await fs.readFile(req.file.path)
+  await fs.unlink(req.file.path)
 
   const xlsx = await import('xlsx')
-  const wb = xlsx.read(req.file.buffer, { type: 'buffer' })
+  const wb = xlsx.read(xlsxBuffer, { type: 'buffer' })
   const sheet = wb.Sheets[wb.SheetNames[0]]
   const rows = xlsx.utils.sheet_to_json(sheet)
 
