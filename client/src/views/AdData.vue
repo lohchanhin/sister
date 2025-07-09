@@ -73,7 +73,11 @@
 
         <!-- 週表格 -->
         <el-table :data="weeklyAgg" stripe style="width:100%" empty-text="尚無資料">
-          <el-table-column prop="week" label="週 (YYYY-WW)" width="110" />
+          <el-table-column label="週" width="180">
+            <template #default="{ row }">
+              {{ formatWeekRange(row.week) }}
+            </template>
+          </el-table-column>
           <!-- 動態欄位總計 -->
           <el-table-column v-for="field in numericColumns" :key="field" :label="field" width="100">
             <template #default="{ row }">{{ row[field] }}</template>
@@ -165,7 +169,7 @@
 
     <!-- ─────────── Dialog：週備註 ─────────── -->
     <el-dialog v-model="noteDialog" title="週備註" width="460px" destroy-on-close>
-      <p class="text-sm text-gray-500 mb-2">週別：{{ noteForm.week }}</p>
+      <p class="text-sm text-gray-500 mb-2">週別：{{ formatWeekRange(noteForm.week) }}</p>
       <el-input v-model="noteForm.text" type="textarea" rows="4" placeholder="輸入文字筆記" />
       <!-- 上傳圖片（僅本地暫存） -->
       <el-upload multiple list-type="picture-card" :auto-upload="false" v-model:file-list="noteForm.images">
@@ -324,6 +328,16 @@ const dateFmt = row => dayjs(row.date).format('YYYY-MM-DD')
 const formatExtraDate = val =>
   val ? dayjs(val).format('YYYY-MM-DD') : ''
 
+// 將 "YYYY-WW" 格式的週期轉成 "DD/MM/YYYY - DD/MM/YYYY"
+const formatWeekRange = w => {
+  if (!w) return ''
+  const [y, wk] = String(w).split('-W')
+  const base = dayjs().isoWeekYear(Number(y)).isoWeek(Number(wk))
+  const start = base.startOf('isoWeek').format('DD/MM/YYYY')
+  const end = base.endOf('isoWeek').format('DD/MM/YYYY')
+  return `${start} - ${end}`
+}
+
 /** 格式化筆記文字為 HTML */
 const escapeHtml = str =>
   str
@@ -385,7 +399,7 @@ const loadWeeklyNotes = async () => {
 const drawChart = () => {
   if (!chartCtx) chartCtx = document.getElementById('weekly-chart')
   if (!chartCtx || !yMetric.value) return
-  const labels = weeklyAgg.value.map(r => r.week)
+  const labels = weeklyAgg.value.map(r => formatWeekRange(r.week))
   const data = weeklyAgg.value.map(r => r[yMetric.value] ?? 0)
   chart && chart.destroy()
   chart = new Chart(chartCtx, {
@@ -567,7 +581,7 @@ async function exportWeekly() {
   /* 每列資料 + 圖片 */
   for (const row of weeklyAgg.value) {
     const data = [
-      row.week,
+      formatWeekRange(row.week),
       ...numericColumns.value.map(c => row[c] || 0),
       row.note || '',
       ''
