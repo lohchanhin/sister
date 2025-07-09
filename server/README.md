@@ -11,6 +11,8 @@ npm start                 # 啟動伺服器
 伺服器啟動前請在根目錄複製 `.env.example` 為 `.env`，並填入 MongoDB、JWT 及 GCS 設定。
 
 執行 `npm run seed` 可建立預設帳號，方便初次測試。
+若舊有廣告資料含有 "RM" 前綴的數字字串，可執行
+`npm run sanitize-ad-daily` 將其批次轉為數字。
 
 預設登入資訊如下：
 
