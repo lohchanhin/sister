@@ -331,13 +331,9 @@ const formatExtraDate = val =>
 // 將 "YYYY-WW" 格式的週期轉成 "DD/MM/YYYY - DD/MM/YYYY"
 const formatWeekRange = w => {
   if (!w) return ''
-<<<<<<< HEAD
-  const [y, wk] = String(w).split('-W')
-=======
   const m = String(w).match(/(\d{4})-W?(\d{1,2})/)
   if (!m) return ''
   const [, y, wk] = m
->>>>>>> 2d7ab3a95392a5253b92d699cf1c3370281c233d
   const base = dayjs().isoWeekYear(Number(y)).isoWeek(Number(wk))
   const start = base.startOf('isoWeek').format('DD/MM/YYYY')
   const end = base.endOf('isoWeek').format('DD/MM/YYYY')
