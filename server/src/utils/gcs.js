@@ -2,6 +2,7 @@ import { Storage } from '@google-cloud/storage'
 import path from 'node:path'
 import dotenv from 'dotenv'
 import { fileURLToPath } from 'node:url'
+import fs from 'node:fs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
@@ -27,6 +28,24 @@ export const uploadStream = (buffer, destination, contentType) => {
     stream.on('error', reject)
     stream.on('finish', () => resolve(destination))
     stream.end(buffer)
+  })
+}
+
+/**
+ * 直接將檔案路徑內容串流寫入 GCS
+ */
+export const uploadFile = (filePath, destination, contentType) => {
+  return new Promise((resolve, reject) => {
+    const file = bucket.file(destination)
+    const stream = file.createWriteStream({
+      resumable: false,
+      metadata: { contentType }
+    })
+    fs.createReadStream(filePath)
+      .on('error', reject)
+      .pipe(stream)
+      .on('error', reject)
+      .on('finish', () => resolve(destination))
   })
 }
 

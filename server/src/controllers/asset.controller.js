@@ -6,7 +6,7 @@ import Folder from '../models/folder.model.js'
 import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import path from 'node:path'
-import { uploadStream, getSignedUrl } from '../utils/gcs.js'
+import { uploadFile as gcsUploadFile, getSignedUrl } from '../utils/gcs.js'
 import fs from 'node:fs/promises'
 import { getDescendantFolderIds, getAncestorFolderIds, getRootFolder } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
@@ -35,8 +35,9 @@ export const uploadFile = async (req, res) => {
   const ext = path.extname(req.file.originalname)
   const filename = unique + ext
 
-  // ✅ 使用記憶體 buffer 串流上傳到 GCS（不落地磁碟）
-  const gcsPath = await uploadStream(req.file.buffer, filename, req.file.mimetype)
+  // 將暫存檔案串流上傳至 GCS
+  const gcsPath = await gcsUploadFile(req.file.path, filename, req.file.mimetype)
+  await fs.unlink(req.file.path)
 
   // ➤ 檔案權限與 folder 設定
   let baseUsers = []
