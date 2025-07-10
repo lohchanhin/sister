@@ -118,7 +118,16 @@
             <el-date-picker v-if="field.type === 'date'" v-model="recordForm.extraData[field.name]" type="date"
               style="flex:1" />
             <el-input v-else v-model="recordForm.extraData[field.name]" style="flex:1" />
-            <el-color-picker v-model="recordForm.colors[field.name]" />
+            <!-- 固定色票下拉 -->
+            <el-select v-model="recordForm.colors[field.name]" placeholder="顏色" style="width: 100px" clearable>
+              <el-option v-for="opt in colorOptions" :key="opt.value" :label="opt.label" :value="opt.value">
+                <!-- 色塊 + 文字 -->
+                <span class="inline-block w-3 h-3 mr-2 align-middle rounded-sm"
+                  :style="{ backgroundColor: opt.value }" />
+                {{ opt.label }}
+              </el-option>
+            </el-select>
+
           </div>
         </el-form-item>
       </el-form>
@@ -214,6 +223,13 @@ import {
 } from '@/services/adDaily'
 import { fetchWeeklyNote, fetchWeeklyNotes, createWeeklyNote, updateWeeklyNote, getWeeklyNoteImageUrl } from '@/services/weeklyNotes'
 import { getPlatform } from '@/services/platforms'
+
+/* ======== 固定 3 色 ======== */
+const colorOptions = [
+  { label: '淺青', value: '#CCF2F4' },
+  { label: '淺黃', value: '#FFF9C4' },
+  { label: '淺紅', value: '#FFCDD2' }
+]
 
 /**** ----------------------------- 路由 & 基本狀態 ----------------------------- ****/
 const { clientId, platformId } = useRoute().params
@@ -325,7 +341,7 @@ const formatWeekRange = (w) => {
   // 依 ISO 8601 規定，1 月 4 日必定落在該年的第 1 週
   const base = dayjs(`${y}-01-04`).isoWeek(Number(wk))  // ➜ 該 ISO 週的「週四」
   const start = base.startOf('isoWeek').format('YYYY/MM/DD')
-  const end   = base.endOf('isoWeek').format('YYYY/MM/DD')
+  const end = base.endOf('isoWeek').format('YYYY/MM/DD')
   return `${start} - ${end}`
 }
 
