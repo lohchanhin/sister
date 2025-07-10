@@ -315,17 +315,21 @@ const dateFmt = row => dayjs(row.date).format('YYYY-MM-DD')
 const formatExtraDate = val =>
   val ? dayjs(val).format('YYYY-MM-DD') : ''
 
-// 將 "YYYY-WW" 轉成 "YYYY/MM/DD - YYYY/MM/DD"
-const formatWeekRange = w => {
+// 將 "YYYY-WW" 轉為 "YYYY/MM/DD - YYYY/MM/DD"
+const formatWeekRange = (w) => {
   if (!w) return ''
   const m = String(w).match(/(\d{4})-W?(\d{1,2})/)
   if (!m) return ''
   const [, y, wk] = m
-  const base = dayjs().isoWeekYear(Number(y)).isoWeek(Number(wk))
+
+  // 依 ISO 8601 規定，1 月 4 日必定落在該年的第 1 週
+  const base = dayjs(`${y}-01-04`).isoWeek(Number(wk))  // ➜ 該 ISO 週的「週四」
   const start = base.startOf('isoWeek').format('YYYY/MM/DD')
-  const end = base.endOf('isoWeek').format('YYYY/MM/DD')
+  const end   = base.endOf('isoWeek').format('YYYY/MM/DD')
   return `${start} - ${end}`
 }
+
+
 
 
 /** 格式化筆記文字為 HTML */
