@@ -1,7 +1,7 @@
 import mongoose from 'mongoose'
 import AdDaily from '../models/adDaily.model.js'
 import path from 'node:path'
-import { uploadStream } from '../utils/gcs.js'
+import { uploadFile } from '../utils/gcs.js'
 import fs from 'node:fs/promises'
 
 const sanitizeNumber = val =>
@@ -133,7 +133,7 @@ export const importAdDaily = async (req, res) => {
   const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
   const ext = path.extname(req.file.originalname)
   const filename = unique + ext
-  const filePath = await uploadStream(
+  const filePath = await uploadFile(
     req.file.path,
     filename,
     req.file.mimetype

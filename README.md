@@ -31,9 +31,11 @@
 
  ```bash
  GCS_PROJECT_ID=你的專案 ID
- GCS_BUCKET=你的 Bucket 名稱
- GCS_KEY_FILE=service-account.json 路徑
- ```
+GCS_BUCKET=你的 Bucket 名稱
+GCS_KEY_FILE=service-account.json 路徑
+```
+
+此外，可透過 `UPLOAD_DIR` 指定暫存上傳檔案的資料夾，預設為 `/tmp/uploads`。
 
  如未建立過 Bucket，可至 Google Cloud Console：
  1. 建立專案並啟用 **Cloud Storage**。
