@@ -30,16 +30,15 @@ export const uploadFile = async (req, res) => {
     return res.status(400).json({ message: '未上傳檔案' })
   }
 
+  // 產生唯一檔名
   const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
   const ext = path.extname(req.file.originalname)
   const filename = unique + ext
-  const gcsPath = await uploadStream(
-    req.file.path,
-    filename,
-    req.file.mimetype
-  )
-  await fs.unlink(req.file.path)
 
+  // ✅ 使用記憶體 buffer 串流上傳到 GCS（不落地磁碟）
+  const gcsPath = await uploadStream(req.file.buffer, filename, req.file.mimetype)
+
+  // ➤ 檔案權限與 folder 設定
   let baseUsers = []
   if (req.body.folderId) {
     const root = await getRootFolder(req.body.folderId)
@@ -49,9 +48,11 @@ export const uploadFile = async (req, res) => {
       ? Array.from(new Set([...req.body.allowedUsers, req.user._id]))
       : [req.user._id]
   }
+
+  // ➤ 建立 Asset 資料
   const asset = await Asset.create({
-    title: req.file.originalname,     // 顯示用標題
-    filename,         // 實際檔名
+    title: req.file.originalname,
+    filename,
     path: gcsPath,
     type: req.body.type || 'raw',
     reviewStatus: req.body.type === 'edited' ? 'pending' : undefined,
@@ -62,6 +63,7 @@ export const uploadFile = async (req, res) => {
     allowedUsers: await includeManagers(baseUsers)
   })
 
+  // ➤ 更新對應資料夾
   if (asset.folderId) {
     await Folder.findByIdAndUpdate(asset.folderId, {
       $addToSet: { allowedUsers: req.user._id },
@@ -76,6 +78,7 @@ export const uploadFile = async (req, res) => {
   await clearCacheByPrefix('assets:')
   res.status(201).json(asset)
 }
+
 
 /* ---------- GET /api/assets ---------- */
 export const getAssets = async (req, res) => {
