@@ -261,10 +261,10 @@ const weeklyNotes = ref({})       // { '2025-W25': { week:'2025-W25', text:'...'
 
 /**** 週資料（前端彙總） ****/
 const weeklyAgg = computed(() => {
-  // 以 YYYY-WW 為 Key，彙總每個欄位
+  // 以 YYYY-[W]WW 為 Key，彙總每個欄位
   const map = {}
   dailyData.value.forEach(d => {
-    const week = dayjs(d.date).format('YYYY-WW')
+    const week = dayjs(d.date).format('YYYY-[W]WW')
     if (!map[week]) {
       map[week] = { week }
       customColumns.value.forEach(f => {
