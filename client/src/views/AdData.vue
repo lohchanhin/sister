@@ -35,16 +35,11 @@
           <el-table-column prop="date" label="日期" :formatter="dateFmt" width="140" />
           <el-table-column v-for="field in customColumns" :key="field.name" :label="field.name">
             <template #default="{ row }">
-              <span
-                v-if="field.type === 'date'"
-                :style="{ backgroundColor: row.colors?.[field.name] }"
-              >
+              <span v-if="field.type === 'date'" :style="{ backgroundColor: row.colors?.[field.name] }">
                 {{ formatExtraDate(row.extraData?.[field.name]) }}
               </span>
-              <span
-                v-else
-                :style="{ backgroundColor: row.colors?.[field.name] }"
-              >{{ row.extraData?.[field.name] ?? '' }}</span>
+              <span v-else :style="{ backgroundColor: row.colors?.[field.name] }">{{ row.extraData?.[field.name] ?? ''
+              }}</span>
             </template>
           </el-table-column>
           <el-table-column label="操作" width="160">
@@ -73,7 +68,8 @@
 
         <!-- 週表格 -->
         <el-table :data="weeklyAgg" stripe style="width:100%" empty-text="尚無資料">
-          <el-table-column label="週" width="180">
+          <!-- 第一欄 -->
+          <el-table-column label="日期" width="200">
             <template #default="{ row }">
               {{ formatWeekRange(row.week) }}
             </template>
@@ -111,12 +107,7 @@
     </el-tabs>
 
     <!-- ─────────── Dialog：新增/編輯每日 ─────────── -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="editing ? '編輯每日記錄' : '新增每日記錄'"
-      width="460px"
-      destroy-on-close
-    >
+    <el-dialog v-model="dialogVisible" :title="editing ? '編輯每日記錄' : '新增每日記錄'" width="460px" destroy-on-close>
       <el-form label-position="top" @submit.prevent>
         <el-form-item label="日期">
           <el-date-picker v-model="recordForm.date" type="date" style="width:100%" />
@@ -124,12 +115,8 @@
         <!-- 動態欄位輸入 -->
         <el-form-item v-for="field in customColumns" :key="field.name" :label="field.name">
           <div class="flex items-center gap-2 w-full">
-            <el-date-picker
-              v-if="field.type === 'date'"
-              v-model="recordForm.extraData[field.name]"
-              type="date"
-              style="flex:1"
-            />
+            <el-date-picker v-if="field.type === 'date'" v-model="recordForm.extraData[field.name]" type="date"
+              style="flex:1" />
             <el-input v-else v-model="recordForm.extraData[field.name]" style="flex:1" />
             <el-color-picker v-model="recordForm.colors[field.name]" />
           </div>
@@ -317,7 +304,7 @@ const excelSpec = computed(() => {
       field: f.name,
       type: f.type === 'number' ? '數字'
         : f.type === 'date' ? '日期 (YYYY-MM-DD)'
-        : '文字',
+          : '文字',
       sample: f.type === 'date' ? dayjs().format('YYYY-MM-DD') : ''
     }))
   )
@@ -328,17 +315,18 @@ const dateFmt = row => dayjs(row.date).format('YYYY-MM-DD')
 const formatExtraDate = val =>
   val ? dayjs(val).format('YYYY-MM-DD') : ''
 
-// 將 "YYYY-WW" 格式的週期轉成 "DD/MM/YYYY - DD/MM/YYYY"
+// 將 "YYYY-WW" 轉成 "YYYY/MM/DD - YYYY/MM/DD"
 const formatWeekRange = w => {
   if (!w) return ''
   const m = String(w).match(/(\d{4})-W?(\d{1,2})/)
   if (!m) return ''
   const [, y, wk] = m
   const base = dayjs().isoWeekYear(Number(y)).isoWeek(Number(wk))
-  const start = base.startOf('isoWeek').format('DD/MM/YYYY')
-  const end = base.endOf('isoWeek').format('DD/MM/YYYY')
+  const start = base.startOf('isoWeek').format('YYYY/MM/DD')
+  const end = base.endOf('isoWeek').format('YYYY/MM/DD')
   return `${start} - ${end}`
 }
+
 
 /** 格式化筆記文字為 HTML */
 const escapeHtml = str =>
@@ -576,7 +564,7 @@ async function exportWeekly() {
   const ws = wb.addWorksheet('weekly')
 
   /* 標頭 */
-  const headers = ['週', ...numericColumns.value, '筆記', '圖片']
+  const headers = ['日期', ...numericColumns.value, '筆記', '圖片']
   ws.addRow(headers)
   ws.getRow(1).font = { bold: true }
 
