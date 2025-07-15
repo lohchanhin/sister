@@ -496,33 +496,29 @@ async function createNewFolder() {
   loadData(currentFolder.value?._id)
 }
 
-const progressList = ref({})
-
 function handleProgress(evt, file) {
-  progressList.value[file.uid] = Math.round(evt.percent)
+  ui.updateUpload(file.uid, Math.round(evt.percent))
 }
 
 function handleSuccess(_, file) {
-  progressList.value[file.uid] = 100
-  setTimeout(() => delete progressList.value[file.uid], 500)
+  ui.updateUpload(file.uid, 100)
+  setTimeout(() => ui.finishUpload(file.uid), 500)
   ElMessage.success('上傳完成')
   loadData(currentFolder.value?._id)
 }
 
 function handleError(_, file) {
-  delete progressList.value[file.uid]
+  ui.finishUpload(file.uid)
 }
 
 
 async function uploadRequest({ file, onProgress, onSuccess, onError }) {
-  ui.startUpload()
+  ui.startUpload(file.uid, file.name)
   try {
     await uploadAsset(file, currentFolder.value?._id, null, onProgress)
     onSuccess()
   } catch (e) {
     onError(e)
-  } finally {
-    ui.finishUpload()
   }
 }
 

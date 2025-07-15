@@ -1,7 +1,12 @@
 <template>
   <transition name="slide-up">
-    <div v-if="ui.uploading > 0" class="snackbar">
-      正在上傳中...
+    <div v-if="Object.keys(ui.uploads).length" class="snackbar">
+      <div v-for="(u, id) in ui.uploads" :key="id" class="item">
+        <span class="name">{{ u.name }}</span>
+        <div class="progress">
+          <div class="bar" :style="{ width: u.percent + '%' }"></div>
+        </div>
+      </div>
     </div>
   </transition>
 </template>
@@ -22,6 +27,29 @@ const ui = useUiStore()
   color: #fff;
   border-radius: 4px;
   z-index: 5000;
+}
+.item {
+  margin-bottom: 4px;
+}
+.name {
+  display: block;
+  font-size: 0.875rem;
+  margin-bottom: 2px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.progress {
+  width: 200px;
+  height: 4px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 2px;
+}
+.bar {
+  height: 100%;
+  background: #4ade80;
+  border-radius: 2px;
 }
 .slide-up-enter-active,
 .slide-up-leave-active {

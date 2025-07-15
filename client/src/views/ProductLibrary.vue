@@ -522,19 +522,16 @@ async function createNewFolder() {
 }
 
 /* ---------- 上傳 ---------- */
-const progressList = ref({})
-const handleProgress = (evt, f) => progressList.value[f.uid] = Math.round(evt.percent)
-const handleSuccess = (_, f) => { progressList.value[f.uid] = 100; setTimeout(() => delete progressList.value[f.uid], 500); ElMessage.success('上傳完成'); loadData(currentFolder.value?._id) }
-const handleError = (_, f) => delete progressList.value[f.uid]
+const handleProgress = (evt, f) => ui.updateUpload(f.uid, Math.round(evt.percent))
+const handleSuccess = (_, f) => { ui.updateUpload(f.uid, 100); setTimeout(() => ui.finishUpload(f.uid), 500); ElMessage.success('上傳完成'); loadData(currentFolder.value?._id) }
+const handleError = (_, f) => ui.finishUpload(f.uid)
 async function uploadRequest({ file, onProgress, onSuccess, onError }) {
-  ui.startUpload()
+  ui.startUpload(file.uid, file.name)
   try {
     await uploadProduct(file, currentFolder.value?._id, onProgress)
     onSuccess()
   } catch (e) {
     onError(e)
-  } finally {
-    ui.finishUpload()
   }
 }
 
