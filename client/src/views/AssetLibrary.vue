@@ -113,11 +113,11 @@
             </div>
           </el-scrollbar>
 
-      <div v-if="f.tags?.length" class="tag-list mt-1">
-        <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
-      </div>
-      <div class="text-xs text-gray-500 mt-1">{{ formatDate(f.createdAt) }} / {{ f.creatorName || '—' }}</div>
-    </el-card>
+          <div v-if="f.tags?.length" class="tag-list mt-1">
+            <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
+          </div>
+          <div class="text-xs text-gray-500 mt-1">{{ formatDate(f.createdAt) }} / {{ f.creatorName || '—' }}</div>
+        </el-card>
 
         <!-- ===== 素材卡 ===== -->
         <el-card v-for="a in assets" :key="a._id" class="asset-card card-base cursor-pointer" shadow="hover"
@@ -147,11 +147,11 @@
             </div>
           </el-scrollbar>
 
-      <div v-if="a.tags?.length" class="tag-list mt-1">
-        <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
-      </div>
-      <div class="text-xs text-gray-500 mt-1">{{ formatDate(a.createdAt) }} / {{ a.uploaderName || '—' }}</div>
-    </el-card>
+          <div v-if="a.tags?.length" class="tag-list mt-1">
+            <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
+          </div>
+          <div class="text-xs text-gray-500 mt-1">{{ formatDate(a.createdAt) }} / {{ a.uploaderName || '—' }}</div>
+        </el-card>
       </transition-group>
       <!-- ==================== 列表檢視 ==================== -->
       <div v-else class="list-view">
@@ -164,16 +164,17 @@
 
           <span class="name cursor-pointer" @click="openFolder(f)">{{ f.name }}</span>
           <el-tag v-if="isRecent(f.updatedAt)" type="warning" size="small" class="ml-1">最近更新</el-tag>
+          <span class="mr-2 text-xs text-gray-500">{{ formatDate(f.createdAt) }} / {{ f.creatorName || '—' }}</span>
           <div class="flex-1"></div>
-        <div v-if="f.tags?.length" class="mr-2">
-          <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
-        </div>
-        <span class="mr-2 text-xs text-gray-500">{{ formatDate(f.createdAt) }} / {{ f.creatorName || '—' }}</span>
-        <el-button link size="small" @click="showDetailFor(f, 'folder')">
-          <el-icon>
-            <InfoFilled />
-          </el-icon>
-        </el-button>
+          <div v-if="f.tags?.length" class="mr-2">
+            <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
+          </div>
+
+          <el-button link size="small" @click="showDetailFor(f, 'folder')">
+            <el-icon>
+              <InfoFilled />
+            </el-icon>
+          </el-button>
         </div>
 
         <!-- ── 素材列 ── -->
@@ -184,15 +185,15 @@
 
           <span class="name cursor-pointer" @click="previewAsset(a)">{{ a.title || a.filename }}</span>
           <div class="flex-1"></div>
-        <div v-if="a.tags?.length" class="mr-2">
-          <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
-        </div>
-        <span class="mr-2 text-xs text-gray-500">{{ formatDate(a.createdAt) }} / {{ a.uploaderName || '—' }}</span>
-        <el-button link size="small" @click="showDetailFor(a, 'asset')">
-          <el-icon>
-            <InfoFilled />
-          </el-icon>
-        </el-button>
+          <div v-if="a.tags?.length" class="mr-2">
+            <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
+          </div>
+          <span class="mr-2 text-xs text-gray-500">{{ formatDate(a.createdAt) }} / {{ a.uploaderName || '—' }}</span>
+          <el-button link size="small" @click="showDetailFor(a, 'asset')">
+            <el-icon>
+              <InfoFilled />
+            </el-icon>
+          </el-button>
         </div>
       </div>
     </div>
