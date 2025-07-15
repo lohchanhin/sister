@@ -2,14 +2,17 @@ import { defineStore } from 'pinia'
 
 export const useUiStore = defineStore('ui', {
   state: () => ({
-    uploading: 0
+    uploads: {}
   }),
   actions: {
-    startUpload() {
-      this.uploading++
+    startUpload(uid, name) {
+      this.uploads[uid] = { name, percent: 0 }
     },
-    finishUpload() {
-      if (this.uploading > 0) this.uploading--
+    updateUpload(uid, percent) {
+      if (this.uploads[uid]) this.uploads[uid].percent = percent
+    },
+    finishUpload(uid) {
+      delete this.uploads[uid]
     }
   }
 })
