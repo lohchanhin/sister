@@ -118,6 +118,7 @@
           <el-tag v-if="f.progress" size="small" class="progress-tag mt-1">
             {{ f.progress.done }}/{{ f.progress.total }}
           </el-tag>
+          <div class="text-xs text-gray-500 mt-1">{{ formatDate(f.createdAt) }} / {{ f.creatorName || '—' }}</div>
         </el-card>
 
         <!-- □□□ Product Card □□□ -->
@@ -150,10 +151,11 @@
             </div>
           </el-scrollbar>
 
-          <div v-if="p.tags?.length" class="tag-list mt-1">
-            <el-tag v-for="tag in p.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
-          </div>
-        </el-card>
+        <div v-if="p.tags?.length" class="tag-list mt-1">
+          <el-tag v-for="tag in p.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
+        </div>
+        <div class="text-xs text-gray-500 mt-1">{{ formatDate(p.createdAt) }} / {{ p.uploaderName || '—' }}</div>
+      </el-card>
       </transition-group>
 
       <!-- ==================== 列表檢視 ==================== -->
@@ -166,17 +168,18 @@
           <span class="name cursor-pointer" @click="openFolder(f)">{{ f.name }}</span>
           <el-tag v-if="isRecent(f.updatedAt)" type="warning" size="small" class="ml-1">1天內有更新</el-tag>
           <div class="flex-1"></div>
-          <div v-if="f.tags?.length" class="mr-2">
-            <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
-          </div>
-          <el-tag v-if="f.progress" size="small" class="progress-tag mr-2">
-            {{ f.progress.done }}/{{ f.progress.total }}
-          </el-tag>
-          <el-button link size="small" @click="showDetailFor(f, 'folder')">
-            <el-icon>
-              <InfoFilled />
-            </el-icon>
-          </el-button>
+        <div v-if="f.tags?.length" class="mr-2">
+          <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
+        </div>
+        <el-tag v-if="f.progress" size="small" class="progress-tag mr-2">
+          {{ f.progress.done }}/{{ f.progress.total }}
+        </el-tag>
+        <span class="mr-2 text-xs text-gray-500">{{ formatDate(f.createdAt) }} / {{ f.creatorName || '—' }}</span>
+        <el-button link size="small" @click="showDetailFor(f, 'folder')">
+          <el-icon>
+            <InfoFilled />
+          </el-icon>
+        </el-button>
         </div>
 
         <!-- □□□ Product Row □□□ -->
@@ -187,14 +190,15 @@
           <span class="name cursor-pointer" @click="previewProduct(p)">{{ p.title || p.filename }}</span>
           <span v-if="p.price" class="ml-2 text-xs font-medium">RM {{ p.price }}</span>
           <div class="flex-1"></div>
-          <div v-if="p.tags?.length" class="mr-2">
-            <el-tag v-for="tag in p.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
-          </div>
-          <el-button link size="small" @click="showDetailFor(p, 'product')">
-            <el-icon>
-              <InfoFilled />
-            </el-icon>
-          </el-button>
+        <div v-if="p.tags?.length" class="mr-2">
+          <el-tag v-for="tag in p.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
+        </div>
+        <span class="mr-2 text-xs text-gray-500">{{ formatDate(p.createdAt) }} / {{ p.uploaderName || '—' }}</span>
+        <el-button link size="small" @click="showDetailFor(p, 'product')">
+          <el-icon>
+            <InfoFilled />
+          </el-icon>
+        </el-button>
         </div>
       </div>
     </div>
@@ -239,6 +243,12 @@
               <el-select v-model="detail.allowedUsers" multiple filterable style="width:100%">
                 <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
               </el-select>
+            </el-form-item>
+            <el-form-item label="建立時間">
+              <div>{{ formatDate(detail.createdAt) }}</div>
+            </el-form-item>
+            <el-form-item :label="detailType === 'product' ? '上傳者' : '建立者'">
+              <div>{{ detail.creatorName || '—' }}</div>
             </el-form-item>
           </el-form>
         </el-scrollbar>
@@ -349,7 +359,7 @@ const batchUsers = ref([])
 const showHelp = ref(false)
 const previewVisible = ref(false)
 const previewItem = ref(null)
-const detail = ref({ title: '', description: '', script: '', tags: [], allowedUsers: [] })
+const detail = ref({ title: '', description: '', script: '', tags: [], allowedUsers: [], createdAt: '', creatorName: '' })
 const showDetail = ref(false)
 const detailType = ref('folder')  // 'folder' | 'product'
 
@@ -450,6 +460,8 @@ async function showDetailFor(item, type) {
   detail.value.script = item.script || ''
   detail.value.tags = Array.isArray(item.tags) ? [...item.tags] : []
   detail.value.allowedUsers = Array.isArray(item.allowedUsers) ? [...item.allowedUsers] : []
+  detail.value.createdAt = item.createdAt
+  detail.value.creatorName = item.uploaderName || item.creatorName || ''
 
   previewItem.value = type === 'product' ? item : null
 
@@ -556,6 +568,7 @@ async function downloadProduct(p) {
 const isImage = a => /\.(png|jpe?g|gif|webp)$/i.test(a?.filename || '')
 const isDocument = a => /\.(docx?|pdf)$/i.test(a?.filename || '')
 const docPreviewUrl = a => `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(a?.url || '')}`
+const formatDate = d => d ? new Date(d).toLocaleString() : '—'
 </script>
 
 <style scoped>

@@ -113,10 +113,11 @@
             </div>
           </el-scrollbar>
 
-          <div v-if="f.tags?.length" class="tag-list mt-1">
-            <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
-          </div>
-        </el-card>
+      <div v-if="f.tags?.length" class="tag-list mt-1">
+        <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
+      </div>
+      <div class="text-xs text-gray-500 mt-1">{{ formatDate(f.createdAt) }} / {{ f.creatorName || '—' }}</div>
+    </el-card>
 
         <!-- ===== 素材卡 ===== -->
         <el-card v-for="a in assets" :key="a._id" class="asset-card card-base cursor-pointer" shadow="hover"
@@ -146,10 +147,11 @@
             </div>
           </el-scrollbar>
 
-          <div v-if="a.tags?.length" class="tag-list mt-1">
-            <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
-          </div>
-        </el-card>
+      <div v-if="a.tags?.length" class="tag-list mt-1">
+        <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
+      </div>
+      <div class="text-xs text-gray-500 mt-1">{{ formatDate(a.createdAt) }} / {{ a.uploaderName || '—' }}</div>
+    </el-card>
       </transition-group>
       <!-- ==================== 列表檢視 ==================== -->
       <div v-else class="list-view">
@@ -163,14 +165,15 @@
           <span class="name cursor-pointer" @click="openFolder(f)">{{ f.name }}</span>
           <el-tag v-if="isRecent(f.updatedAt)" type="warning" size="small" class="ml-1">最近更新</el-tag>
           <div class="flex-1"></div>
-          <div v-if="f.tags?.length" class="mr-2">
-            <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
-          </div>
-          <el-button link size="small" @click="showDetailFor(f, 'folder')">
-            <el-icon>
-              <InfoFilled />
-            </el-icon>
-          </el-button>
+        <div v-if="f.tags?.length" class="mr-2">
+          <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
+        </div>
+        <span class="mr-2 text-xs text-gray-500">{{ formatDate(f.createdAt) }} / {{ f.creatorName || '—' }}</span>
+        <el-button link size="small" @click="showDetailFor(f, 'folder')">
+          <el-icon>
+            <InfoFilled />
+          </el-icon>
+        </el-button>
         </div>
 
         <!-- ── 素材列 ── -->
@@ -181,14 +184,15 @@
 
           <span class="name cursor-pointer" @click="previewAsset(a)">{{ a.title || a.filename }}</span>
           <div class="flex-1"></div>
-          <div v-if="a.tags?.length" class="mr-2">
-            <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
-          </div>
-          <el-button link size="small" @click="showDetailFor(a, 'asset')">
-            <el-icon>
-              <InfoFilled />
-            </el-icon>
-          </el-button>
+        <div v-if="a.tags?.length" class="mr-2">
+          <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
+        </div>
+        <span class="mr-2 text-xs text-gray-500">{{ formatDate(a.createdAt) }} / {{ a.uploaderName || '—' }}</span>
+        <el-button link size="small" @click="showDetailFor(a, 'asset')">
+          <el-icon>
+            <InfoFilled />
+          </el-icon>
+        </el-button>
         </div>
       </div>
     </div>
@@ -235,6 +239,12 @@
             <el-select v-model="detail.allowedUsers" multiple filterable style="width:100%">
               <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
             </el-select>
+          </el-form-item>
+          <el-form-item label="建立時間">
+            <div>{{ formatDate(detail.createdAt) }}</div>
+          </el-form-item>
+          <el-form-item :label="detailType === 'asset' ? '上傳者' : '建立者'">
+            <div>{{ detail.creatorName || '—' }}</div>
           </el-form-item>
         </el-form>
       </el-scrollbar>
@@ -330,7 +340,7 @@ const isRootAsset = computed(
   () => detailType.value === 'asset' && currentFolder.value && !currentFolder.value.parentId
 )
 
-const detail = ref({ title: '', description: '', script: '', tags: [], allowedUsers: [] })
+const detail = ref({ title: '', description: '', script: '', tags: [], allowedUsers: [], createdAt: '', creatorName: '' })
 const showDetail = ref(false)
 const detailType = ref('folder')   // 'folder' | 'asset'
 const newFolderName = ref('')
@@ -379,6 +389,8 @@ const isImage = a => /\.(png|jpe?g|gif|webp)$/i.test(a?.filename || '')
 const isDocument = a => /\.(docx?|pdf)$/i.test(a?.filename || '')
 const docPreviewUrl = a =>
   `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(a?.url || '')}`
+
+const formatDate = d => d ? new Date(d).toLocaleString() : '—'
 
 /* 主題色 */
 const sidebarBg = computed(() => getComputedStyle(document.querySelector('.sidebar')).backgroundColor || '#1f2937')
@@ -441,6 +453,8 @@ async function showDetailFor(item, type) {
   detail.value.script = item.script || ''
   detail.value.tags = Array.isArray(item.tags) ? [...item.tags] : []
   detail.value.allowedUsers = Array.isArray(item.allowedUsers) ? [...item.allowedUsers] : []
+  detail.value.createdAt = item.createdAt
+  detail.value.creatorName = item.uploaderName || item.creatorName || ''
 
   previewItem.value = type === 'asset' ? item : null
   showDetail.value = true
