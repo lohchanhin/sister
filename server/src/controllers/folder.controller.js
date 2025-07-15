@@ -37,6 +37,7 @@ export const createFolder = async (req, res) => {
     description: req.body.description,
     script: req.body.script,
     type: req.body.type || 'raw',
+    createdBy: req.user._id,
     tags: parseTags(req.body.tags),
     allowedUsers: await includeManagers(baseUsers)
   })
@@ -67,7 +68,7 @@ export const getFolders = async (req, res) => {
       : req.query.tags.split(',')
     query.tags = { $all: tags }
   }
-  const folders = await Folder.find(query)
+  const folders = await Folder.find(query).populate('createdBy', 'username name')
   let result = folders
   if (req.user.roleId?.name !== 'manager') {
     result = folders.filter(f =>
@@ -88,20 +89,28 @@ export const getFolders = async (req, res) => {
     })
     const data = result.map(f => ({
       ...f.toObject(),
-      progress: { done: map[f._id.toString()] || 0, total }
+      progress: { done: map[f._id.toString()] || 0, total },
+      creatorName: f.createdBy?.name || f.createdBy?.username
     }))
     await setCache(cacheKey, data)
     return res.json(data)
   }
 
-  await setCache(cacheKey, result)
-  res.json(result)
+  const data = result.map(f => ({
+    ...f.toObject(),
+    creatorName: f.createdBy?.name || f.createdBy?.username
+  }))
+  await setCache(cacheKey, data)
+  res.json(data)
 }
 
 export const getFolder = async (req, res) => {
-  const folder = await Folder.findById(req.params.id)
+  const folder = await Folder.findById(req.params.id).populate('createdBy', 'username name')
   if (!folder) return res.status(404).json({ message: '找不到資料夾' })
-  res.json(folder)
+  res.json({
+    ...folder.toObject(),
+    creatorName: folder.createdBy?.name || folder.createdBy?.username
+  })
 }
 
 export const reviewFolder = async (req, res) => {

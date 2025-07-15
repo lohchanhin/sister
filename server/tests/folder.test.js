@@ -21,6 +21,7 @@ let token3
 let folderId
 let user1Id
 let user2Id
+let adminId
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create()
@@ -40,12 +41,13 @@ beforeAll(async () => {
     permissions: ['folder:read']
   })
 
-  await User.create({
+  const admin = await User.create({
     username: 'admin',
     password: 'mypwd',
     email: 'admin@example.com',
     roleId: managerRole._id
   })
+  adminId = admin._id
   const u1 = await User.create({
     username: 'user1',
     password: 'pwd',
@@ -91,6 +93,9 @@ describe('Folder type', () => {
       .expect(201)
     folderId = res.body._id
     expect(res.body.type).toBe('edited')
+    expect(res.body.createdBy).toBe(adminId.toString())
+    const f = await Folder.findById(folderId)
+    expect(f.createdBy.toString()).toBe(adminId.toString())
   })
 
   it('create folder with invalid parent should fail', async () => {

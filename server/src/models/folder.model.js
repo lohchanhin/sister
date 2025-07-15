@@ -13,6 +13,8 @@ const folderSchema = new mongoose.Schema(
       default: 'pending'
     },
 
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+
     /* 可存取使用者 */
     allowedUsers: { type: [mongoose.Schema.Types.ObjectId], ref: 'User', default: [] },
 
