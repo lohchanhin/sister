@@ -151,11 +151,11 @@
             </div>
           </el-scrollbar>
 
-        <div v-if="p.tags?.length" class="tag-list mt-1">
-          <el-tag v-for="tag in p.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
-        </div>
-        <div class="text-xs text-gray-500 mt-1">{{ formatDate(p.createdAt) }} / {{ p.uploaderName || '—' }}</div>
-      </el-card>
+          <div v-if="p.tags?.length" class="tag-list mt-1">
+            <el-tag v-for="tag in p.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
+          </div>
+          <div class="text-xs text-gray-500 mt-1">{{ formatDate(p.createdAt) }} / {{ p.uploaderName || '—' }}</div>
+        </el-card>
       </transition-group>
 
       <!-- ==================== 列表檢視 ==================== -->
@@ -165,21 +165,37 @@
           <el-checkbox v-model="selectedItems" :label="f._id" class="mr-2" @click.stop>
             <template #default></template>
           </el-checkbox>
+
+          <!-- 名稱 -->
           <span class="name cursor-pointer" @click="openFolder(f)">{{ f.name }}</span>
+
+          <!-- 最近更新 -->
           <el-tag v-if="isRecent(f.updatedAt)" type="warning" size="small" class="ml-1">1天內有更新</el-tag>
+
+          <!-- ★ 日期／建立者：移到中段 ★ -->
+          <span class="mx-2 text-xs text-gray-500">
+            {{ formatDate(f.createdAt) }} / {{ f.creatorName || '—' }}
+          </span>
+
+          <!-- 推右側 -->
           <div class="flex-1"></div>
-        <div v-if="f.tags?.length" class="mr-2">
-          <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
-        </div>
-        <el-tag v-if="f.progress" size="small" class="progress-tag mr-2">
-          {{ f.progress.done }}/{{ f.progress.total }}
-        </el-tag>
-        <span class="mr-2 text-xs text-gray-500">{{ formatDate(f.createdAt) }} / {{ f.creatorName || '—' }}</span>
-        <el-button link size="small" @click="showDetailFor(f, 'folder')">
-          <el-icon>
-            <InfoFilled />
-          </el-icon>
-        </el-button>
+
+          <!-- 標籤群 -->
+          <div v-if="f.tags?.length" class="mr-2">
+            <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
+          </div>
+
+          <!-- 進度 -->
+          <el-tag v-if="f.progress" size="small" class="progress-tag mr-2">
+            {{ f.progress.done }}/{{ f.progress.total }}
+          </el-tag>
+
+          <!-- 詳細 -->
+          <el-button link size="small" @click="showDetailFor(f, 'folder')">
+            <el-icon>
+              <InfoFilled />
+            </el-icon>
+          </el-button>
         </div>
 
         <!-- □□□ Product Row □□□ -->
@@ -187,20 +203,37 @@
           <el-checkbox v-model="selectedItems" :label="p._id" class="mr-2" @click.stop>
             <template #default></template>
           </el-checkbox>
-          <span class="name cursor-pointer" @click="previewProduct(p)">{{ p.title || p.filename }}</span>
+
+          <!-- 名稱 -->
+          <span class="name cursor-pointer" @click="previewProduct(p)">
+            {{ p.title || p.filename }}
+          </span>
+
+          <!-- 價格 -->
           <span v-if="p.price" class="ml-2 text-xs font-medium">RM {{ p.price }}</span>
+
+          <!-- ★ 日期／上傳者：同樣移到中段 ★ -->
+          <span class="mx-2 text-xs text-gray-500">
+            {{ formatDate(p.createdAt) }} / {{ p.uploaderName || '—' }}
+          </span>
+
+          <!-- 推右側 -->
           <div class="flex-1"></div>
-        <div v-if="p.tags?.length" class="mr-2">
-          <el-tag v-for="tag in p.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
-        </div>
-        <span class="mr-2 text-xs text-gray-500">{{ formatDate(p.createdAt) }} / {{ p.uploaderName || '—' }}</span>
-        <el-button link size="small" @click="showDetailFor(p, 'product')">
-          <el-icon>
-            <InfoFilled />
-          </el-icon>
-        </el-button>
+
+          <!-- 標籤群 -->
+          <div v-if="p.tags?.length" class="mr-2">
+            <el-tag v-for="tag in p.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
+          </div>
+
+          <!-- 詳細 -->
+          <el-button link size="small" @click="showDetailFor(p, 'product')">
+            <el-icon>
+              <InfoFilled />
+            </el-icon>
+          </el-button>
         </div>
       </div>
+
     </div>
 
     <!-- ===== 詳細資訊 Dialog ===== -->

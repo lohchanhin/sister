@@ -157,19 +157,35 @@
       <div v-else class="list-view">
         <!-- ── 資料夾列 ── -->
         <div class="list-row" v-for="f in folders" :key="f._id">
-          <!-- ★ 空插槽 + @click.stop：僅保留勾選功能，不顯示文字 -->
+          <!-- 勾選框 -->
           <el-checkbox v-model="selectedItems" :label="f._id" class="mr-2" @click.stop>
             <template #default></template>
           </el-checkbox>
 
-          <span class="name cursor-pointer" @click="openFolder(f)">{{ f.name }}</span>
-          <el-tag v-if="isRecent(f.updatedAt)" type="warning" size="small" class="ml-1">最近更新</el-tag>
-          <span class="mr-2 text-xs text-gray-500">{{ formatDate(f.createdAt) }} / {{ f.creatorName || '—' }}</span>
+          <!-- 名稱 -->
+          <span class="name cursor-pointer" @click="openFolder(f)">
+            {{ f.name }}
+          </span>
+
+          <!-- 最近更新標籤 -->
+          <el-tag v-if="isRecent(f.updatedAt)" type="warning" size="small" class="ml-1">
+            最近更新
+          </el-tag>
+
+          <!-- ★ 日期放中間 ★ -->
+          <span class="mx-2 text-xs text-gray-500">
+            {{ formatDate(f.createdAt) }} / {{ f.creatorName || '—' }}
+          </span>
+
+          <!-- 推右側 -->
           <div class="flex-1"></div>
+
+          <!-- 標籤群 -->
           <div v-if="f.tags?.length" class="mr-2">
             <el-tag v-for="tag in f.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
           </div>
 
+          <!-- 詳細資訊 -->
           <el-button link size="small" @click="showDetailFor(f, 'folder')">
             <el-icon>
               <InfoFilled />
@@ -183,12 +199,25 @@
             <template #default></template>
           </el-checkbox>
 
-          <span class="name cursor-pointer" @click="previewAsset(a)">{{ a.title || a.filename }}</span>
+          <!-- 名稱 -->
+          <span class="name cursor-pointer" @click="previewAsset(a)">
+            {{ a.title || a.filename }}
+          </span>
+
+          <!-- ★ 日期同樣放中間 ★ -->
+          <span class="mx-2 text-xs text-gray-500">
+            {{ formatDate(a.createdAt) }} / {{ a.uploaderName || '—' }}
+          </span>
+
+          <!-- 推右側 -->
           <div class="flex-1"></div>
+
+          <!-- 標籤群 -->
           <div v-if="a.tags?.length" class="mr-2">
             <el-tag v-for="tag in a.tags" :key="tag" size="small" class="mr-1">{{ tag }}</el-tag>
           </div>
-          <span class="mr-2 text-xs text-gray-500">{{ formatDate(a.createdAt) }} / {{ a.uploaderName || '—' }}</span>
+
+          <!-- 詳細資訊 -->
           <el-button link size="small" @click="showDetailFor(a, 'asset')">
             <el-icon>
               <InfoFilled />
@@ -196,6 +225,7 @@
           </el-button>
         </div>
       </div>
+
     </div>
 
 
