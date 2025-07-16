@@ -431,6 +431,8 @@ const detailTitle = computed(() =>
     : currentFolder.value?.name || '資訊')
 
 async function loadData(id = null) {
+  folders.value = []
+  assets.value = []
   folders.value = await fetchFolders(id, filterTags.value, 'raw')
   assets.value = id ? await fetchAssets(id, 'raw', filterTags.value) : []
   currentFolder.value = id ? await getFolder(id) : null
