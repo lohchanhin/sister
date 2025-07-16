@@ -4,7 +4,7 @@
       <div v-for="(u, id) in ui.uploads" :key="id" class="item">
         <span class="name">{{ u.name }}</span>
         <div class="progress">
-          <div class="bar" :style="{ width: u.percent + '%' }"></div>
+          <div class="bar" :class="{ error: u.error }" :style="{ width: u.percent + '%' }"></div>
         </div>
       </div>
     </div>
@@ -50,6 +50,9 @@ const ui = useUiStore()
   height: 100%;
   background: #4ade80;
   border-radius: 2px;
+}
+.bar.error {
+  background: #f87171;
 }
 .slide-up-enter-active,
 .slide-up-leave-active {

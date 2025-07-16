@@ -555,7 +555,8 @@ function handleSuccess(_, file) {
 }
 
 function handleError(_, file) {
-  ui.finishUpload(file.uid)
+  ui.uploads[file.uid].error = true
+  ElMessage.error(`檔案 ${file.name} 上傳失敗`)
 }
 
 
