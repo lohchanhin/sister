@@ -1,6 +1,6 @@
 import {
   fetchProducts,
-  uploadAsset,
+  uploadAssetAuto,
   updateAsset,
   deleteAsset,
   reviewAsset,
@@ -13,7 +13,7 @@ import {
 export { fetchProducts }
 
 export const uploadProduct = (file, folderId, progressCb) =>
-  uploadAsset(file, folderId, { type: 'edited' }, progressCb)
+  uploadAssetAuto(file, folderId, { type: 'edited' }, progressCb)
 
 export const updateProduct = (id, data) =>
   updateAsset(id, data)

@@ -342,7 +342,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers } from '../services/folders'
-import { fetchAssets, uploadAsset, updateAsset, deleteAsset, updateAssetsViewers, getAssetUrl } from '../services/assets'
+import { fetchAssets, uploadAssetAuto, updateAsset, deleteAsset, updateAssetsViewers, getAssetUrl } from '../services/assets'
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
@@ -560,7 +560,7 @@ function handleError(_, file) {
 async function uploadRequest({ file, onProgress, onSuccess, onError }) {
   ui.startUpload(file.uid, file.name)
   try {
-    await uploadAsset(file, currentFolder.value?._id, null, onProgress)
+    await uploadAssetAuto(file, currentFolder.value?._id, null, onProgress)
     onSuccess()
   } catch (e) {
     onError(e)

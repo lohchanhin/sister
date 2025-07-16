@@ -363,9 +363,10 @@ import {
   updateFoldersViewers, reviewFolder, fetchFolderStages, updateFolderStage
 } from '../services/folders'
 import {
-  fetchProducts, uploadProduct, updateProduct, deleteProduct,
+  fetchProducts, updateProduct, deleteProduct,
   updateProductsViewers, getProductUrl
 } from '../services/products'
+import { uploadAssetAuto } from '../services/assets'
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
@@ -573,7 +574,7 @@ const handleError = (_, f) => ui.finishUpload(f.uid)
 async function uploadRequest({ file, onProgress, onSuccess, onError }) {
   ui.startUpload(file.uid, file.name)
   try {
-    await uploadProduct(file, currentFolder.value?._id, onProgress)
+    await uploadAssetAuto(file, currentFolder.value?._id, { type: 'edited' }, onProgress)
     onSuccess()
   } catch (e) {
     onError(e)
