@@ -278,6 +278,51 @@ export const updateAssetsViewers = async (req, res) => {
   res.json({ message: '已更新' })
 }
 
+/* ---------- POST /api/assets ---------- */
+export const createAsset = async (req, res) => {
+  const { filename, path: filePath } = req.body
+  if (!filename || !filePath) {
+    return res.status(400).json({ message: '缺少檔名或路徑' })
+  }
+
+  let baseUsers = []
+  if (req.body.folderId) {
+    const root = await getRootFolder(req.body.folderId)
+    baseUsers = root?.allowedUsers || []
+  } else {
+    baseUsers = Array.isArray(req.body.allowedUsers)
+      ? Array.from(new Set([...req.body.allowedUsers, req.user._id]))
+      : [req.user._id]
+  }
+
+  const asset = await Asset.create({
+    title: filename,
+    filename,
+    path: filePath,
+    type: req.body.type || 'raw',
+    reviewStatus: req.body.type === 'edited' ? 'pending' : undefined,
+    uploadedBy: req.user._id,
+    folderId: req.body.folderId || null,
+    description: req.body.description || '',
+    tags: parseTags(req.body.tags),
+    allowedUsers: await includeManagers(baseUsers)
+  })
+
+  if (asset.folderId) {
+    await Folder.findByIdAndUpdate(asset.folderId, {
+      $addToSet: { allowedUsers: req.user._id },
+      $set: { updatedAt: new Date() }
+    })
+    const parents = await getAncestorFolderIds(asset.folderId)
+    if (parents.length) {
+      await Folder.updateMany({ _id: { $in: parents } }, { $set: { updatedAt: new Date() } })
+    }
+  }
+
+  await clearCacheByPrefix('assets:')
+  res.status(201).json(asset)
+}
+
 /* ---------- POST /api/assets/presign ---------- */
 export const presign = async (req, res) => {
   const { filename, contentType } = req.body

@@ -13,7 +13,8 @@ import {
     reviewAsset,
     updateAssetsViewers,
     getAssetSignedUrl,
-    presign
+    presign,
+    createAsset
 } from '../controllers/asset.controller.js'
 import {
   getAssetStages,
@@ -35,6 +36,7 @@ router.post(
   requirePerm(PERMISSIONS.ASSET_CREATE),
   presign
 )
+router.post('/', protect, requirePerm(PERMISSIONS.ASSET_CREATE), createAsset)
 router.get('/', protect, requirePerm(PERMISSIONS.ASSET_READ), getAssets)
 router.post(
   '/:id/comment',

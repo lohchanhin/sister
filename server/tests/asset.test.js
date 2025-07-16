@@ -32,7 +32,7 @@ beforeAll(async () => {
   app.use('/api/auth', authRoutes)
   app.use('/api/assets', assetRoutes)
 
-  const managerRole = await Role.create({ name: 'manager', permissions: ['review:manage', 'asset:read'] })
+  const managerRole = await Role.create({ name: 'manager', permissions: ['review:manage', 'asset:read', 'asset:create'] })
   const empRole = await Role.create({ name: 'employee', permissions: ['asset:read'] })
 
   const admin = await User.create({
@@ -148,6 +148,19 @@ describe('Asset signed url', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
     expect(res.body.url).toMatch(/^https?:\/\/.*file\.mp4/)
+  })
+})
+
+describe('Create asset record', () => {
+  it('should create asset with path', async () => {
+    const res = await request(app)
+      .post('/api/assets')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ filename: 'big.mp4', path: '/tmp/big.mp4' })
+      .expect(201)
+    expect(res.body.filename).toBe('big.mp4')
+    const exist = await Asset.findById(res.body._id)
+    expect(exist).not.toBeNull()
   })
 })
 
