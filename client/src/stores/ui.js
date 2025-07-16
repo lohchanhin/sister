@@ -6,7 +6,7 @@ export const useUiStore = defineStore('ui', {
   }),
   actions: {
     startUpload(uid, name) {
-      this.uploads[uid] = { name, percent: 0 }
+      this.uploads[uid] = { name, percent: 0, error: false }
     },
     updateUpload(uid, percent) {
       if (this.uploads[uid]) this.uploads[uid].percent = percent

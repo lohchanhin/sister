@@ -572,7 +572,10 @@ async function createNewFolder() {
 /* ---------- 上傳 ---------- */
 const handleProgress = (evt, f) => ui.updateUpload(f.uid, Math.round(evt.percent))
 const handleSuccess = (_, f) => { ui.updateUpload(f.uid, 100); setTimeout(() => ui.finishUpload(f.uid), 500); ElMessage.success('上傳完成'); loadData(currentFolder.value?._id) }
-const handleError = (_, f) => ui.finishUpload(f.uid)
+const handleError = (_, f) => {
+  ui.uploads[f.uid].error = true
+  ElMessage.error(`檔案 ${f.name} 上傳失敗`)
+}
 async function uploadRequest({ file, onProgress, onSuccess, onError }) {
   ui.startUpload(file.uid, file.name)
   try {
