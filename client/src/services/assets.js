@@ -76,6 +76,27 @@ export const uploadAssetResumable = async (file, onProgress = null) => {
   return sessionUri
 }
 
+export const uploadAssetAuto = async (
+  file,
+  folderId,
+  extraData = null,
+  onProgress = null
+) => {
+  const limit = 500 * 1024 * 1024
+  if (file.size < limit) {
+    return uploadAsset(file, folderId, extraData, onProgress)
+  }
+
+  const wrapProgress = loaded => {
+    if (onProgress) {
+      const percent = Math.round((loaded / file.size) * 100)
+      onProgress({ percent })
+    }
+  }
+
+  return uploadAssetResumable(file, wrapProgress)
+}
+
 export const updateAsset = (id, data) =>
   api.put(`/assets/${id}`, data).then(res => res.data)
 
