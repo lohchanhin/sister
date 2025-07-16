@@ -14,8 +14,10 @@
    ```
    預設服務於 `http://localhost:5173`。
 3. 如需連接後端，可在 `.env` 檔中設定 `VITE_API_BASE`，預設為 `http://localhost:3000/api`。
-4. 上傳檔案可呼叫 `uploadAsset(file, folderId, extraData)`，其中 `extraData`
+4. 上傳檔案可呼叫 `uploadAssetAuto(file, folderId, extraData)`，其中 `extraData`
    會被加入 `FormData`；剪輯師上傳成品時可傳入 `{ type: 'edited' }`。
+   - `<500MB` 會由後端處理 `/api/assets/upload`。
+   - `>=500MB` 透過 `/api/assets/presign` 取得 `sessionUri`，前端分段上傳後再建立資料。
 5. 素材庫詳情視窗可設定可查看使用者，管理者可指定具有瀏覽權限的帳號。
 6. 於素材庫與成品區可批次設定可查看者，選取多項後點擊「批次設定可查看者」。
 7. 系統現在支援 `.doc`、`.docx` 與 `.pdf` 檔案預覽，將於對話框以 Google Docs Viewer 內嵌顯示。
