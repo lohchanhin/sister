@@ -48,7 +48,7 @@ export const uploadAsset = (file, folderId, extraData = null, onUploadProgress =
 }
 
 export const uploadAssetResumable = async (file, onProgress = null) => {
-  const { sessionUri } = await api
+  const { sessionUri, path } = await api
     .post('/assets/presign', { filename: file.name, contentType: file.type })
     .then(res => res.data)
 
@@ -73,7 +73,29 @@ export const uploadAssetResumable = async (file, onProgress = null) => {
     uploaded += chunk.size
     if (onProgress) onProgress(uploaded)
   }
-  return sessionUri
+  return { sessionUri, path }
+}
+
+export const uploadAssetAuto = async (
+  file,
+  folderId,
+  extraData = null,
+  onProgress = null
+) => {
+  const limit = 500 * 1024 * 1024
+  if (file.size <= limit) {
+    return uploadAsset(file, folderId, extraData, onProgress)
+  }
+
+  const { path } = await uploadAssetResumable(file, uploaded => {
+    if (!onProgress) return
+    onProgress({ percent: (uploaded / file.size) * 100 })
+  })
+
+  const payload = { filename: file.name, path }
+  if (folderId) payload.folderId = folderId
+  if (extraData) Object.assign(payload, extraData)
+  return api.post('/assets', payload).then(res => res.data)
 }
 
 export const updateAsset = (id, data) =>
