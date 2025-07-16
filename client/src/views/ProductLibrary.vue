@@ -67,6 +67,12 @@
               <UserFilled />
             </el-icon> 批次設定
           </el-button>
+          <el-button v-if="selectedItems.length" @click="downloadSelected">
+            <el-icon class="mr-1"><Download /></el-icon> 批量下載
+          </el-button>
+          <el-button v-if="selectedItems.length" type="danger" @click="deleteSelected">
+            <el-icon class="mr-1"><Delete /></el-icon> 批量刪除
+          </el-button>
         </div>
       </div>
 
@@ -364,7 +370,8 @@ import {
 } from '../services/folders'
 import {
   fetchProducts, updateProduct, deleteProduct,
-  updateProductsViewers, getProductUrl
+  updateProductsViewers, getProductUrl,
+  batchDownloadProducts, deleteProducts
 } from '../services/products'
 import { uploadAssetAuto } from '../services/assets'
 import { fetchUsers } from '../services/user'
@@ -373,7 +380,7 @@ import { useAuthStore } from '../stores/auth'
 import { useUiStore } from '../stores/ui'
 import { ElMessage } from 'element-plus'
 import {
-  ArrowLeft, Plus, UploadFilled, Grid, Menu, UserFilled, InfoFilled
+  ArrowLeft, Plus, UploadFilled, Grid, Menu, UserFilled, InfoFilled, Download, Delete
 } from '@element-plus/icons-vue'
 
 /* ---------- 狀態 ---------- */
@@ -482,6 +489,27 @@ async function applyBatch() {
   if (folderIds.length) await updateFoldersViewers(folderIds, batchUsers.value)
   ElMessage.success('已更新可查看者')
   batchDialog.value = false
+  selectedItems.value = []
+  loadData(currentFolder.value?._id)
+}
+
+async function downloadSelected() {
+  const ids = selectedItems.value.filter(id => products.value.some(p => p._id === id))
+  if (!ids.length) return
+  const url = await batchDownloadProducts(ids)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'products.zip'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+async function deleteSelected() {
+  const ids = selectedItems.value.filter(id => products.value.some(p => p._id === id))
+  if (!ids.length) return
+  await deleteProducts(ids)
+  ElMessage.success('已刪除選取成品')
   selectedItems.value = []
   loadData(currentFolder.value?._id)
 }

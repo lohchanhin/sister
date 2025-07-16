@@ -129,4 +129,10 @@ export const getAssetUrl = (id, download = false) =>
     .get(`/assets/${id}/url`, { params: download ? { download: 1 } : {} })
     .then(res => res.data.url)
 
+export const batchDownloadAssets = ids =>
+  api.post('/assets/batch-download', { ids }).then(res => res.data.url)
+
+export const deleteAssetsBulk = ids =>
+  api.delete('/assets', { data: { ids } }).then(res => res.data)
+
 

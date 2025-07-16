@@ -14,7 +14,9 @@ import {
     updateAssetsViewers,
     getAssetSignedUrl,
     presign,
-    createAsset
+    createAsset,
+    batchDownload,
+    deleteAssets
 } from '../controllers/asset.controller.js'
 import {
   getAssetStages,
@@ -37,6 +39,7 @@ router.post(
   presign
 )
 router.post('/', protect, requirePerm(PERMISSIONS.ASSET_CREATE), createAsset)
+router.post('/batch-download', protect, batchDownload)
 router.get('/', protect, requirePerm(PERMISSIONS.ASSET_READ), getAssets)
 router.post(
   '/:id/comment',
@@ -69,6 +72,7 @@ router.put(
 )
 router.get('/:id/stages', protect, getAssetStages)
 router.put('/:id/stages/:stageId', protect, updateStageStatus)
+router.delete('/', protect, deleteAssets)
 router.delete('/:id', protect, deleteAsset)    // assets
 
 

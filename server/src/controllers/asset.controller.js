@@ -8,6 +8,7 @@ import ReviewRecord from '../models/reviewRecord.model.js'
 import path from 'node:path'
 import bucket, { uploadFile as gcsUploadFile, getSignedUrl } from '../utils/gcs.js'
 import fs from 'node:fs/promises'
+import { spawn } from 'node:child_process'
 import { getDescendantFolderIds, getAncestorFolderIds, getRootFolder } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
 import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
@@ -342,5 +343,68 @@ export const presign = async (req, res) => {
   })
 
   res.json({ sessionUri, path: gcsFilename })
+}
+
+export const batchDownload = async (req, res) => {
+  const { ids } = req.body
+  if (!Array.isArray(ids) || !ids.length) {
+    return res.status(400).json({ message: '參數錯誤' })
+  }
+
+  const assets = await Asset.find({ _id: { $in: ids } })
+  if (!assets.length) return res.status(404).json({ message: '找不到素材' })
+
+  const tmpDir = await fs.mkdtemp('/tmp/asset-batch-')
+  const files = []
+  for (const a of assets) {
+    const dest = path.join(tmpDir, a.title || a.filename)
+    try {
+      await bucket.file(a.path).download({ destination: dest })
+      files.push(dest)
+    } catch (e) {
+      console.error('download error', e)
+    }
+  }
+
+  const zipName = `assets-${Date.now()}.zip`
+  const zipPath = path.join(tmpDir, zipName)
+  await new Promise((resolve, reject) => {
+    const proc = spawn('zip', ['-j', zipPath, ...files])
+    proc.on('error', reject)
+    proc.on('close', code => (code === 0 ? resolve() : reject(new Error('zip'))))
+  })
+
+  const gcsPath = await gcsUploadFile(zipPath, zipName, 'application/zip')
+  const url = await getSignedUrl(gcsPath, {
+    responseDisposition: `attachment; filename="${zipName}"`
+  })
+
+  for (const f of files) await fs.unlink(f).catch(() => {})
+  await fs.unlink(zipPath).catch(() => {})
+  await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {})
+
+  res.json({ url })
+}
+
+export const deleteAssets = async (req, res) => {
+  const { ids } = req.body
+  if (!Array.isArray(ids) || !ids.length) {
+    return res.status(400).json({ message: '參數錯誤' })
+  }
+
+  const assets = await Asset.find({ _id: { $in: ids } })
+  await Asset.deleteMany({ _id: { $in: ids } })
+
+  const folderIds = [...new Set(assets.map(a => a.folderId).filter(Boolean).map(id => id.toString()))]
+  for (const id of folderIds) {
+    await Folder.updateOne({ _id: id }, { $set: { updatedAt: new Date() } })
+    const parents = await getAncestorFolderIds(id)
+    if (parents.length) {
+      await Folder.updateMany({ _id: { $in: parents } }, { $set: { updatedAt: new Date() } })
+    }
+  }
+
+  await clearCacheByPrefix('assets:')
+  res.json({ message: '已刪除' })
 }
 
