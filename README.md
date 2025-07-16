@@ -29,19 +29,33 @@
 伺服器啟動前，請在根目錄複製 `.env.example` 為 `.env`，並依需求調整 MongoDB、JWT、GCS 等設定。
  `.env` 中需填入以下 GCS 相關欄位：
 
- ```bash
- GCS_PROJECT_ID=你的專案 ID
+```bash
+GCS_PROJECT_ID=你的專案 ID
 GCS_BUCKET=你的 Bucket 名稱
 GCS_KEY_FILE=service-account.json 路徑
+GCS_CORS_ORIGIN=http://localhost:5173
 ```
 
 此外，可透過 `UPLOAD_DIR` 指定暫存上傳檔案的資料夾，預設為 `/tmp/uploads`。
 
- 如未建立過 Bucket，可至 Google Cloud Console：
- 1. 建立專案並啟用 **Cloud Storage**。
- 2. 在 Storage 中建立 Bucket，名稱需與 `GCS_BUCKET` 相同。
- 3. 建立服務帳戶並賦予 **Storage Admin** 權限，下載金鑰檔。
- 4. 將金鑰檔路徑填入 `GCS_KEY_FILE`。
+如未建立過 Bucket，可至 Google Cloud Console：
+1. 建立專案並啟用 **Cloud Storage**。
+2. 在 Storage 中建立 Bucket，名稱需與 `GCS_BUCKET` 相同。
+3. 建立服務帳戶並賦予 **Storage Admin** 權限，下載金鑰檔。
+4. 將金鑰檔路徑填入 `GCS_KEY_FILE`。
+5. 為讓前端直接與 GCS 通訊，請為 Bucket 設定 CORS：
+   1. 建立 `gcs-cors.json` 檔案，內容如下：
+      ```json
+      [
+        {
+          "origin": ["http://localhost:5173"],
+          "method": ["PUT", "POST"],
+          "responseHeader": ["Content-Type"],
+          "maxAgeSeconds": 3600
+        }
+      ]
+      ```
+   2. 執行 `gsutil cors set gcs-cors.json gs://<你的 Bucket>` 套用設定。
 2. 啟動 API：
    ```bash
    npm start

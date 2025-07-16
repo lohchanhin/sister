@@ -47,6 +47,35 @@ export const uploadAsset = (file, folderId, extraData = null, onUploadProgress =
   }).then((res) => res.data)
 }
 
+export const uploadAssetResumable = async (file, onProgress = null) => {
+  const { sessionUri } = await api
+    .post('/assets/presign', { filename: file.name, contentType: file.type })
+    .then(res => res.data)
+
+  const chunkSize = 1024 * 1024 * 8
+  let uploaded = 0
+  while (uploaded < file.size) {
+    const chunk = file.slice(uploaded, uploaded + chunkSize)
+    const end = uploaded + chunk.size - 1
+    const headers = {
+      'Content-Length': chunk.size,
+      'Content-Type': file.type,
+      'Content-Range': `bytes ${uploaded}-${end}/${file.size}`
+    }
+    const resp = await fetch(sessionUri, {
+      method: 'PUT',
+      headers,
+      body: chunk
+    })
+    if (!resp.ok && resp.status !== 308) {
+      throw new Error('上傳失敗')
+    }
+    uploaded += chunk.size
+    if (onProgress) onProgress(uploaded)
+  }
+  return sessionUri
+}
+
 export const updateAsset = (id, data) =>
   api.put(`/assets/${id}`, data).then(res => res.data)
 

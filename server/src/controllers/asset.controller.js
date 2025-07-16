@@ -6,7 +6,7 @@ import Folder from '../models/folder.model.js'
 import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import path from 'node:path'
-import { uploadFile as gcsUploadFile, getSignedUrl } from '../utils/gcs.js'
+import bucket, { uploadFile as gcsUploadFile, getSignedUrl } from '../utils/gcs.js'
 import fs from 'node:fs/promises'
 import { getDescendantFolderIds, getAncestorFolderIds, getRootFolder } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
@@ -276,5 +276,26 @@ export const updateAssetsViewers = async (req, res) => {
   }
   await clearCacheByPrefix('assets:')
   res.json({ message: '已更新' })
+}
+
+/* ---------- POST /api/assets/presign ---------- */
+export const presign = async (req, res) => {
+  const { filename, contentType } = req.body
+  if (!filename) {
+    return res.status(400).json({ message: '缺少檔名' })
+  }
+
+  const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
+  const ext = path.extname(filename)
+  const gcsFilename = unique + ext
+
+  const file = bucket.file(gcsFilename)
+
+  const [sessionUri] = await file.createResumableUpload({
+    origin: req.headers.origin,
+    metadata: { contentType }
+  })
+
+  res.json({ sessionUri, path: gcsFilename })
 }
 
