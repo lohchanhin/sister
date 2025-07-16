@@ -12,7 +12,8 @@ import {
     getRecentAssets,
     reviewAsset,
     updateAssetsViewers,
-    getAssetSignedUrl
+    getAssetSignedUrl,
+    presign
 } from '../controllers/asset.controller.js'
 import {
   getAssetStages,
@@ -27,6 +28,12 @@ router.post(
   requirePerm(PERMISSIONS.ASSET_CREATE),
   upload.single('file'),
   uploadFile
+)
+router.post(
+  '/presign',
+  protect,
+  requirePerm(PERMISSIONS.ASSET_CREATE),
+  presign
 )
 router.get('/', protect, requirePerm(PERMISSIONS.ASSET_READ), getAssets)
 router.post(
