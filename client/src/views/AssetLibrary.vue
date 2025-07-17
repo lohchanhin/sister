@@ -364,6 +364,9 @@ onMounted(() => {
 })
 
 watch(() => route.params.folderId, (newId) => loadData(newId || null))
-watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
+watch(filterTags, () => {
+  const folderId = currentFolder.value ? currentFolder.value._id : null;
+  loadData(folderId);
+}, { deep: true })
 
 </script>
