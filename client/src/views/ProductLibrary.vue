@@ -483,9 +483,7 @@ function confirmDeleteSelected() {
 onMounted(() => {
   loadData(route.params.folderId || null)
   fetchTags().then(tags => allTags.value = tags.map(t => t.name))
-  if (authStore.hasPermission('user:read')) {
-      fetchUsers().then(u => users.value = u)
-  }
+  fetchUsers().then(u => users.value = u)
 })
 
 watch(() => route.params.folderId, (newId) => loadData(newId || null))
