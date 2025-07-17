@@ -2,6 +2,7 @@
 <template>
   <div>
     <Toast position="bottom-right" group="br" />
+    <Toast position="top-center" group="upload-batch" />
     <Toolbar class="mb-4">
       <template #start>
         <Button icon="pi pi-arrow-left" class="p-button-secondary mr-2" @click="goUp" :disabled="!currentFolder" />
@@ -162,6 +163,7 @@ import { uploadAssetAuto } from '../services/assets'
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
+import { showProgressToast } from '../utils/toastProgress'
 
 import Toolbar from 'primevue/toolbar'
 import Button from 'primevue/button'
@@ -330,46 +332,19 @@ async function createNewFolder() {
 
 const uploadRequest = async (event) => {
     const files = Array.isArray(event.files) ? event.files : [event.files];
-    toast.add({ severity: 'info', summary: '批量上傳開始', detail: `準備上傳 ${files.length} 個檔案...`, life: 3000 });
+    showProgressToast('upload-batch', '批量上傳開始', `準備上傳 ${files.length} 個檔案...`, 'info', 3000);
 
     for (const file of files) {
-        const toastId = `upload-${file.name}-${Date.now()}`;
-        toast.add({ 
-            id: toastId,
-            group: 'br',
-            severity: 'info', 
-            summary: `上傳中: ${file.name}`,
-            detail: '準備中...', 
-            life: 60000 
-        });
+        const groupId = `upload-${file.name}-${Date.now()}`;
+        showProgressToast(groupId, `上傳中: ${file.name}`, '0%');
         try {
             await uploadAssetAuto(file, currentFolder.value?._id, { type: 'edited' }, (progressEvent) => {
                 const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
-                toast.add({ 
-                    id: toastId,
-                    group: 'br',
-                    severity: 'info', 
-                    summary: `上傳中: ${file.name}`,
-                    detail: `${percent}%`,
-                });
+                showProgressToast(groupId, `上傳中: ${file.name}`, `${percent}%`);
             });
-            toast.add({ 
-                id: toastId,
-                group: 'br',
-                severity: 'success', 
-                summary: '成功', 
-                detail: `${file.name} 上傳完畢`, 
-                life: 3000 
-            });
+            showProgressToast(groupId, '成功', `${file.name} 上傳完畢`, 'success', 3000);
         } catch (error) {
-            toast.add({ 
-                id: toastId,
-                group: 'br',
-                severity: 'error', 
-                summary: '失��', 
-                detail: `${file.name} 上傳失敗`, 
-                life: 3000 
-            });
+            showProgressToast(groupId, '失敗', `${file.name} 上傳失敗`, 'error', 5000);
         }
     }
     loadData(currentFolder.value?._id);
@@ -377,25 +352,25 @@ const uploadRequest = async (event) => {
 
 async function pollProgress(progressId, name, type) {
   const getProgress = type === 'folder' ? getFolderDownloadProgress : getProductBatchDownloadProgress;
-  const toastId = `dl-${progressId}`;
-  toast.add({ id: toastId, group: 'br', severity: 'info', summary: `壓縮中: ${name}`, detail: '準備中...', life: 60000 });
+  const groupId = `dl-${progressId}`;
+  showProgressToast(groupId, `壓縮中: ${name}`, '準備中...');
 
   try {
     let progress = await getProgress(progressId);
     while (progress && progress.percent < 100 && !progress.error) {
-      toast.add({ id: toastId, group: 'br', severity: 'info', summary: `壓縮中: ${name}`, detail: `進度: ${progress.percent}%`, life: 60000 });
+      showProgressToast(groupId, `壓縮中: ${name}`, `進度: ${progress.percent}%`);
       await new Promise(r => setTimeout(r, 1500));
       progress = await getProgress(progressId);
     }
 
     if (progress?.url) {
-      toast.add({ id: toastId, group: 'br', severity: 'success', summary: '壓縮完成', detail: '下載即將開始', life: 3000 });
+      showProgressToast(groupId, '壓縮完成', '下載即將開始', 'success', 3000);
       window.open(progress.url, '_blank');
     } else {
       throw new Error(progress?.error || '壓縮失敗');
     }
   } catch (error) {
-    toast.add({ id: toastId, group: 'br', severity: 'error', summary: '壓縮失敗', detail: error.message, life: 5000 });
+    showProgressToast(groupId, '壓縮失敗', error.message, 'error', 5000);
   }
 }
 
