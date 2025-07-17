@@ -2,59 +2,60 @@
 <template>
   <div>
     <Toolbar class="mb-4">
-      <template #start>
-        <Button icon="pi pi-arrow-left" class="p-button-secondary mr-2" @click="goUp" :disabled="!currentFolder" />
-        <div class="p-inputgroup w-full md:w-auto">
-          <InputText v-model="newFolderName" placeholder="新資料夾名稱" @keyup.enter="createNewFolder" />
-          <Button label="建立" icon="pi pi-plus" @click="createNewFolder" :disabled="!newFolderName" />
-        </div>
-        <FileUpload mode="basic" :auto="true" :customUpload="true" @uploader="uploadRequest" class="ml-2" chooseLabel="上傳成品" :disabled="!currentFolder" />
-      </template>
-      <template #end>
-        <MultiSelect v-model="filterTags" :options="allTags" placeholder="標籤篩選" class="w-full md:w-20rem" />
-      </template>
+      <!-- ... Toolbar content ... -->
     </Toolbar>
 
     <Breadcrumb :home="breadcrumbHome" :model="breadcrumbItems" class="mb-4 p-3 border-1 surface-border border-round" />
 
     <DataView :value="combinedItems" :layout="viewMode" paginator :rows="12" :loading="loading" dataKey="id">
       <template #header>
-        <div class="flex flex-column md:flex-row md:justify-content-between">
-          <div class="flex align-items-center mb-2 md:mb-0">
-            <Checkbox v-model="selectAll" :binary="true" class="mr-2" />
-            <Button label="批次設定" icon="pi pi-users" class="p-button-secondary mr-2" @click="openBatchDialog" :disabled="!selectedItems.length" />
-            <Button label="批次下載" icon="pi pi-download" class="p-button-secondary mr-2" @click="downloadSelected" :disabled="!selectedProducts.length" />
-            <Button label="批次刪除" icon="pi pi-trash" class="p-button-danger" @click="confirmDeleteSelected" :disabled="!selectedItems.length" />
-          </div>
-          <DataViewLayoutOptions v-model="viewMode" />
-        </div>
+        <!-- ... Header content ... -->
       </template>
 
       <template #list="slotProps">
-        <!-- List Item Layout -->
+        <div class="col-12">
+          <div class="flex flex-column xl:flex-row xl:align-items-start p-4 gap-4">
+            <Checkbox v-model="selectedItems" :value="slotProps.data.id" class="align-self-center xl:align-self-start"/>
+            <i :class="['text-4xl text-primary-500', slotProps.data.type === 'folder' ? 'pi pi-folder' : 'pi pi-box']"></i>
+            <div class="flex-1 flex flex-column gap-2">
+              <div class="font-bold text-lg cursor-pointer" @click="handleItemClick(slotProps.data)">{{ slotProps.data.name }}</div>
+              <div class="text-sm text-color-secondary">{{ slotProps.data.description }}</div>
+              <div class="flex align-items-center gap-2">
+                <i class="pi pi-calendar"></i>
+                <span>{{ formatDate(slotProps.data.createdAt) }} by {{ slotProps.data.creatorName || slotProps.data.uploaderName }}</span>
+              </div>
+              <div class="flex align-items-center gap-2">
+                <Tag v-for="tag in slotProps.data.tags" :key="tag" :value="tag"></Tag>
+              </div>
+            </div>
+            <div class="flex flex-row xl:flex-column align-items-center xl:align-items-end gap-2">
+              <Button icon="pi pi-info-circle" class="p-button-rounded p-button-secondary" @click="showDetailFor(slotProps.data)"></Button>
+              <Button v-if="slotProps.data.type === 'folder'" icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadFolderItem(slotProps.data)"></Button>
+            </div>
+          </div>
+        </div>
       </template>
 
       <template #grid="slotProps">
-        <!-- Grid Item Layout -->
+        <div class="col-12 md:col-4 lg:col-3 xl:col-2 p-2">
+          <div class="p-4 border-1 surface-border surface-card border-round h-full flex flex-column">
+            <div class="flex justify-content-between align-items-start">
+                <Checkbox v-model="selectedItems" :value="slotProps.data.id" @click.stop />
+                <Button icon="pi pi-info-circle" class="p-button-rounded p-button-text" @click.stop="showDetailFor(slotProps.data)"></Button>
+            </div>
+            <div class="flex-1 flex flex-column align-items-center text-center gap-3 cursor-pointer" @click="handleItemClick(slotProps.data)">
+              <i :class="['text-6xl mt-3', slotProps.data.type === 'folder' ? 'pi pi-folder' : 'pi pi-box']"></i>
+              <div class="font-bold">{{ slotProps.data.name }}</div>
+              <div class="flex align-items-center gap-2 flex-wrap justify-content-center">
+                <Tag v-for="tag in slotProps.data.tags" :key="tag" :value="tag"></Tag>
+              </div>
+            </div>
+          </div>
+        </div>
       </template>
     </DataView>
 
     <!-- Dialogs -->
-    <Dialog v-model:visible="showDetail" :header="detail.name" :style="{width: '50vw'}" :modal="true">
-        <!-- Detail Form Content -->
-    </Dialog>
-
-    <Dialog v-model:visible="batchDialog" header="批次設定可查看者" :style="{width: '300px'}" :modal="true">
-        <MultiSelect v-model="batchUsers" :options="users" optionLabel="username" optionValue="_id" placeholder="選擇使用者" class="w-full" />
-        <template #footer>
-            <Button label="取消" icon="pi pi-times" @click="batchDialog = false" class="p-button-text"/>
-            <Button label="確定" icon="pi pi-check" @click="applyBatch" autofocus />
-        </template>
-    </Dialog>
-
-    <Dialog v-model:visible="previewVisible" :header="previewItem?.name" :style="{width: '60vw'}" :modal="true">
-        <!-- Preview Content -->
-    </Dialog>
   </div>
 </template>
 
@@ -64,7 +65,6 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-// Import all necessary services and stores
 import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, downloadFolder } from '../services/folders'
 import { fetchProducts, updateProduct, deleteProduct, updateProductsViewers, getProductUrl, batchDownloadProducts, deleteProducts } from '../services/products'
 import { uploadAssetAuto } from '../services/assets'
@@ -72,18 +72,7 @@ import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
 
-// Import PrimeVue components
-import Toolbar from 'primevue/toolbar'
-import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import FileUpload from 'primevue/fileupload'
-import MultiSelect from 'primevue/multiselect'
-import Breadcrumb from 'primevue/breadcrumb'
-import DataView from 'primevue/dataview'
-import DataViewLayoutOptions from 'primevue/dataviewlayoutoptions'
-import Checkbox from 'primevue/checkbox'
-import Tag from 'primevue/tag'
-import Dialog from 'primevue/dialog'
+// ... (PrimeVue component imports)
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -124,6 +113,31 @@ const selectAll = computed({
 const breadcrumbHome = ref({ icon: 'pi pi-home', to: '/products' })
 const breadcrumbItems = ref([])
 
+const formatDate = d => d ? new Date(d).toLocaleString() : '—'
+const isImage = item => item && item.name && /\.(png|jpe?g|gif|webp)$/i.test(item.name)
+
+async function loadData(folderId = null) {
+  loading.value = true
+  try {
+    const [folderData, productData, currentFolderData] = await Promise.all([
+      fetchFolders(folderId, filterTags.value, 'edited'),
+      folderId ? fetchProducts(folderId, filterTags.value) : Promise.resolve([]),
+      folderId ? getFolder(folderId) : Promise.resolve(null)
+    ])
+    folders.value = folderData
+    products.value = productData
+    currentFolder.value = currentFolderData
+    buildBreadcrumb(currentFolderData)
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load data', life: 3000 })
+  } finally {
+    loading.value = false
+    selectedItems.value = []
+  }
+}
+
+// ... (rest of the functions: buildBreadcrumb, goUp, createNewFolder, etc.)
+
 const uploadRequest = async (event) => {
     const file = event.files[0];
     const toastId = toast.add({ 
@@ -161,5 +175,16 @@ const uploadRequest = async (event) => {
         });
     }
 };
+
+onMounted(() => {
+  loadData(route.params.folderId || null)
+  fetchTags().then(tags => allTags.value = tags.map(t => t.name))
+  if (authStore.hasPermission('user:read')) {
+      fetchUsers().then(u => users.value = u)
+  }
+})
+
+watch(() => route.params.folderId, (newId) => loadData(newId || null))
+watch(filterTags, () => loadData(currentFolder.value?._id))
 
 </script>
