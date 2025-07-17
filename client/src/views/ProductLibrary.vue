@@ -1,4 +1,4 @@
-<!-- ProductLibrary.vue (Final Refactor with Preview) -->
+<!-- ProductLibrary.vue (Final Refactor with All Features) -->
 <template>
   <div>
     <Toolbar class="mb-4">
@@ -71,6 +71,19 @@
           <label for="detail-tags">標籤</label>
           <MultiSelect id="detail-tags" v-model="detail.tags" :options="allTags" :filter="true" />
         </div>
+        <div v-if="reviewStages.length" class="field">
+          <label>審查關卡</label>
+          <div v-for="stage in reviewStages" :key="stage._id" class="flex align-items-center">
+            <Checkbox 
+              :modelValue="stage.completed" 
+              :binary="true" 
+              :inputId="stage._id"
+              :disabled="!stage.responsibleUsers.includes(authStore.user._id)"
+              @change="updateStageStatus(stage, $event)"
+            />
+            <label :for="stage._id" class="ml-2">{{ stage.stageId.name }}</label>
+          </div>
+        </div>
       </div>
       <template #footer>
         <Button label="取消" icon="pi pi-times" @click="showDetail = false" class="p-button-text"/>
@@ -103,8 +116,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, reviewFolder } from '../services/folders'
-import { fetchProducts, updateProduct, deleteProduct, updateProductsViewers, getProductUrl, batchDownloadProducts, deleteProducts, reviewProduct } from '../services/products'
+import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, reviewFolder, fetchFolderStages, updateFolderStage } from '../services/folders'
+import { fetchProducts, updateProduct, deleteProduct, updateProductsViewers, getProductUrl, batchDownloadProducts, deleteProducts, reviewProduct, fetchProductStages, updateProductStage } from '../services/products'
 import { uploadAssetAuto } from '../services/assets'
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
@@ -144,6 +157,7 @@ const batchDialog = ref(false)
 const batchUsers = ref([])
 const previewVisible = ref(false)
 const previewItem = ref(null)
+const reviewStages = ref([])
 
 const combinedItems = computed(() => {
   const safeFolders = Array.isArray(folders.value) ? folders.value : [];
@@ -202,6 +216,22 @@ async function handleReview(item, status) {
     loadData(currentFolder.value?._id);
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to update status', life: 3000 });
+  }
+}
+
+async function updateStageStatus(stage, event) {
+  try {
+    const completed = event.target.checked;
+    if (detail.value.type === 'folder') {
+      await updateFolderStage(detail.value._id, stage.stageId._id, completed);
+    } else {
+      await updateProductStage(detail.value._id, stage.stageId._id, completed);
+    }
+    stage.completed = completed; // Optimistic update
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Stage status updated', life: 3000 });
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to update stage', life: 3000 });
+    stage.completed = !event.target.checked; // Revert on failure
   }
 }
 
@@ -312,9 +342,19 @@ function handleItemClick(item) {
   }
 }
 
-function showDetailFor(item) {
+async function showDetailFor(item) {
   detail.value = { ...item };
+  reviewStages.value = [];
   showDetail.value = true;
+  try {
+    if (item.type === 'folder') {
+      reviewStages.value = await fetchFolderStages(item._id);
+    } else {
+      reviewStages.value = await fetchProductStages(item._id);
+    }
+  } catch (error) {
+    console.error("Failed to fetch review stages", error);
+  }
 }
 
 async function saveDetail() {
