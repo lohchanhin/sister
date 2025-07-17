@@ -136,7 +136,31 @@ async function loadData(folderId = null) {
   }
 }
 
-// ... (rest of the functions: buildBreadcrumb, goUp, createNewFolder, etc.)
+function buildBreadcrumb(folder) {
+  const items = []
+  let current = folder
+  while (current) {
+    items.unshift({ label: current.name, to: { name: 'Products', params: { folderId: current._id } } })
+    current = current.parent // This requires parent to be populated, or another strategy
+  }
+  breadcrumbItems.value = items
+}
+
+function goUp() {
+  if (currentFolder.value?.parentId) {
+    router.push({ name: 'Products', params: { folderId: currentFolder.value.parentId } })
+  } else {
+    router.push({ name: 'Products' })
+  }
+}
+
+function handleItemClick(item) {
+  if (item.type === 'folder') {
+    router.push({ name: 'Products', params: { folderId: item._id } })
+  } else {
+    // previewProduct(item)
+  }
+}
 
 const uploadRequest = async (event) => {
     const file = event.files[0];
