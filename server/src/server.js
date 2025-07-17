@@ -92,7 +92,7 @@ app.use(cookieParser())
 /* ────────────────────────── 4. 路由載入 ───────────────────────── */
 import authRoutes         from './routes/auth.routes.js'
 import userRoutes         from './routes/user.routes.js'
-import assetRoutes        from './routes/asset.routes.js'
+import assetRoutes, { publicRouter as publicAssetRoutes } from './routes/asset.routes.js'
 import productRoutes      from './routes/product.routes.js'
 import folderRoutes       from './routes/folder.routes.js'
 import taskRoutes         from './routes/task.routes.js'
@@ -126,6 +126,7 @@ app.use('/api/permissions', permissionsRoutes)
 app.use('/api/menus', menusRoutes)
 app.use('/api/review-stages', reviewStageRoutes)
 app.use('/api/health', healthRoutes)
+app.use('/public/assets', publicAssetRoutes)
 app.use('/api/dashboard', dashboardRoutes)
 
 /* ────────────────────────── 5. 前端靜態檔案 ───────────────────────── */
