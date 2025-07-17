@@ -1,81 +1,60 @@
-<!-- Sidebar.vue – 固定白色主題，無暗色切換 -->
 <template>
-  <el-aside :width="isCollapsed ? '64px' : '200px'"
-    class="sidebar bg-white text-gray-800 border-r transition-all duration-200">
-    <!-- ===== 漢堡按鈕 ===== -->
-    <div class="sidebar__top">
-      <el-button type="text" class="sidebar__toggle" @click="toggleCollapse">
-        <el-icon :class="['transition-transform', isCollapsed ? '' : 'rotate-90']">
-          <Menu />
-        </el-icon>
-      </el-button>
+  <aside :class="['layout-sidebar', { 'layout-sidebar-collapsed': isCollapsed }]">
+    <div class="sidebar-header">
+      <Button
+        icon="pi pi-bars"
+        class="p-button-text p-button-rounded"
+        @click="toggleCollapse"
+      />
     </div>
 
-    <!-- ===== 導航選單 ===== -->
-    <el-menu :default-active="activePath" :collapse="isCollapsed" :collapse-transition="false" router
-      class="sidebar__menu" @select="handleSelect" background-color="transparent" text-color="inherit"
-      active-text-color="#409EFF">
-      <el-menu-item v-for="item in navItems" :key="item.path" :index="item.path">
-        <el-icon>{{ item.icon }}</el-icon>
-        <template #title>{{ item.label }}</template>
-      </el-menu-item>
-    </el-menu>
-
-    <!-- ===== 底部：登出 ===== -->
-    <div class="sidebar__bottom">
-      <template v-if="isCollapsed">
-        <el-tooltip content="登出" placement="right">
-          <el-button circle type="danger" @click="logout">
-            <el-icon>
-              <SwitchButton />
-            </el-icon>
-          </el-button>
-        </el-tooltip>
-      </template>
-      <template v-else>
-        <el-button type="danger" class="w-full" @click="logout">
-          <el-icon class="mr-2">
-            <SwitchButton />
-          </el-icon>
-          登出
-        </el-button>
-      </template>
+    <div class="sidebar-content">
+      <Menu :model="navItems" class="w-full">
+        <template #item="{ item, props }">
+          <router-link v-if="item.route" v-slot="{ href, navigate }" :to="item.route" custom>
+            <a :href="href" v-bind="props.action" @click="navigate">
+              <span :class="item.icon" />
+              <span class="ml-2">{{ item.label }}</span>
+            </a>
+          </router-link>
+        </template>
+      </Menu>
     </div>
-  </el-aside>
+
+    <div class="sidebar-footer">
+      <Button
+        :icon="isCollapsed ? 'pi pi-sign-out' : undefined"
+        :label="isCollapsed ? '' : '登出'"
+        class="p-button-danger w-full"
+        @click="logout"
+      />
+    </div>
+  </aside>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, computed, defineEmits } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { MENU_NAMES } from '../menuNames'
-import { Menu, SwitchButton } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import Button from 'primevue/button'
+import Menu from 'primevue/menu'
 
-/* 折疊狀態 */
+const emit = defineEmits(['toggle-collapse'])
 const isCollapsed = ref(false)
-
-/* 基本狀態 */
 const store = useAuthStore()
 const router = useRouter()
-const route = useRoute()
-const activePath = computed(() => {
-  if (route.path.startsWith('/assets')) return '/assets'
-  if (route.path.startsWith('/products')) return '/products'
-  return route.path
-})
 
-/* 全部選單定義 */
 const allMenus = {
-  dashboard: { path: '/dashboard', icon: '🏠' },
-  assets: { path: '/assets', icon: '🎞️' },
-  products: { path: '/products', icon: '🎬' },
-  employees: { path: '/employees', icon: '👥' },
-  roles: { path: '/roles', icon: '🛡️' },
-  tags: { path: '/tags', icon: '🏷️' },
-  'review-stages': { path: '/review-stages', icon: '✅' },
-  'ad-data': { path: '/ad-clients', icon: '📊' },
-  account: { path: '/account', icon: '👤' }
+  dashboard: { route: '/dashboard', icon: 'pi pi-home' },
+  assets: { route: '/assets', icon: 'pi pi-video' },
+  products: { route: '/products', icon: 'pi pi-box' },
+  employees: { route: '/employees', icon: 'pi pi-users' },
+  roles: { route: '/roles', icon: 'pi pi-shield' },
+  tags: { route: '/tags', icon: 'pi pi-tags' },
+  'review-stages': { route: '/review-stages', icon: 'pi pi-check-square' },
+  'ad-data': { route: '/ad-clients', icon: 'pi pi-chart-bar' },
+  account: { route: '/account', icon: 'pi pi-user' }
 }
 
 const navItems = computed(() => {
@@ -84,49 +63,84 @@ const navItems = computed(() => {
   return codes
     .filter(c => (c !== 'roles' || perms.includes('role:manage')))
     .map(c => ({
-      path: allMenus[c]?.path || '/',
-      icon: allMenus[c]?.icon || '❓',
-      label: MENU_NAMES[c] || c
+      label: MENU_NAMES[c] || c,
+      icon: allMenus[c]?.icon || 'pi pi-question-circle',
+      route: allMenus[c]?.route || '/'
     }))
 })
 
-/* 事件 */
-const toggleCollapse = () => (isCollapsed.value = !isCollapsed.value)
-const handleSelect = idx => { if (route.path !== idx) router.push(idx) }
+const toggleCollapse = () => {
+  isCollapsed.value = !isCollapsed.value
+  emit('toggle-collapse', isCollapsed.value)
+}
+
 const logout = () => {
   store.logout()
   router.push('/login')
-  ElMessage.success('已登出')
 }
-
-/* 自動調整 main padding-left */
-watch(isCollapsed, val => {
-  const main = document.querySelector('main')
-  if (main) main.style.paddingLeft = val ? '64px' : '200px'
-})
 </script>
 
 <style scoped>
-.sidebar__top {
+.layout-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 250px;
+  background-color: var(--surface-a);
+  border-right: 1px solid var(--surface-d);
+  transition: width 0.2s ease-in-out;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+}
+
+.layout-sidebar-collapsed {
+  width: 5rem;
+}
+
+.layout-sidebar-collapsed .ml-2 {
+  display: none;
+}
+
+.sidebar-header {
+  padding: 1rem;
   display: flex;
   justify-content: flex-end;
 }
 
-.sidebar__toggle {
+.sidebar-content {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.sidebar-footer {
+  padding: 1rem;
+  margin-top: auto;
+}
+
+/* PrimeVue Menu Customization */
+:deep(.p-menu) {
+  border: none;
+  background: none;
   width: 100%;
-  display: flex;
-  justify-content: center;
 }
 
-.sidebar__menu {
-  flex: 1 1 auto;
-  border-right: none;
+:deep(.p-menuitem-content) {
+  border-radius: 6px;
+  margin: 0 0.5rem;
 }
 
-.sidebar__bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 12px;
+:deep(.p-menuitem-content:hover) {
+    background-color: var(--surface-c);
+}
+
+:deep(.p-menuitem-link) {
+    color: var(--text-color);
+    text-decoration: none;
+}
+
+:deep(.p-menuitem-link:hover) {
+    background-color: transparent;
 }
 </style>

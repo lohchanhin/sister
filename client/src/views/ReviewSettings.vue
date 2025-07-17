@@ -1,23 +1,98 @@
+<!-- ReviewSettings.vue (PrimeVue Refactored) -->
+<template>
+  <Card>
+    <template #title>
+      <div class="flex justify-content-between align-items-center">
+        <h1 class="text-2xl font-bold">審查關卡設定</h1>
+        <Button label="新增關卡" icon="pi pi-plus" @click="openCreate" />
+      </div>
+    </template>
+    <template #content>
+      <DataTable :value="stages" :loading="loading" responsiveLayout="scroll">
+        <Column field="order" header="順序" :sortable="true" style="width: 80px"></Column>
+        <Column field="name" header="名稱" :sortable="true"></Column>
+        <Column field="responsible.username" header="負責人" :sortable="true"></Column>
+        <Column header="操作" :exportable="false" style="min-width:8rem">
+          <template #body="{ data }">
+            <Button icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" @click="openEdit(data)" />
+            <Button icon="pi pi-trash" class="p-button-rounded p-button-warning" @click="confirmDeleteStage(data)" />
+          </template>
+        </Column>
+      </DataTable>
+    </template>
+  </Card>
+
+  <Dialog v-model:visible="dialog" :header="editing ? '編輯關卡' : '新增關卡'" :modal="true" class="p-fluid w-full md:w-25rem">
+    <div class="field">
+      <label for="name">名稱</label>
+      <InputText id="name" v-model.trim="form.name" required="true" autofocus />
+    </div>
+    <div class="field">
+      <label for="order">順序</label>
+      <InputNumber id="order" v-model="form.order" :min="1" />
+    </div>
+    <div class="field">
+      <label for="responsible">負責人</label>
+      <Dropdown id="responsible" v-model="form.responsible" :options="users" optionLabel="username" optionValue="_id" placeholder="選擇負責人" />
+    </div>
+    <template #footer>
+      <Button label="取消" icon="pi pi-times" class="p-button-text" @click="dialog = false"/>
+      <Button :label="editing ? '更新' : '建立'" icon="pi pi-check" @click="submit" />
+    </template>
+  </Dialog>
+</template>
+
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { useToast } from 'primevue/usetoast'
+import { useConfirm } from 'primevue/useconfirm'
 import { fetchReviewStages, createReviewStage, updateReviewStage, deleteReviewStage } from '../services/reviewStages'
 import { fetchUsers } from '../services/user'
 import { useAuthStore } from '../stores/auth'
 
-const store = useAuthStore()
-if (!store.hasPermission('review:manage')) {
-  window.location.href = '/'
+// PrimeVue Components
+import Card from 'primevue/card'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
+import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
+import Dropdown from 'primevue/dropdown'
+
+const toast = useToast()
+const confirm = useConfirm()
+const authStore = useAuthStore()
+
+if (!authStore.hasPermission('review:manage')) {
+  router.replace('/')
 }
 
+const loading = ref(true)
 const stages = ref([])
 const users = ref([])
 const dialog = ref(false)
 const editing = ref(false)
 const form = ref({ name: '', order: 1, responsible: '' })
 
-const loadStages = async () => { stages.value = await fetchReviewStages() }
-const loadUsers = async () => { users.value = await fetchUsers() }
+const loadStages = async () => {
+  loading.value = true
+  try {
+    stages.value = await fetchReviewStages()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load stages', life: 3000 })
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadUsers = async () => {
+  try {
+    users.value = await fetchUsers()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load users', life: 3000 })
+  }
+}
 
 const openCreate = () => {
   editing.value = false
@@ -25,34 +100,50 @@ const openCreate = () => {
   dialog.value = true
 }
 
-const openEdit = s => {
+const openEdit = (stage) => {
   editing.value = true
-  form.value = { ...s, responsible: s.responsible?._id }
+  form.value = { ...stage, responsible: stage.responsible?._id }
   dialog.value = true
 }
 
 const submit = async () => {
-  const data = { name: form.value.name, order: form.value.order, responsible: form.value.responsible }
-  if (editing.value) {
-    await updateReviewStage(form.value._id, data)
-    ElMessage.success('已更新階段')
-  } else {
-    await createReviewStage(data)
-    ElMessage.success('已新增階段')
+  if (!form.value.name.trim()) {
+    toast.add({ severity: 'warn', summary: 'Warning', detail: 'Stage name is required', life: 3000 })
+    return
   }
-  dialog.value = false
-  await loadStages()
+
+  try {
+    const data = { name: form.value.name, order: form.value.order, responsible: form.value.responsible }
+    if (editing.value) {
+      await updateReviewStage(form.value._id, data)
+      toast.add({ severity: 'success', summary: 'Success', detail: 'Stage updated', life: 3000 })
+    } else {
+      await createReviewStage(data)
+      toast.add({ severity: 'success', summary: 'Success', detail: 'Stage created', life: 3000 })
+    }
+    dialog.value = false
+    loadStages()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Operation failed', life: 3000 })
+  }
 }
 
-const removeStage = async s => {
-  await ElMessageBox.confirm(`確定刪除「${s.name}」？`, '警告', {
-    confirmButtonText: '刪除',
-    cancelButtonText: '取消',
-    type: 'warning'
-  })
-  await deleteReviewStage(s._id)
-  ElMessage.success('已刪除階段')
-  await loadStages()
+const confirmDeleteStage = (stage) => {
+  confirm.require({
+    message: `確定要刪除「${stage.name}」嗎？`,
+    header: '刪除確認',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await deleteReviewStage(stage._id)
+        toast.add({ severity: 'success', summary: 'Success', detail: 'Stage deleted', life: 3000 })
+        loadStages()
+      } catch (error) {
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Deletion failed', life: 3000 })
+      }
+    }
+  });
 }
 
 onMounted(() => {
@@ -60,39 +151,3 @@ onMounted(() => {
   loadUsers()
 })
 </script>
-
-<template>
-  <section class="p-6 space-y-6 bg-white text-gray-800">
-    <h1 class="text-2xl font-bold">審查關卡設定</h1>
-    <el-button type="primary" @click="openCreate">＋ 新增關卡</el-button>
-    <el-table :data="stages" style="width:100%" stripe border>
-      <el-table-column prop="order" label="順序" width="80" />
-      <el-table-column prop="name" label="名稱" />
-      <el-table-column prop="responsible.username" label="負責人" />
-
-      <el-table-column label="操作" width="160">
-        <template #default="{ row }">
-          <el-button link type="primary" @click="openEdit(row)">編輯</el-button>
-          <el-button link type="danger" @click="removeStage(row)">刪除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <el-dialog v-model="dialog" :title="editing ? '編輯關卡' : '新增關卡'" width="420px">
-      <el-form label-position="top" @submit.prevent>
-        <el-form-item label="名稱"><el-input v-model="form.name" /></el-form-item>
-        <el-form-item label="順序"><el-input-number v-model="form.order" :min="1" style="width:100%" /></el-form-item>
-        <el-form-item label="負責人">
-          <el-select v-model="form.responsible" placeholder="選擇負責人" style="width:100%">
-            <el-option v-for="u in users" :key="u._id" :label="u.username" :value="u._id" />
-
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialog=false">取消</el-button>
-        <el-button type="primary" @click="submit">{{ editing ? '更新' : '建立' }}</el-button>
-      </template>
-    </el-dialog>
-  </section>
-</template>

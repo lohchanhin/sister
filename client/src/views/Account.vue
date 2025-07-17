@@ -1,9 +1,48 @@
+<!-- Account.vue (PrimeVue Refactored) -->
+<template>
+  <Card class="w-full md:w-30rem">
+    <template #title>
+      <h1 class="text-2xl font-bold">帳號資訊</h1>
+    </template>
+    <template #content>
+      <form @submit.prevent="onSubmit" class="p-fluid">
+        <div class="field">
+          <label for="username">登入帳號</label>
+          <InputText id="username" v-model.trim="username" />
+        </div>
+        <div class="field">
+          <label for="name">姓名</label>
+          <InputText id="name" v-model.trim="name" />
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <InputText id="email" v-model.trim="email" />
+        </div>
+        <div class="field">
+          <label for="password">新密碼</label>
+          <Password id="password" v-model="password" placeholder="留空則不變更" :feedback="false" toggleMask />
+        </div>
+        <Button type="submit" label="更新資料" class="w-full mt-4" />
+      </form>
+    </template>
+  </Card>
+</template>
+
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
+import { useToast } from 'primevue/usetoast'
 
+// PrimeVue Components
+import Card from 'primevue/card'
+import InputText from 'primevue/inputtext'
+import Password from 'primevue/password'
+import Button from 'primevue/button'
+
+const toast = useToast()
 const store = useAuthStore()
+
 const username = ref(store.user?.username || '')
 const name = ref(store.user?.name || '')
 const email = ref(store.user?.email || '')
@@ -12,29 +51,15 @@ const password = ref('')
 const onSubmit = async () => {
   try {
     const payload = { username: username.value, name: name.value, email: email.value }
-    if (password.value) payload.password = password.value
+    if (password.value) {
+      payload.password = password.value
+    }
     const { data } = await api.put('/user/profile', payload)
     store.user = data
     password.value = ''
-    alert('更新成功')
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Profile updated successfully', life: 3000 })
   } catch (e) {
-    // 錯誤已在攔截器處理
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to update profile', life: 3000 })
   }
 }
 </script>
-
-<template>
-  <h1 class="text-2xl font-bold mb-4">帳號資訊</h1>
-  <el-form @submit.prevent="onSubmit" class="w-80 space-y-6">
-    <el-input v-model="username" placeholder="登入帳號" clearable />
-    <el-input v-model="name" placeholder="姓名" clearable />
-    <el-input v-model="email" placeholder="Email" clearable />
-    <el-input
-      v-model="password"
-      type="password"
-      placeholder="新密碼"
-      show-password
-    />
-    <el-button type="primary" class="w-full" native-type="submit">更新資料</el-button>
-  </el-form>
-</template>

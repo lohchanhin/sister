@@ -1,41 +1,125 @@
-<!-- src/views/AdPlatforms.vue – 平台管理 -->
+<!-- AdPlatforms.vue (PrimeVue Refactored) -->
+<template>
+  <Card>
+    <template #title>
+      <div class="flex justify-content-between align-items-center">
+        <div class="flex align-items-center">
+            <Button icon="pi pi-arrow-left" class="p-button-text mr-2" @click="router.back()" />
+            <h1 class="text-2xl font-bold">平台管理</h1>
+        </div>
+        <Button label="新增平台" icon="pi pi-plus" @click="openCreate" />
+      </div>
+    </template>
+    <template #content>
+      <DataTable :value="platforms" :loading="loading" responsiveLayout="scroll">
+        <Column field="name" header="名稱" :sortable="true"></Column>
+        <Column field="platformType" header="類型" :sortable="true"></Column>
+        <Column header="操作" :exportable="false" style="min-width:16rem">
+          <template #body="{ data }">
+            <Button label="數據" icon="pi pi-chart-bar" class="p-button-text p-button-info" @click="manageData(data)" />
+            <Button icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" @click="openEdit(data)" />
+            <Button icon="pi pi-send" class="p-button-rounded p-button-help mr-2" @click="openTransfer(data)" />
+            <Button icon="pi pi-trash" class="p-button-rounded p-button-warning" @click="confirmDeletePlatform(data)" />
+          </template>
+        </Column>
+      </DataTable>
+    </template>
+  </Card>
+
+  <Dialog v-model:visible="dialog" :header="editing ? '編輯平台' : '新增平台'" :modal="true" class="p-fluid w-full md:w-40rem">
+    <div class="field">
+      <label for="name">平台名稱</label>
+      <InputText id="name" v-model.trim="form.name" required="true" autofocus />
+    </div>
+    <div class="field">
+      <label for="platformType">類型</label>
+      <InputText id="platformType" v-model.trim="form.platformType" />
+    </div>
+    <div class="field">
+        <label for="mode">模式</label>
+        <SelectButton v-model="form.mode" :options="modeOptions" optionLabel="label" optionValue="value" />
+    </div>
+    <div v-if="form.mode === 'custom'" class="field">
+        <label>自訂欄位</label>
+        <div class="p-inputgroup">
+            <InputText v-model="newFieldName" placeholder="欄位名稱" />
+            <Dropdown v-model="newFieldType" :options="fieldTypeOptions" optionLabel="label" optionValue="value" />
+            <Button icon="pi pi-plus" @click="addField" />
+        </div>
+        <OrderList v-model="form.fields" listStyle="height:auto" dataKey="name" class="mt-2">
+            <template #header>欄位列表</template>
+            <template #item="slotProps">
+                <div class="flex justify-content-between align-items-center w-full">
+                    <span>{{slotProps.item.name}} ({{slotProps.item.type}})</span>
+                    <Button icon="pi pi-times" class="p-button-danger p-button-text" @click="removeField(slotProps.index)" />
+                </div>
+            </template>
+        </OrderList>
+    </div>
+    <template #footer>
+      <Button label="取消" icon="pi pi-times" class="p-button-text" @click="dialog = false"/>
+      <Button :label="editing ? '更新' : '建立'" icon="pi pi-check" @click="submit" />
+    </template>
+  </Dialog>
+
+  <Dialog v-model:visible="transferDialog" header="轉移平台" :modal="true" class="p-fluid w-full md:w-20rem">
+      <div class="field">
+          <label for="transferTarget">目標客戶</label>
+          <Dropdown id="transferTarget" v-model="transferTarget" :options="clients" optionLabel="name" optionValue="_id" placeholder="選擇客戶" />
+      </div>
+      <template #footer>
+        <Button label="取消" icon="pi pi-times" class="p-button-text" @click="transferDialog = false"/>
+        <Button label="確認" icon="pi pi-check" @click="submitTransfer" />
+      </template>
+  </Dialog>
+</template>
+
 <script setup>
-/* ────────────────────────── 依賴 ────────────────────────── */
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-
-/* ────────────────────────── 服務呼叫 ─────────────────────── */
-import {
-  fetchPlatforms,
-  createPlatform,
-  updatePlatform,
-  deletePlatform,
-  transferPlatform
-} from '../services/platforms'
+import { useToast } from 'primevue/usetoast'
+import { useConfirm } from 'primevue/useconfirm'
+import { fetchPlatforms, createPlatform, updatePlatform, deletePlatform, transferPlatform } from '../services/platforms'
 import { fetchClients } from '../services/clients'
 
-/* ────────────────────────── 路由 & 狀態 ─────────────────── */
+// PrimeVue Components
+import Card from 'primevue/card'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
+import InputText from 'primevue/inputtext'
+import Dropdown from 'primevue/dropdown'
+import SelectButton from 'primevue/selectbutton'
+import OrderList from 'primevue/orderlist'
+
+const toast = useToast()
+const confirm = useConfirm()
 const route = useRoute()
 const router = useRouter()
 const clientId = route.params.clientId
 
+const loading = ref(true)
 const platforms = ref([])
+const clients = ref([])
 const dialog = ref(false)
 const editing = ref(false)
 const transferDialog = ref(false)
 const transferTarget = ref('')
 const transferId = ref('')
-const clients = ref([])
+const form = ref({ name: '', platformType: '', mode: 'custom', fields: [] })
 
-const form = ref({
-  name: '',
-  platformType: '',
-  mode: 'custom',       // default | custom
-  fields: []              // [{ name, type, order }]
-})
-
-/* ── 預設欄位 ── */
+const newFieldName = ref('')
+const newFieldType = ref('number')
+const fieldTypeOptions = ref([
+    { label: '數字', value: 'number' },
+    { label: '文字', value: 'text' },
+    { label: '日期', value: 'date' },
+])
+const modeOptions = ref([
+    { label: '預設', value: 'default' },
+    { label: '自訂', value: 'custom' },
+])
 const defaultFields = [
   { name: 'spent', type: 'number', order: 1 },
   { name: 'enquiries', type: 'number', order: 2 },
@@ -44,25 +128,27 @@ const defaultFields = [
   { name: 'clicks', type: 'number', order: 5 }
 ]
 
-/* ── 新增欄位輸入 ── */
-const newFieldName = ref('')
-const newFieldType = ref('number')
-
 const addField = () => {
   const name = newFieldName.value.trim()
-  const type = newFieldType.value
   if (name && !form.value.fields.find(f => f.name === name)) {
-    const order = form.value.fields.length + 1
-    form.value.fields.push({ name, type, order })
+    form.value.fields.push({ name, type: newFieldType.value, order: form.value.fields.length + 1 })
+    newFieldName.value = ''
   }
-  newFieldName.value = ''
 }
 
-const removeField = i => form.value.fields.splice(i, 1)
+const removeField = (index) => {
+    form.value.fields.splice(index, 1)
+}
 
-/* ────────────────────────── CRUD ────────────────────────── */
 const loadPlatforms = async () => {
-  platforms.value = await fetchPlatforms(clientId)
+  loading.value = true
+  try {
+    platforms.value = await fetchPlatforms(clientId)
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load platforms', life: 3000 })
+  } finally {
+    loading.value = false
+  }
 }
 
 const openCreate = () => {
@@ -71,174 +157,85 @@ const openCreate = () => {
   dialog.value = true
 }
 
-const openEdit = p => {
+const openEdit = (platform) => {
   editing.value = true
-  form.value = {
-    ...p,
-    fields: (p.fields || []).map(f =>
-      typeof f === 'string'
-        ? { name: f, type: 'text', order: 0 }
-        : { name: f.name, type: f.type || 'text', order: f.order || 0 }
-    ),
-    mode: p.mode || 'custom'
-  }
+  form.value = { ...platform, fields: platform.fields.map(f => (typeof f === 'string' ? { name: f, type: 'text', order: 0 } : f)) }
   dialog.value = true
 }
 
 const submit = async () => {
+  if (!form.value.name.trim()) {
+    toast.add({ severity: 'warn', summary: 'Warning', detail: 'Platform name is required', life: 3000 })
+    return
+  }
+
   try {
-    form.value.fields.sort((a, b) => a.order - b.order)
     if (editing.value) {
       await updatePlatform(clientId, form.value._id, form.value)
-      ElMessage.success('已更新平台')
+      toast.add({ severity: 'success', summary: 'Success', detail: 'Platform updated', life: 3000 })
     } else {
       await createPlatform(clientId, form.value)
-      ElMessage.success('已新增平台')
+      toast.add({ severity: 'success', summary: 'Success', detail: 'Platform created', life: 3000 })
     }
     dialog.value = false
-    await loadPlatforms()
-  } catch (e) {
-    ElMessage.error(e.response?.data?.message || e.message)
+    loadPlatforms()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Operation failed', life: 3000 })
   }
 }
 
-const manageData = p => {
-  router.push(`/clients/${clientId}/platforms/${p._id}/data`)
+const manageData = (platform) => {
+  router.push(`/clients/${clientId}/platforms/${platform._id}/data`)
 }
 
-const removePlatform = async p => {
-  await ElMessageBox.confirm(`確定刪除「${p.name}」？`, '警告', {
-    confirmButtonText: '刪除',
-    cancelButtonText: '取消',
-    type: 'warning'
-  })
-  await deletePlatform(clientId, p._id)
-  ElMessage.success('已刪除平台')
-  await loadPlatforms()
-}
-
-const openTransfer = async p => {
-  clients.value = await fetchClients()
-  transferTarget.value = ''
-  transferId.value = p._id
-  transferDialog.value = true
+const openTransfer = async (platform) => {
+    try {
+        clients.value = await fetchClients()
+        transferTarget.value = ''
+        transferId.value = platform._id
+        transferDialog.value = true
+    } catch (error) {
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load clients', life: 3000 })
+    }
 }
 
 const submitTransfer = async () => {
-  if (!transferTarget.value) return
-  await transferPlatform(transferId.value, transferTarget.value)
-  ElMessage.success('已轉移平台')
-  transferDialog.value = false
-  await loadPlatforms()
+    if (!transferTarget.value) return
+    try {
+        await transferPlatform(transferId.value, transferTarget.value)
+        toast.add({ severity: 'success', summary: 'Success', detail: 'Platform transferred', life: 3000 })
+        transferDialog.value = false
+        loadPlatforms()
+    } catch (error) {
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Transfer failed', life: 3000 })
+    }
 }
 
-/* ────────────────────────── 監看模式切換 ───────────────── */
-watch(
-  () => form.value.mode,
-  m => {
-    if (m === 'default') {
-      form.value.fields = defaultFields.map(f => ({ ...f }))   // 深拷貝
-    } else if (m === 'custom') {
-      form.value.fields = []
+const confirmDeletePlatform = (platform) => {
+  confirm.require({
+    message: `確定要刪除「${platform.name}」嗎？`,
+    header: '刪除確認',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await deletePlatform(clientId, platform._id)
+        toast.add({ severity: 'success', summary: 'Success', detail: 'Platform deleted', life: 3000 })
+        loadPlatforms()
+      } catch (error) {
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Deletion failed', life: 3000 })
+      }
     }
-  }
-)
+  });
+}
 
-/* ────────────────────────── 初始化 ─────────────────────── */
+watch(() => form.value.mode, (newMode) => {
+    if (newMode === 'default') {
+        form.value.fields = JSON.parse(JSON.stringify(defaultFields))
+    } else {
+        form.value.fields = []
+    }
+})
+
 onMounted(loadPlatforms)
 </script>
-
-<template>
-  <section class="p-6 space-y-6 bg-white text-gray-800">
-    <!-- 返回上一頁 -->
-    <el-button @click="router.back()">返回上層</el-button>
-    <h1 class="text-2xl font-bold">平台管理</h1>
-
-    <!-- 新增平台 -->
-    <el-button type="primary" @click="openCreate">＋ 新增平台</el-button>
-
-    <!-- 平台列表 -->
-    <el-table :data="platforms" stripe class="mt-4" style="width:100%">
-      <el-table-column prop="name" label="名稱" />
-      <el-table-column prop="platformType" label="類型" />
-      <el-table-column label="操作" width="200">
-        <template #default="{ row }">
-          <el-button link type="primary" @click="manageData(row)">數據</el-button>
-          <el-button link type="primary" @click="openEdit(row)">編輯</el-button>
-          <el-button link type="primary" @click="openTransfer(row)">轉移</el-button>
-          <el-button link type="danger" @click="removePlatform(row)">刪除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <!-- 新增 / 編輯對話框 -->
-    <el-dialog v-model="dialog" :title="editing ? '編輯平台' : '新增平台'" width="420px">
-      <el-form label-position="top" @submit.prevent>
-        <el-form-item label="平台名稱">
-          <el-input v-model="form.name" />
-        </el-form-item>
-
-        <el-form-item label="類型">
-          <el-input v-model="form.platformType" />
-        </el-form-item>
-
-        <el-form-item label="模式">
-          <el-select v-model="form.mode">
-            <el-option label="預設" value="default" />
-            <el-option label="自訂" value="custom" />
-          </el-select>
-        </el-form-item>
-
-        <!-- 自訂欄位設定 -->
-        <el-form-item label="自訂欄位">
-          <!-- 新增欄位表單 -->
-          <div class="flex items-center gap-2 mb-2">
-            <el-input v-model="newFieldName" placeholder="欄位名稱" class="flex-1" @keyup.enter.native.prevent="addField" />
-            <el-select v-model="newFieldType" style="width:100px">
-              <el-option label="數字" value="number" />
-              <el-option label="文字" value="text" />
-              <el-option label="日期" value="date" />
-            </el-select>
-            <el-button type="primary" @click="addField">新增</el-button>
-          </div>
-
-          <div class="flex flex-col gap-2" style="display: flex;flex-direction: column;">
-            <div v-for="(field, index) in form.fields" :key="field.name" class="flex items-center gap-2">
-              <el-tag closable @close="removeField(index)">
-                {{ field.name }}
-                <span class="ml-1 text-xs">({{ field.type }})</span>
-              </el-tag>
-              <el-input-number v-model="field.order" :min="0" />
-            </div>
-          </div>
-
-        </el-form-item>
-      </el-form>
-
-      <!-- 底部按鈕 -->
-      <template #footer>
-        <el-button @click="dialog = false">取消</el-button>
-        <el-button type="primary" @click="submit">
-          {{ editing ? '更新' : '建立' }}
-        </el-button>
-      </template>
-    </el-dialog>
-    <!-- 轉移對話框 -->
-    <el-dialog v-model="transferDialog" title="轉移平台" width="320px">
-      <el-form label-position="top" @submit.prevent>
-        <el-form-item label="目標客戶">
-          <el-select v-model="transferTarget" placeholder="選擇客戶">
-            <el-option v-for="c in clients" :key="c._id" :label="c.name" :value="c._id" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="transferDialog = false">取消</el-button>
-        <el-button type="primary" @click="submitTransfer">確認</el-button>
-      </template>
-    </el-dialog>
-  </section>
-</template>
-
-<style scoped>
-</style>

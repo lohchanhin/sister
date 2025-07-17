@@ -1,75 +1,167 @@
-<!-- src/views/EmployeeManager.vue -->
+<!-- EmployeeManager.vue (PrimeVue Refactored) -->
+<template>
+  <Card>
+    <template #title>
+      <div class="flex justify-content-between align-items-center">
+        <h1 class="text-2xl font-bold">員工帳號管理</h1>
+        <Button label="新增帳號" icon="pi pi-plus" @click="openCreate" />
+      </div>
+    </template>
+    <template #content>
+      <DataTable :value="users" :loading="loading" responsiveLayout="scroll">
+        <Column field="username" header="登入帳號" :sortable="true"></Column>
+        <Column field="name" header="姓名" :sortable="true"></Column>
+        <Column field="email" header="Email" :sortable="true"></Column>
+        <Column field="role" header="角色" :sortable="true">
+          <template #body="{ data }">
+            {{ getRoleLabel(data.role) }}
+          </template>
+        </Column>
+        <Column header="操作" :exportable="false" style="min-width:8rem">
+          <template #body="{ data }">
+            <Button icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" @click="openEdit(data)" />
+            <Button icon="pi pi-trash" class="p-button-rounded p-button-warning" @click="confirmDeleteUser(data)" />
+          </template>
+        </Column>
+      </DataTable>
+    </template>
+  </Card>
+
+  <Dialog v-model:visible="dialog" :header="editing ? '編輯帳號' : '新增帳號'" :modal="true" class="p-fluid w-full md:w-30rem">
+    <div class="field">
+      <label for="username">登入帳號</label>
+      <InputText id="username" v-model.trim="form.username" required="true" autofocus />
+    </div>
+    <div class="field">
+      <label for="name">姓名</label>
+      <InputText id="name" v-model.trim="form.name" required="true" />
+    </div>
+    <div class="field">
+      <label for="email">Email</label>
+      <InputText id="email" v-model.trim="form.email" required="true" />
+    </div>
+    <div class="field">
+      <label for="role">角色</label>
+      <Dropdown id="role" v-model="form.role" :options="roleOptions" optionLabel="label" optionValue="value" placeholder="選擇角色" />
+    </div>
+    <div class="field">
+      <label for="password">密碼</label>
+      <Password id="password" v-model="form.password" :placeholder="editing ? '留空則不變' : ''" :feedback="false" toggleMask />
+    </div>
+    <template #footer>
+      <Button label="取消" icon="pi pi-times" class="p-button-text" @click="dialog = false"/>
+      <Button :label="editing ? '更新' : '建立'" icon="pi pi-check" @click="submit" />
+    </template>
+  </Dialog>
+</template>
+
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { useToast } from 'primevue/usetoast'
+import { useConfirm } from 'primevue/useconfirm'
 import { fetchUsers, createUser, updateUser, deleteUser } from '../services/user'
 import { fetchRoles } from '../services/roles'
-import { useAuthStore } from '../stores/auth'   // 取當前登入者資訊
+import { useAuthStore } from '../stores/auth'
 
-/* ---------- 角色選單 ---------- */
+// PrimeVue Components
+import Card from 'primevue/card'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
+import InputText from 'primevue/inputtext'
+import Dropdown from 'primevue/dropdown'
+import Password from 'primevue/password'
+
+const toast = useToast()
+const confirm = useConfirm()
+const authStore = useAuthStore()
+
+if (!authStore.hasPermission('user:manage')) {
+  router.replace('/')
+}
+
+const loading = ref(true)
+const users = ref([])
 const roleOptions = ref([])
+const dialog = ref(false)
+const editing = ref(false)
+const form = ref({})
+
+const getRoleLabel = (roleValue) => {
+  const role = roleOptions.value.find(r => r.value === roleValue)
+  return role ? role.label : roleValue
+}
+
+const loadUsers = async () => {
+  loading.value = true
+  try {
+    users.value = await fetchUsers()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load users', life: 3000 })
+  } finally {
+    loading.value = false
+  }
+}
 
 const loadRoles = async () => {
-  const roles = await fetchRoles()
-  console.log("roles:", roles);
-  roleOptions.value = roles.map(r => ({ label: r.name, value: r.name }))
+  try {
+    const roles = await fetchRoles()
+    roleOptions.value = roles.map(r => ({ label: r.name, value: r.name }))
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load roles', life: 3000 })
+  }
 }
 
-/* ---------- 權限檢查：非 manager 直接跳回首頁 ---------- */
-const store = useAuthStore()
-if (!store.hasPermission('user:manage')) {
-  window.location.href = '/'   // 或用 router.replace('/')
-}
-
-/* ---------- State ---------- */
-const users = ref([])
-const dialog = ref(false)
-const editing = ref(false)        // true=編輯, false=新增
-const form = ref({
-  username: '',
-  name: '',
-  email: '',
-  role: 'employee',
-  password: ''                    // 新增 / 重設
-})
-
-/* ---------- Methods ---------- */
-const loadUsers = async () => { users.value = await fetchUsers() }
-
-/* 開新增/編輯 Dialog */
 const openCreate = () => {
   editing.value = false
   form.value = { username: '', name: '', email: '', role: 'employee', password: '' }
   dialog.value = true
 }
-const openEdit = u => {
+
+const openEdit = (user) => {
   editing.value = true
-  form.value = { ...u, password: '' }   // 不顯示舊密碼
+  form.value = { ...user, password: '' }
   dialog.value = true
 }
 
-/* 送出 */
 const submit = async () => {
-  if (!form.value.username.trim() || !form.value.name.trim() || !form.value.email.trim()) return
-  if (editing.value) {
-    await updateUser(form.value._id, form.value)
-    ElMessage.success('已更新帳號')
-  } else {
-    await createUser(form.value)
-    ElMessage.success('已建立帳號')
+  if (!form.value.username || !form.value.name || !form.value.email) {
+    toast.add({ severity: 'warn', summary: 'Warning', detail: 'Please fill in all required fields', life: 3000 })
+    return
   }
-  dialog.value = false
-  await loadUsers()
+
+  try {
+    if (editing.value) {
+      await updateUser(form.value._id, form.value)
+      toast.add({ severity: 'success', summary: 'Success', detail: 'User updated', life: 3000 })
+    } else {
+      await createUser(form.value)
+      toast.add({ severity: 'success', summary: 'Success', detail: 'User created', life: 3000 })
+    }
+    dialog.value = false
+    loadUsers()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Operation failed', life: 3000 })
+  }
 }
 
-/* 刪除 */
-const removeUser = async u => {
-  await ElMessageBox.confirm(`確定刪除「${u.name}」？`, '警告', {
-    confirmButtonText: '刪除', cancelButtonText: '取消', type: 'warning'
-  })
-  await deleteUser(u._id)
-  ElMessage.success('已刪除帳號')
-  await loadUsers()
+const confirmDeleteUser = (user) => {
+  confirm.require({
+    message: `確定要刪除「${user.name}」嗎？`,
+    header: '刪除確認',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await deleteUser(user._id)
+        toast.add({ severity: 'success', summary: 'Success', detail: 'User deleted', life: 3000 })
+        loadUsers()
+      } catch (error) {
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Deletion failed', life: 3000 })
+      }
+    }
+  });
 }
 
 onMounted(() => {
@@ -77,50 +169,3 @@ onMounted(() => {
   loadRoles()
 })
 </script>
-
-<template>
-  <section class="p-6 space-y-6 bg-white text-gray-800">
-    <h1 class="text-2xl font-bold">員工帳號管理</h1>
-
-    <el-button type="primary" @click="openCreate">＋ 新增帳號</el-button>
-
-    <!-- 使用者表格 -->
-    <el-table :data="users" style="width:100%" stripe border>
-      <el-table-column prop="username" label="登入帳號" />
-      <el-table-column prop="name" label="姓名" />
-      <el-table-column prop="email" label="Email" />
-      <el-table-column prop="role" label="角色" :formatter="(_, __, cell) => {
-        const list = roleOptions?.value ?? []      // 避免 undefined.find()
-        const match = list.find(r => r.value === cell)
-        return match ? match.label : cell          // 找不到就直接顯示原字串
-      }" />
-      <el-table-column label="操作" width="160">
-        <template #default="{ row }">
-          <el-button link type="primary" @click="openEdit(row)">編輯</el-button>
-          <el-button link type="danger" @click="removeUser(row)">刪除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <!-- 新增 / 編輯 Dialog -->
-    <el-dialog v-model="dialog" :title="editing ? '編輯帳號' : '新增帳號'" width="420px">
-      <el-form label-position="top" @submit.prevent>
-        <el-form-item label="登入帳號"><el-input v-model="form.username" /></el-form-item>
-        <el-form-item label="姓名"><el-input v-model="form.name" /></el-form-item>
-        <el-form-item label="Email"><el-input v-model="form.email" /></el-form-item>
-        <el-form-item label="角色">
-          <el-select v-model="form.role" class="w-full">
-            <el-option v-for="r in roleOptions" :key="r.value" :label="r.label" :value="r.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="密碼" v-if="!editing || form.password">
-          <el-input v-model="form.password" type="password" placeholder="留空則不變" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialog = false">取消</el-button>
-        <el-button type="primary" @click="submit">{{ editing ? '更新' : '建立' }}</el-button>
-      </template>
-    </el-dialog>
-  </section>
-</template>

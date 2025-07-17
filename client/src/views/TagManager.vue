@@ -1,21 +1,75 @@
+<!-- TagManager.vue (PrimeVue Refactored) -->
+<template>
+  <Card>
+    <template #title>
+      <div class="flex justify-content-between align-items-center">
+        <h1 class="text-2xl font-bold">標籤管理</h1>
+        <Button label="新增標籤" icon="pi pi-plus" @click="openCreate" />
+      </div>
+    </template>
+    <template #content>
+      <DataTable :value="tags" :loading="loading" responsiveLayout="scroll">
+        <Column field="name" header="名稱" :sortable="true"></Column>
+        <Column header="操作" :exportable="false" style="min-width:8rem">
+          <template #body="{ data }">
+            <Button icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" @click="openEdit(data)" />
+            <Button icon="pi pi-trash" class="p-button-rounded p-button-warning" @click="confirmDeleteTag(data)" />
+          </template>
+        </Column>
+      </DataTable>
+    </template>
+  </Card>
+
+  <Dialog v-model:visible="dialog" :header="editing ? '編輯標籤' : '新增標籤'" :modal="true" class="p-fluid w-full md:w-20rem">
+    <div class="field">
+      <label for="name">標籤名稱</label>
+      <InputText id="name" v-model.trim="form.name" required="true" autofocus />
+    </div>
+    <template #footer>
+      <Button label="取消" icon="pi pi-times" class="p-button-text" @click="dialog = false"/>
+      <Button :label="editing ? '更新' : '建立'" icon="pi pi-check" @click="submit" />
+    </template>
+  </Dialog>
+</template>
+
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { useToast } from 'primevue/usetoast'
+import { useConfirm } from 'primevue/useconfirm'
 import { fetchTags, createTag, updateTag, deleteTag } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
 
-const store = useAuthStore()
-if (!store.hasPermission('tag:manage')) {
-  window.location.href = '/'
+// PrimeVue Components
+import Card from 'primevue/card'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
+import InputText from 'primevue/inputtext'
+
+const toast = useToast()
+const confirm = useConfirm()
+const authStore = useAuthStore()
+
+if (!authStore.hasPermission('tag:manage')) {
+  router.replace('/')
 }
 
+const loading = ref(true)
 const tags = ref([])
 const dialog = ref(false)
 const editing = ref(false)
 const form = ref({ name: '' })
 
 const loadTags = async () => {
-  tags.value = await fetchTags()
+  loading.value = true
+  try {
+    tags.value = await fetchTags()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load tags', life: 3000 })
+  } finally {
+    loading.value = false
+  }
 }
 
 const openCreate = () => {
@@ -24,59 +78,50 @@ const openCreate = () => {
   dialog.value = true
 }
 
-const openEdit = t => {
+const openEdit = (tag) => {
   editing.value = true
-  form.value = { ...t }
+  form.value = { ...tag }
   dialog.value = true
 }
 
 const submit = async () => {
-  if (editing.value) {
-    await updateTag(form.value._id, { name: form.value.name })
-    ElMessage.success('已更新標籤')
-  } else {
-    await createTag({ name: form.value.name })
-    ElMessage.success('已新增標籤')
+  if (!form.value.name.trim()) {
+    toast.add({ severity: 'warn', summary: 'Warning', detail: 'Tag name is required', life: 3000 })
+    return
   }
-  dialog.value = false
-  await loadTags()
+
+  try {
+    if (editing.value) {
+      await updateTag(form.value._id, { name: form.value.name })
+      toast.add({ severity: 'success', summary: 'Success', detail: 'Tag updated', life: 3000 })
+    } else {
+      await createTag({ name: form.value.name })
+      toast.add({ severity: 'success', summary: 'Success', detail: 'Tag created', life: 3000 })
+    }
+    dialog.value = false
+    loadTags()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Operation failed', life: 3000 })
+  }
 }
 
-const removeTag = async t => {
-  await ElMessageBox.confirm(`確定刪除「${t.name}」？`, '警告', {
-    confirmButtonText: '刪除',
-    cancelButtonText: '取消',
-    type: 'warning'
-  })
-  await deleteTag(t._id)
-  ElMessage.success('已刪除標籤')
-  await loadTags()
+const confirmDeleteTag = (tag) => {
+  confirm.require({
+    message: `確定要刪除「${tag.name}」嗎？`,
+    header: '刪除確認',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await deleteTag(tag._id)
+        toast.add({ severity: 'success', summary: 'Success', detail: 'Tag deleted', life: 3000 })
+        loadTags()
+      } catch (error) {
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Deletion failed', life: 3000 })
+      }
+    }
+  });
 }
 
 onMounted(loadTags)
 </script>
-
-<template>
-  <section class="p-6 space-y-6 bg-white text-gray-800">
-    <h1 class="text-2xl font-bold">標籤管理</h1>
-    <el-button type="primary" @click="openCreate">＋ 新增標籤</el-button>
-    <el-table :data="tags" style="width:100%" stripe border>
-      <el-table-column prop="name" label="名稱" />
-      <el-table-column label="操作" width="160">
-        <template #default="{ row }">
-          <el-button link type="primary" @click="openEdit(row)">編輯</el-button>
-          <el-button link type="danger" @click="removeTag(row)">刪除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-    <el-dialog v-model="dialog" :title="editing ? '編輯標籤' : '新增標籤'" width="420px">
-      <el-form label-position="top" @submit.prevent>
-        <el-form-item label="標籤名稱"><el-input v-model="form.name" /></el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialog=false">取消</el-button>
-        <el-button type="primary" @click="submit">{{ editing ? '更新' : '建立' }}</el-button>
-      </template>
-    </el-dialog>
-  </section>
-</template>
