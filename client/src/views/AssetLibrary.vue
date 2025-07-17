@@ -161,10 +161,15 @@ const batchUsers = ref([])
 const previewVisible = ref(false)
 const previewItem = ref(null)
 
-const combinedItems = computed(() => [
-  ...folders.value.filter(Boolean).map(f => ({ ...f, id: `folder-${f._id}`, type: 'folder', name: f.name })),
-  ...assets.value.filter(Boolean).map(a => ({ ...a, id: `asset-${a._id}`, type: 'asset', name: a.title || a.filename }))
-])
+const combinedItems = computed(() => {
+  console.log('[AssetLibrary] Re-computing combinedItems. Folders:', folders.value, 'Assets:', assets.value);
+  const safeFolders = Array.isArray(folders.value) ? folders.value : [];
+  const safeAssets = Array.isArray(assets.value) ? assets.value : [];
+  return [
+    ...safeFolders.filter(Boolean).map(f => ({ ...f, id: `folder-${f._id}`, type: 'folder', name: f.name })),
+    ...safeAssets.filter(Boolean).map(a => ({ ...a, id: `asset-${a._id}`, type: 'asset', name: a.title || a.filename }))
+  ];
+})
 
 const selectedAssets = computed(() => selectedItems.value.filter(id => id.startsWith('asset-')).map(id => id.replace('asset-', '')))
 
@@ -180,6 +185,7 @@ const formatDate = d => d ? new Date(d).toLocaleString() : '—'
 const isImage = item => item && item.name && /\.(png|jpe?g|gif|webp)$/i.test(item.name)
 
 async function loadData(folderId = null) {
+  console.log(`[AssetLibrary] loadData called with folderId:`, folderId);
   loading.value = true
   try {
     const [folderData, assetData, currentFolderData] = await Promise.all([
@@ -365,6 +371,7 @@ onMounted(() => {
 
 watch(() => route.params.folderId, (newId) => loadData(newId || null))
 watch(filterTags, () => {
+  console.log('[AssetLibrary] filterTags watch triggered. currentFolder:', currentFolder.value);
   const folderId = currentFolder.value ? currentFolder.value._id : null;
   loadData(folderId);
 }, { deep: true })
