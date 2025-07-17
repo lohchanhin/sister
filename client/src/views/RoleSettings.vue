@@ -34,20 +34,22 @@
     </div>
     <div class="field">
       <label>權限</label>
-      <PickList v-model="form.permissions" :source="permissionList" sourceHeader="可用" targetHeader="已選"
-                dataKey="value" listStyle="height:200px">
-          <template #item="slotProps">
-              <span>{{ slotProps.item.label }}</span>
-          </template>
+      <PickList v-model="permissionsForPickList" listStyle="height:200px" dataKey="value">
+        <template #sourceheader>可選</template>
+        <template #targetheader>已選</template>
+        <template #item="slotProps">
+          <span>{{ slotProps.item.label }}</span>
+        </template>
       </PickList>
     </div>
     <div class="field">
       <label>選單</label>
-       <PickList v-model="form.menus" :source="menuList" sourceHeader="可用" targetHeader="已選"
-                dataKey="value" listStyle="height:200px">
-          <template #item="slotProps">
-              <span>{{ slotProps.item.label }}</span>
-          </template>
+       <PickList v-model="menusForPickList" listStyle="height:200px" dataKey="value">
+        <template #sourceheader>可選</template>
+        <template #targetheader>已選</template>
+        <template #item="slotProps">
+          <span>{{ slotProps.item.label }}</span>
+        </template>
       </PickList>
     </div>
     <template #footer>
@@ -86,14 +88,17 @@ if (!authStore.hasPermission('role:manage')) {
 
 const loading = ref(true)
 const roles = ref([])
-const permissionList = ref([])
-const menuList = ref([])
+const allPermissions = ref([])
+const allMenus = ref([])
 const dialog = ref(false)
 const editing = ref(false)
 const form = ref({ name: '', permissions: [], menus: [] })
 
+const permissionsForPickList = ref([[], []])
+const menusForPickList = ref([[], []])
+
 const getPermissionLabel = (permValue) => {
-    const perm = permissionList.value.find(p => p.value === permValue)
+    const perm = allPermissions.value.find(p => p.value === permValue)
     return perm ? perm.label : permValue
 }
 
@@ -111,7 +116,7 @@ const loadRoles = async () => {
 const loadPermissions = async () => {
   try {
     const codes = await fetchPermissions()
-    permissionList.value = codes.map(code => ({ value: code, label: PERMISSION_NAMES[code] || code }))
+    allPermissions.value = codes.map(code => ({ value: code, label: PERMISSION_NAMES[code] || code }))
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load permissions', life: 3000 })
   }
@@ -120,7 +125,7 @@ const loadPermissions = async () => {
 const loadMenus = async () => {
   try {
     const codes = await fetchMenus()
-    menuList.value = codes.map(code => ({ value: code, label: MENU_NAMES[code] || code }))
+    allMenus.value = codes.map(code => ({ value: code, label: MENU_NAMES[code] || code }))
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load menus', life: 3000 })
   }
@@ -129,16 +134,25 @@ const loadMenus = async () => {
 const openCreate = () => {
   editing.value = false
   form.value = { name: '', permissions: [], menus: [] }
+  permissionsForPickList.value = [allPermissions.value, []]
+  menusForPickList.value = [allMenus.value, []]
   dialog.value = true
 }
 
 const openEdit = (role) => {
   editing.value = true
-  form.value = { 
-      ...role, 
-      permissions: Array.isArray(role.permissions) ? [...role.permissions] : [],
-      menus: Array.isArray(role.menus) ? [...role.menus] : []
-  }
+  form.value = { ...role }
+  
+  const selectedPerms = new Set(role.permissions || [])
+  const sourcePerms = allPermissions.value.filter(p => !selectedPerms.has(p.value))
+  const targetPerms = allPermissions.value.filter(p => selectedPerms.has(p.value))
+  permissionsForPickList.value = [sourcePerms, targetPerms]
+
+  const selectedMenus = new Set(role.menus || [])
+  const sourceMenus = allMenus.value.filter(m => !selectedMenus.has(m.value))
+  const targetMenus = allMenus.value.filter(m => selectedMenus.has(m.value))
+  menusForPickList.value = [sourceMenus, targetMenus]
+
   dialog.value = true
 }
 
@@ -149,7 +163,11 @@ const submit = async () => {
   }
 
   try {
-    const data = { name: form.value.name, permissions: form.value.permissions, menus: form.value.menus }
+    const data = { 
+      name: form.value.name, 
+      permissions: permissionsForPickList.value[1].map(p => p.value), 
+      menus: menusForPickList.value[1].map(m => m.value) 
+    }
     if (editing.value) {
       await updateRole(form.value._id, data)
       toast.add({ severity: 'success', summary: 'Success', detail: 'Role updated', life: 3000 })
@@ -182,9 +200,8 @@ const confirmDeleteRole = (role) => {
   });
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await Promise.all([loadPermissions(), loadMenus()])
   loadRoles()
-  loadPermissions()
-  loadMenus()
 })
 </script>
