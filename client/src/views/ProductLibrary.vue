@@ -13,7 +13,7 @@
         <FileUpload mode="basic" :auto="true" :customUpload="true" @uploader="uploadRequest" class="ml-2" chooseLabel="批量上傳" :disabled="!currentFolder" :multiple="true" />
       </template>
       <template #end>
-        <MultiSelect v-model="filterTags" :options="allTags" placeholder="標籤���選" class="w-full md:w-20rem" />
+        <MultiSelect v-model="filterTags" :options="allTags" placeholder="標籤篩選" class="w-full md:w-20rem" />
       </template>
     </Toolbar>
 
@@ -200,27 +200,6 @@ const batchUsers = ref([])
 const previewVisible = ref(false)
 const previewItem = ref(null)
 const reviewStages = ref([])
-const downloadProgress = ref(null)
-
-watch(downloadProgress, (newVal) => {
-  if (!newVal) return;
-  
-  const { id, percent, error, url, name } = newVal;
-  const summary = error ? '壓縮失敗' : (percent < 100 ? `壓縮中: ${name}` : `壓縮完成: ${name}`);
-  const severity = error ? 'error' : (percent < 100 ? 'info' : 'success');
-  const detail = error ? error : `進度: ${percent}%`;
-  const life = percent === 100 ? 4000 : 60000;
-
-  toast.add({ id, group: 'br', severity, summary, detail, life });
-
-  if (url) {
-    window.open(url, '_blank');
-    downloadProgress.value = null; // Reset after completion
-  }
-  if (error) {
-    downloadProgress.value = null; // Reset on error
-  }
-});
 
 const combinedItems = computed(() => {
   const safeFolders = Array.isArray(folders.value) ? folders.value : [];
@@ -387,7 +366,7 @@ const uploadRequest = async (event) => {
                 id: toastId,
                 group: 'br',
                 severity: 'error', 
-                summary: '失敗', 
+                summary: '失��', 
                 detail: `${file.name} 上傳失敗`, 
                 life: 3000 
             });
@@ -398,23 +377,25 @@ const uploadRequest = async (event) => {
 
 async function pollProgress(progressId, name, type) {
   const getProgress = type === 'folder' ? getFolderDownloadProgress : getProductBatchDownloadProgress;
-  downloadProgress.value = { id: `dl-${progressId}`, percent: 0, name };
+  const toastId = `dl-${progressId}`;
+  toast.add({ id: toastId, group: 'br', severity: 'info', summary: `壓縮中: ${name}`, detail: '準備中...', life: 60000 });
 
   try {
     let progress = await getProgress(progressId);
     while (progress && progress.percent < 100 && !progress.error) {
-      downloadProgress.value = { ...downloadProgress.value, percent: progress.percent };
+      toast.add({ id: toastId, group: 'br', severity: 'info', summary: `壓縮中: ${name}`, detail: `進度: ${progress.percent}%`, life: 60000 });
       await new Promise(r => setTimeout(r, 1500));
       progress = await getProgress(progressId);
     }
 
     if (progress?.url) {
-      downloadProgress.value = { ...downloadProgress.value, percent: 100, url: progress.url };
+      toast.add({ id: toastId, group: 'br', severity: 'success', summary: '壓縮完成', detail: '下載即將開始', life: 3000 });
+      window.open(progress.url, '_blank');
     } else {
       throw new Error(progress?.error || '壓縮失敗');
     }
   } catch (error) {
-    downloadProgress.value = { ...downloadProgress.value, error: error.message };
+    toast.add({ id: toastId, group: 'br', severity: 'error', summary: '壓縮失敗', detail: error.message, life: 5000 });
   }
 }
 
