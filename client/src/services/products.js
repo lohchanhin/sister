@@ -9,7 +9,9 @@ import {
   updateAssetsViewers,
   getAssetUrl,
   batchDownloadAssets,
-  deleteAssetsBulk
+  deleteAssetsBulk,
+  startBatchDownload as startAssetBatchDownload,
+  getBatchDownloadProgress as getAssetBatchDownloadProgress
 } from './assets'
 
 export { fetchProducts }
@@ -41,3 +43,7 @@ export const getProductUrl = (id, download = false) =>
 export const batchDownloadProducts = ids => batchDownloadAssets(ids)
 
 export const deleteProducts = ids => deleteAssetsBulk(ids)
+
+export const startBatchDownload = ids => startAssetBatchDownload(ids)
+
+export const getBatchDownloadProgress = id => getAssetBatchDownloadProgress(id)

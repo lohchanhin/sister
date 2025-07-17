@@ -58,3 +58,13 @@ export const downloadFolder = (id, deep = false) => {
   return api.get(`/folders/${id}/download`, { params }).then(res => res.data.url)
 }
 
+export const startBatchDownload = (id, deep = false) => {
+    const params = {}
+    if (deep) params.deep = 'true'
+    return api.post(`/folders/${id}/download`, params).then(res => res.data)
+}
+
+export const getDownloadProgress = (id) => {
+    return api.get(`/folders/${id}/download/progress`).then(res => res.data)
+}
+
