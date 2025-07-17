@@ -8,7 +8,11 @@ import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
 import path from 'node:path'
 import bucket, { uploadFile as gcsUploadFile, getSignedUrl } from '../utils/gcs.js'
 import fs from 'node:fs/promises'
-import { spawn } from 'node:child_process'
+import archiver from 'archiver'
+import { createWriteStream } from 'node:fs'
+
+// 用於追蹤所有下載進度
+const zipProgress = {}
 
 const parseTags = (t) => {
   if (!t) return []
@@ -209,47 +213,88 @@ export const updateFoldersViewers = async (req, res) => {
 export const downloadFolder = async (req, res) => {
   const folderId = req.params.id
   const deep = req.query.deep === 'true'
-  let ids = [folderId]
-  if (deep) {
-    const childIds = await getDescendantFolderIds(folderId)
-    ids = ids.concat(childIds)
-  }
 
-  const assets = await Asset.find({ folderId: { $in: ids } })
-  const filtered = assets.filter(a =>
-    !a.allowedUsers?.length || a.allowedUsers.some(id => id.equals(req.user._id))
-  )
-  if (!filtered.length) return res.status(404).json({ message: '找不到素材' })
+  const progressId = Date.now().toString(36) + Math.random().toString(36).slice(2)
+  zipProgress[progressId] = { percent: 0, url: null, error: null }
+  res.json({ progressId })
 
-  const tmpDir = await fs.mkdtemp('/tmp/folder-dl-')
-  const files = []
-  for (const a of filtered) {
-    const dest = path.join(tmpDir, a.title || a.filename)
+  ;(async () => {
+    let tmpDir = ''
     try {
-      await bucket.file(a.path).download({ destination: dest })
-      files.push(dest)
+      let ids = [folderId]
+      if (deep) {
+        const childIds = await getDescendantFolderIds(folderId)
+        ids = ids.concat(childIds)
+      }
+
+      const assets = await Asset.find({ folderId: { $in: ids } })
+      const filtered = assets.filter(a =>
+        !a.allowedUsers?.length || a.allowedUsers.some(id => id.equals(req.user._id))
+      )
+
+      if (!filtered.length) {
+        zipProgress[progressId] = { percent: 100, url: null, error: '找不到可下載的素材' }
+        return
+      }
+
+      tmpDir = await fs.mkdtemp('/tmp/folder-dl-')
+      const zipName = `folder-${Date.now()}.zip`
+      const zipPath = path.join(tmpDir, zipName)
+      
+      await new Promise((resolve, reject) => {
+        const output = createWriteStream(zipPath)
+        const archive = archiver('zip', { zlib: { level: 9 } })
+
+        let processed = 0
+        const total = filtered.length
+
+        output.on('close', resolve)
+        archive.on('error', reject)
+        archive.on('entry', () => {
+          processed++
+          zipProgress[progressId].percent = Math.round((processed / total) * 100)
+        })
+
+        archive.pipe(output)
+
+        for (const asset of filtered) {
+          const fileStream = bucket.file(asset.path).createReadStream()
+          fileStream.on('error', (err) => {
+            console.error(`Error streaming file ${asset.path}:`, err)
+            // 在這裡我們可以選擇忽略這個檔案並繼續，或者直接 reject 來終止整個壓縮過程
+            // 為了穩健性，我們先選擇忽略，但可以在進度中標記部分失敗
+            if (!zipProgress[progressId].error) zipProgress[progressId].error = ''
+            zipProgress[progressId].error += `無法下載 ${asset.title || asset.filename}. `
+          })
+          archive.append(fileStream, { name: asset.title || asset.filename })
+        }
+
+        archive.finalize()
+      })
+
+      const gcsPath = await gcsUploadFile(zipPath, zipName, 'application/zip')
+      const url = await getSignedUrl(gcsPath, {
+        responseDisposition: `attachment; filename="${zipName}"`
+      })
+
+      zipProgress[progressId] = { ...zipProgress[progressId], percent: 100, url }
+
     } catch (e) {
-      console.error('download error', e)
+      console.error('zip error', e)
+      zipProgress[progressId] = { percent: 100, url: null, error: e.message }
+    } finally {
+      if (tmpDir) {
+        await fs.rm(tmpDir, { recursive: true, force: true }).catch(err => console.error(`Failed to remove temp dir ${tmpDir}:`, err))
+      }
+      // 設定一個超時來清理進度物件
+      setTimeout(() => delete zipProgress[progressId], 10 * 60 * 1000) 
     }
-  }
-
-  const zipName = `folder-${Date.now()}.zip`
-  const zipPath = path.join(tmpDir, zipName)
-  await new Promise((resolve, reject) => {
-    const proc = spawn('zip', ['-j', zipPath, ...files])
-    proc.on('error', reject)
-    proc.on('close', code => (code === 0 ? resolve() : reject(new Error('zip'))))
-  })
-
-  const gcsPath = await gcsUploadFile(zipPath, zipName, 'application/zip')
-  const url = await getSignedUrl(gcsPath, {
-    responseDisposition: `attachment; filename="${zipName}"`
-  })
-
-  for (const f of files) await fs.unlink(f).catch(() => {})
-  await fs.unlink(zipPath).catch(() => {})
-  await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {})
-
-  res.json({ url })
+  })()
 }
 
+// 新增一個 API 端點來獲取進度
+export const getDownloadProgress = (req, res) => {
+  const data = zipProgress[req.params.id]
+  if (!data) return res.status(404).json({ message: 'not found' })
+  res.json(data)
+}

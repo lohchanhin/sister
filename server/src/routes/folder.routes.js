@@ -28,6 +28,12 @@ router.get(
   requirePerm(PERMISSIONS.FOLDER_READ),
   downloadFolder
 )
+router.get(
+  '/:id/download/progress',
+  protect,
+  requirePerm(PERMISSIONS.FOLDER_READ),
+  getDownloadProgress
+)
 router.put(
   '/viewers',
   protect,

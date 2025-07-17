@@ -355,10 +355,11 @@ export const batchDownload = async (req, res) => {
   }
 
   const progressId = Date.now().toString(36) + Math.random().toString(36).slice(2)
-  zipProgress[progressId] = { percent: 0, url: null }
+  zipProgress[progressId] = { percent: 0, url: null, error: null }
   res.json({ progressId })
 
   ;(async () => {
+    let tmpDir = ''
     try {
       const assets = await Asset.find({ _id: { $in: ids } })
       if (!assets.length) {
@@ -366,34 +367,36 @@ export const batchDownload = async (req, res) => {
         return
       }
 
-      const tmpDir = await fs.mkdtemp('/tmp/asset-batch-')
-      const files = []
-      for (const a of assets) {
-        const dest = path.join(tmpDir, a.title || a.filename)
-        try {
-          await bucket.file(a.path).download({ destination: dest })
-          files.push(dest)
-        } catch (e) {
-          console.error('download error', e)
-        }
-      }
-
+      tmpDir = await fs.mkdtemp('/tmp/asset-batch-')
       const zipName = `assets-${Date.now()}.zip`
       const zipPath = path.join(tmpDir, zipName)
+
       await new Promise((resolve, reject) => {
         const output = createWriteStream(zipPath)
         const archive = archiver('zip', { zlib: { level: 9 } })
-        let done = 0
-        archive.on('entry', () => {
-          done++
-          zipProgress[progressId].percent = Math.round((done / files.length) * 100)
-        })
-        archive.on('error', reject)
+
+        let processed = 0
+        const total = assets.length
+
         output.on('close', resolve)
+        archive.on('error', reject)
+        archive.on('entry', () => {
+          processed++
+          zipProgress[progressId].percent = Math.round((processed / total) * 100)
+        })
+
         archive.pipe(output)
-        for (const f of files) {
-          archive.file(f, { name: path.basename(f) })
+
+        for (const asset of assets) {
+          const fileStream = bucket.file(asset.path).createReadStream()
+          fileStream.on('error', (err) => {
+            console.error(`Error streaming file ${asset.path}:`, err)
+            if (!zipProgress[progressId].error) zipProgress[progressId].error = ''
+            zipProgress[progressId].error += `無法下載 ${asset.title || asset.filename}. `
+          })
+          archive.append(fileStream, { name: asset.title || asset.filename })
         }
+
         archive.finalize()
       })
 
@@ -402,15 +405,16 @@ export const batchDownload = async (req, res) => {
         responseDisposition: `attachment; filename="${zipName}"`
       })
 
-      for (const f of files) await fs.unlink(f).catch(() => {})
-      await fs.unlink(zipPath).catch(() => {})
-      await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {})
+      zipProgress[progressId] = { ...zipProgress[progressId], percent: 100, url }
 
-      zipProgress[progressId] = { percent: 100, url }
-      setTimeout(() => delete zipProgress[progressId], 10 * 60 * 1000)
     } catch (e) {
       console.error('zip error', e)
       zipProgress[progressId] = { percent: 100, url: null, error: e.message }
+    } finally {
+      if (tmpDir) {
+        await fs.rm(tmpDir, { recursive: true, force: true }).catch(err => console.error(`Failed to remove temp dir ${tmpDir}:`, err))
+      }
+      setTimeout(() => delete zipProgress[progressId], 10 * 60 * 1000)
     }
   })()
 }
@@ -442,4 +446,3 @@ export const deleteAssets = async (req, res) => {
   await clearCacheByPrefix('assets:')
   res.json({ message: '已刪除' })
 }
-
