@@ -1,64 +1,62 @@
 <!-- src/views/AdData.vue – 動態欄位 + 週折線圖（Y 軸可選） -->
 <template>
   <section class="p-6 space-y-6 bg-white text-gray-800">
+    <Toast />
+    <ConfirmDialog />
     <!-- ===== 返回上一頁 ===== -->
-    <el-button @click="router.back()">返回上層</el-button>
+    <Button @click="router.back()" label="返回上層" />
     <h1 class="text-2xl font-bold">廣告數據</h1>
 
-    <el-tabs v-model="activeTab">
+    <TabView v-model:activeIndex="activeTabIndex">
       <!-- ──────────────────── 每日記錄 ──────────────────── -->
-      <el-tab-pane label="每日記錄" name="daily">
+      <TabPanel header="每日記錄">
         <!-- 工具列 -->
         <div class="flex justify-between items-center mb-4">
           <!-- 左：匯入 / 格式說明 -->
           <div class="flex items-center gap-2">
-            <el-upload :show-file-list="false" accept=".xlsx,.csv" drag :before-upload="importFile">
-              <el-button>匯入 CSV / Excel</el-button>
-            </el-upload>
-            <el-button size="small" plain @click="excelDialog = true">Excel 格式說明</el-button>
+            <FileUpload mode="basic" :auto="true" :customUpload="true" @uploader="importFile" chooseLabel="匯入 CSV / Excel" accept=".xlsx,.csv" />
+            <Button label="Excel 格式說明" size="small" outlined @click="excelDialog = true" />
           </div>
 
           <!-- 右：匯出 / 新增 / 說明 -->
           <div class="flex items-center gap-2">
-            <el-button size="small" @click="exportDaily">匯出</el-button>
-            <el-button type="primary" @click="openCreateDialog">新增記錄</el-button>
-            <el-button link size="small" @click="showHelp = true">
-              <el-icon>
-                <InfoFilled />
-              </el-icon>
-            </el-button>
+            <Button label="匯出" size="small" @click="exportDaily" />
+            <Button label="新增記錄" @click="openCreateDialog" />
+            <Button icon="pi pi-info-circle" link size="small" @click="showHelp = true" />
           </div>
         </div>
 
         <!-- 每日表格 -->
-        <el-table :data="dailyData" stripe style="width:100%" empty-text="尚無資料">
-          <el-table-column prop="date" label="日期" :formatter="dateFmt" width="140" />
-          <el-table-column v-for="field in customColumns" :key="field.name" :label="field.name">
-            <template #default="{ row }">
-              <span v-if="field.type === 'date'" :style="{ backgroundColor: row.colors?.[field.name] }">
-                {{ formatExtraDate(row.extraData?.[field.name]) }}
+        <DataTable :value="dailyData" stripedRows style="width:100%" emptyMessage="尚無資料">
+          <Column field="date" header="日期" width="140">
+            <template #body="{ data }">
+              {{ dateFmt(data) }}
+            </template>
+          </Column>
+          <Column v-for="field in customColumns" :key="field.name" :header="field.name">
+            <template #body="{ data }">
+              <span v-if="field.type === 'date'" :style="{ backgroundColor: data.colors?.[field.name] }">
+                {{ formatExtraDate(data.extraData?.[field.name]) }}
               </span>
-              <span v-else :style="{ backgroundColor: row.colors?.[field.name] }">{{ row.extraData?.[field.name] ?? ''
+              <span v-else :style="{ backgroundColor: data.colors?.[field.name] }">{{ data.extraData?.[field.name] ?? ''
               }}</span>
             </template>
-          </el-table-column>
-          <el-table-column label="操作" width="160">
-            <template #default="{ row }">
-              <el-button link type="primary" @click="openEdit(row)">編輯</el-button>
-              <el-button link type="danger" @click="removeDaily(row)">刪除</el-button>
+          </Column>
+          <Column header="操作" width="160">
+            <template #body="{ data }">
+              <Button link severity="primary" @click="openEdit(data)" label="編輯" />
+              <Button link severity="danger" @click="removeDaily(data)" label="刪除" />
             </template>
-          </el-table-column>
-        </el-table>
-      </el-tab-pane>
+          </Column>
+        </DataTable>
+      </TabPanel>
 
       <!-- ──────────────────── 週摘要 ──────────────────── -->
-      <el-tab-pane label="週摘要" name="weekly">
+      <TabPanel header="週摘要">
         <!-- 指標切換 + 匯出 -->
         <div class="flex justify-between items-center mb-2">
-          <el-select v-model="yMetric" size="small" style="width:160px" v-if="numericColumns.length">
-            <el-option v-for="f in numericColumns" :key="f" :label="f" :value="f" />
-          </el-select>
-          <el-button size="small" @click="exportWeekly">匯出週報</el-button>
+          <Dropdown v-model="yMetric" :options="numericColumns" style="width:160px" v-if="numericColumns.length" />
+          <Button label="匯出週報" size="small" @click="exportWeekly" />
         </div>
 
         <!-- 折線圖（如需） -->
@@ -67,78 +65,76 @@
         </div>
 
         <!-- 週表格 -->
-        <el-table :data="weeklyAgg" stripe style="width:100%" empty-text="尚無資料">
+        <DataTable :value="weeklyAgg" stripedRows style="width:100%" emptyMessage="尚無資料">
           <!-- 第一欄 -->
-          <el-table-column label="日期" width="200">
-            <template #default="{ row }">
-              {{ formatWeekRange(row.week) }}
+          <Column header="日期" width="200">
+            <template #body="{ data }">
+              {{ formatWeekRange(data.week) }}
             </template>
-          </el-table-column>
+          </Column>
           <!-- 動態欄位總計 -->
-          <el-table-column v-for="field in numericColumns" :key="field" :label="field" width="100">
-            <template #default="{ row }">{{ row[field] }}</template>
-          </el-table-column>
+          <Column v-for="field in numericColumns" :key="field" :header="field" width="100">
+            <template #body="{ data }">{{ data[field] }}</template>
+          </Column>
 
           <!-- 圖片欄 -->
-          <el-table-column label="圖片" width="120">
-            <template #default="{ row }">
-              <el-button v-if="row.hasImage" link type="primary" size="small"
-                @click="previewImages(row.images)">查看圖片</el-button>
+          <Column header="圖片" width="120">
+            <template #body="{ data }">
+              <Button v-if="data.hasImage" link severity="primary" size="small"
+                @click="previewImages(data.images)" label="查看圖片" />
             </template>
-          </el-table-column>
+          </Column>
 
           <!-- 筆記欄 -->
-          <el-table-column label="筆記" width="160">
-            <template #default="{ row }">
-              <span v-html="formatNote(row.note)" />
+          <Column header="筆記" width="160">
+            <template #body="{ data }">
+              <span v-html="formatNote(data.note)" />
             </template>
-          </el-table-column>
-
-          <!-- 不是筆記裡面擁擠多一個而是多一個 column el-button -->
+          </Column>
 
           <!-- 備註操作欄 -->
-          <el-table-column label="備註" width="120">
-            <template #default="{ row }">
-              <el-button link type="primary" @click="openNote(row)">編輯</el-button>
+          <Column header="備註" width="120">
+            <template #body="{ data }">
+              <Button link severity="primary" @click="openNote(data)" label="編輯" />
             </template>
-          </el-table-column>
-        </el-table>
-      </el-tab-pane>
-    </el-tabs>
+          </Column>
+        </DataTable>
+      </TabPanel>
+    </TabView>
 
     <!-- ─────────── Dialog：新增/編輯每日 ─────────── -->
-    <el-dialog v-model="dialogVisible" :title="editing ? '編輯每日記錄' : '新增每日記錄'" width="460px" destroy-on-close>
-      <el-form label-position="top" @submit.prevent>
-        <el-form-item label="日期">
-          <el-date-picker v-model="recordForm.date" type="date" style="width:100%" />
-        </el-form-item>
+    <Dialog v-model:visible="dialogVisible" :header="editing ? '編輯每日記錄' : '新增每日記錄'" modal style="width: 460px">
+      <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-2">
+            <label for="date">日期</label>
+            <DatePicker v-model="recordForm.date" inputId="date" style="width:100%" />
+        </div>
         <!-- 動態欄位輸入 -->
-        <el-form-item v-for="field in customColumns" :key="field.name" :label="field.name">
-          <div class="flex items-center gap-2 w-full">
-            <el-date-picker v-if="field.type === 'date'" v-model="recordForm.extraData[field.name]" type="date"
-              style="flex:1" />
-            <el-input v-else v-model="recordForm.extraData[field.name]" style="flex:1" />
-            <!-- 固定色票下拉 -->
-            <el-select v-model="recordForm.colors[field.name]" placeholder="顏色" style="width: 100px" clearable>
-              <el-option v-for="opt in colorOptions" :key="opt.value" :label="opt.label" :value="opt.value">
-                <!-- 色塊 + 文字 -->
-                <span class="inline-block w-3 h-3 mr-2 align-middle rounded-sm"
-                  :style="{ backgroundColor: opt.value }" />
-                {{ opt.label }}
-              </el-option>
-            </el-select>
-
-          </div>
-        </el-form-item>
-      </el-form>
+        <div v-for="field in customColumns" :key="field.name" class="flex flex-col gap-2">
+            <label :for="field.name">{{ field.name }}</label>
+            <div class="flex items-center gap-2 w-full">
+                <DatePicker v-if="field.type === 'date'" v-model="recordForm.extraData[field.name]" :inputId="field.name" style="flex:1" />
+                <InputText v-else v-model="recordForm.extraData[field.name]" :inputId="field.name" style="flex:1" />
+                <!-- 固定色票下拉 -->
+                <Dropdown v-model="recordForm.colors[field.name]" :options="colorOptions" optionLabel="label" optionValue="value" placeholder="顏色" style="width: 100px" showClear>
+                    <template #option="slotProps">
+                        <div class="flex items-center">
+                            <span class="inline-block w-3 h-3 mr-2 align-middle rounded-sm" :style="{ backgroundColor: slotProps.option.value }" />
+                            <div>{{ slotProps.option.label }}</div>
+                        </div>
+                    </template>
+                </Dropdown>
+            </div>
+        </div>
+      </div>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleConfirm">確定</el-button>
+        <Button label="取消" severity="secondary" @click="dialogVisible = false" />
+        <Button label="確定" @click="handleConfirm" />
       </template>
-    </el-dialog>
+    </Dialog>
 
     <!-- ─────────── Dialog：操作說明 ─────────── -->
-    <el-dialog v-model="showHelp" title="操作說明" width="380px">
+    <Dialog v-model:visible="showHelp" header="操作說明" modal style="width: 380px">
       <ul class="list-disc pl-5 leading-7">
         <li>點 <b>新增記錄</b>：手動輸入每日數據。</li>
         <li>點 <b>匯入 CSV / Excel</b>：批量匯入多筆資料。</li>
@@ -146,50 +142,50 @@
         <li>週摘要折線圖可在右上角下拉選擇 Y 軸指標。</li>
       </ul>
       <template #footer>
-        <el-button type="primary" @click="showHelp = false">了解</el-button>
+        <Button label="了解" @click="showHelp = false" />
       </template>
-    </el-dialog>
+    </Dialog>
 
     <!-- ─────────── Dialog：Excel 欄位規格 ─────────── -->
-    <el-dialog v-model="excelDialog" title="Excel / CSV 欄位格式" width="500px" destroy-on-close>
-      <el-table :data="excelSpec" border>
-        <el-table-column prop="field" label="欄位名稱" width="180" />
-        <el-table-column prop="type" label="資料型別" width="150" />
-        <el-table-column prop="sample" label="範例值" />
-      </el-table>
+    <Dialog v-model:visible="excelDialog" header="Excel / CSV 欄位格式" modal style="width: 500px">
+      <DataTable :value="excelSpec" bordered>
+        <Column field="field" header="欄位名稱" width="180" />
+        <Column field="type" header="資料型別" width="150" />
+        <Column field="sample" header="範例值" />
+      </DataTable>
       <template #footer>
-        <el-button @click="excelDialog = false">關閉</el-button>
-        <el-button type="primary" @click="downloadTemplate">下載範例檔</el-button>
+        <Button label="關閉" severity="secondary" @click="excelDialog = false" />
+        <Button label="下載範例檔" @click="downloadTemplate" />
       </template>
-    </el-dialog>
+    </Dialog>
 
     <!-- ─────────── Dialog：週備註 ─────────── -->
-    <el-dialog v-model="noteDialog" title="週備註" width="460px" destroy-on-close>
+    <Dialog v-model:visible="noteDialog" header="週備註" modal style="width: 460px">
       <p class="text-sm text-gray-500 mb-2">週別：{{ formatWeekRange(noteForm.week) }}</p>
-      <el-input v-model="noteForm.text" type="textarea" rows="4" placeholder="輸入文字筆記" />
+      <Textarea v-model="noteForm.text" rows="4" placeholder="輸入文字筆記" style="width: 100%" />
       <!-- 上傳圖片（僅本地暫存） -->
-      <el-upload multiple list-type="picture-card" :auto-upload="false" v-model:file-list="noteForm.images">
-        <el-icon>
-          <Plus />
-        </el-icon>
-      </el-upload>
+      <FileUpload multiple :auto="false" :customUpload="true" @uploader="noteForm.images = $event.files" :showUploadButton="false" :showCancelButton="false" >
+        <template #empty>
+            <i class="pi pi-plus"></i>
+        </template>
+      </FileUpload>
       <template #footer>
-        <el-button @click="noteDialog = false">取消</el-button>
-        <el-button type="primary" @click="saveNote">儲存</el-button>
+        <Button label="取消" severity="secondary" @click="noteDialog = false" />
+        <Button label="儲存" @click="saveNote" />
       </template>
-    </el-dialog>
+    </Dialog>
 
     <!-- ─────────── Dialog：圖片預覽 ─────────── -->
-    <el-dialog v-model="imgPreviewDialog" title="圖片預覽" width="600px" destroy-on-close>
-      <el-carousel height="400px" indicator-position="none">
-        <el-carousel-item v-for="(src, i) in imgList" :key="i">
-          <img :src="src" class="w-full h-full object-contain" />
-        </el-carousel-item>
-      </el-carousel>
+    <Dialog v-model:visible="imgPreviewDialog" header="圖片預覽" modal style="width: 600px">
+      <Carousel :value="imgList" :numVisible="1" :numScroll="1">
+        <template #item="slotProps">
+            <img :src="slotProps.data" class="w-full h-full object-contain" />
+        </template>
+      </Carousel>
       <template #footer>
-        <el-button type="primary" @click="imgPreviewDialog = false">關閉</el-button>
+        <Button label="關閉" @click="imgPreviewDialog = false" />
       </template>
-    </el-dialog>
+    </Dialog>
   </section>
 </template>
 
@@ -197,8 +193,8 @@
 /**** ---------------------------------------------------- 套件 ---------------------------------------------------- ****/
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { InfoFilled } from '@element-plus/icons-vue'
+import { useToast } from 'primevue/usetoast'
+import { useConfirm } from 'primevue/useconfirm'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import Papa from 'papaparse'
@@ -212,6 +208,21 @@ import {
   PointElement, LinearScale, Title, CategoryScale
 } from 'chart.js'
 Chart.register(LineController, LineElement, PointElement, LinearScale, Title, CategoryScale)
+
+import Button from 'primevue/button';
+import TabView from 'primevue/tabview';
+import TabPanel from 'primevue/tabpanel';
+import FileUpload from 'primevue/fileupload';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Dropdown from 'primevue/dropdown';
+import Dialog from 'primevue/dialog';
+import DatePicker from 'primevue/datepicker';
+import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
+import Carousel from 'primevue/carousel';
+import Toast from 'primevue/toast';
+import ConfirmDialog from 'primevue/confirmdialog';
 
 /**** ------------------ API 服務（依專案實作，可替換為 axios 呼叫） ------------------ ****/
 import {
@@ -234,8 +245,18 @@ const colorOptions = [
 /**** ----------------------------- 路由 & 基本狀態 ----------------------------- ****/
 const { clientId, platformId } = useRoute().params
 const router = useRouter()
+const toast = useToast()
+const confirm = useConfirm()
 
 const activeTab = ref('daily')
+const tabMap = { daily: 0, weekly: 1 }
+const activeTabIndex = computed({
+  get: () => tabMap[activeTab.value],
+  set: val => {
+    activeTab.value = Object.keys(tabMap).find(key => tabMap[key] === val)
+  }
+})
+
 const dialogVisible = ref(false)
 const editing = ref(false)
 const editingId = ref('')
@@ -465,21 +486,21 @@ const openCreateDialog = () => {
 }
 
 const handleConfirm = async () => {
-  if (!recordForm.value.date) return ElMessage.warning('請選擇日期')
+  if (!recordForm.value.date) return toast.add({ severity: 'warn', summary: '警告', detail: '請選擇日期', life: 3000 })
   try {
     if (editing.value) {
       await updateDaily(clientId, platformId, editingId.value, {
         ...recordForm.value
       })
-      ElMessage.success('已更新記錄')
+      toast.add({ severity: 'success', summary: '成功', detail: '已更新記錄', life: 3000 })
     } else {
       await createDaily(clientId, platformId, { ...recordForm.value })
-      ElMessage.success('已新增記錄')
+      toast.add({ severity: 'success', summary: '成功', detail: '已新增記錄', life: 3000 })
     }
     dialogVisible.value = false
     await loadDaily()
   } catch (err) {
-    ElMessage.error(err.message || (editing.value ? '更新失敗' : '新增失敗'))
+    toast.add({ severity: 'error', summary: '錯誤', detail: err.message || (editing.value ? '更新失敗' : '新增失敗'), life: 3000 })
   }
 }
 
@@ -493,27 +514,32 @@ const openEdit = row => {
 }
 
 const removeDaily = async row => {
-  await ElMessageBox.confirm(`確定刪除？`, '警告', {
-    confirmButtonText: '刪除',
-    cancelButtonText: '取消',
-    type: 'warning'
+  confirm.require({
+    message: '確定刪除？',
+    header: '警告',
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: '刪除',
+    rejectLabel: '取消',
+    accept: async () => {
+      await deleteDaily(clientId, platformId, row._id)
+      toast.add({ severity: 'success', summary: '成功', detail: '已刪除紀錄', life: 3000 })
+      await loadDaily()
+    }
   })
-  await deleteDaily(clientId, platformId, row._id)
-  ElMessage.success('已刪除紀錄')
-  await loadDaily()
 }
 
 /**** ------------------------------------------------------- 匯入 ------------------------------------------------------- ****/
-const importFile = async file => {
+const importFile = async (event) => {
+  const file = event.files[0]
   try {
     const ext = file.name.split('.').pop().toLowerCase()
     const rows = ext === 'csv' ? await parseCSV(file) : await parseExcel(file)
     if (!rows.length) throw new Error('檔案無有效資料')
     await bulkCreateDaily(clientId, platformId, rows)
-    ElMessage.success(`匯入完成，共 ${rows.length} 筆`)
+    toast.add({ severity: 'success', summary: '成功', detail: `匯入完成，共 ${rows.length} 筆`, life: 3000 })
     await loadDaily()
   } catch (err) {
-    ElMessage.error(err.message || '匯入失敗')
+    toast.add({ severity: 'error', summary: '錯誤', detail: err.message || '匯入失敗', life: 3000 })
   }
   return false
 }
@@ -560,7 +586,7 @@ const normalize = arr => {
 
 /**** ------------------------------------------------------- 匯出 ------------------------------------------------------- ****/
 const exportDaily = () => {
-  if (!dailyData.value.length) return ElMessage.warning('無資料可匯出')
+  if (!dailyData.value.length) return toast.add({ severity: 'warn', summary: '警告', detail: '無資料可匯出', life: 3000 })
   const rows = dailyData.value.map(r => {
     const row = { 日期: dateFmt(r) }
     customColumns.value.forEach(col => {
@@ -578,7 +604,7 @@ const exportDaily = () => {
 
 /* ------------------------------------------------ 匯出週報 ------------------------------------------------ */
 async function exportWeekly() {
-  if (!weeklyAgg.value.length) return ElMessage.warning('無資料可匯出')
+  if (!weeklyAgg.value.length) return toast.add({ severity: 'warn', summary: '警告', detail: '無資料可匯出', life: 3000 })
   const ExcelJS = (await import('exceljs')).default
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet('weekly')
@@ -670,7 +696,7 @@ const saveNote = async () => {
     note = await createWeeklyNote(clientId, platformId, { week, text, images: images.map(f => f.raw) })
   }
   weeklyNotes.value[week] = note
-  ElMessage.success('已儲存備註')
+  toast.add({ severity: 'success', summary: '成功', detail: '已儲存備註', life: 3000 })
   noteDialog.value = false
 }
 
