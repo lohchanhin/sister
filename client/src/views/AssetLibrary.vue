@@ -17,7 +17,7 @@
 
     <Breadcrumb :home="breadcrumbHome" :model="breadcrumbItems" class="mb-4 p-3 border-1 surface-border border-round" />
 
-    <DataView :value="combinedItems" :layout="viewMode" paginator :rows="12" :loading="loading" dataKey="id">
+    <DataView :value="combinedItems" :layout="viewMode" paginator :rows="12" :loading="loading" :dataKey="(slotProps) => slotProps.data ? slotProps.data.id : slotProps.index">
       <template #header>
         <div class="flex flex-column md:flex-row md:justify-content-between">
           <div class="flex align-items-center mb-2 md:mb-0">
