@@ -55,6 +55,15 @@
       </template>
     </DataView>
 
+    <!-- DEBUGGING LIST -->
+    <div class="mt-4 p-4 border-2 border-dashed border-red-500">
+      <h3 class="text-lg font-bold text-red-500">Debug Info</h3>
+      <p>Total items in combinedItems: {{ combinedItems.length }}</p>
+      <ul>
+        <li v-for="i in combinedItems" :key="i.id">{{ i.type }}: {{ i.name }} (ID: {{ i.id }})</li>
+      </ul>
+    </div>
+
     <!-- Dialogs -->
   </div>
 </template>
@@ -72,7 +81,17 @@ import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
 
-// ... (PrimeVue component imports)
+import Toolbar from 'primevue/toolbar'
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import FileUpload from 'primevue/fileupload'
+import MultiSelect from 'primevue/multiselect'
+import Breadcrumb from 'primevue/breadcrumb'
+import DataView from 'primevue/dataview'
+import Checkbox from 'primevue/checkbox'
+import Dialog from 'primevue/dialog'
+import Textarea from 'primevue/textarea'
+import Tag from 'primevue/tag'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -98,10 +117,15 @@ const batchUsers = ref([])
 const previewVisible = ref(false)
 const previewItem = ref(null)
 
-const combinedItems = computed(() => [
-  ...folders.value.filter(Boolean).map(f => ({ ...f, id: `folder-${f._id}`, type: 'folder', name: f.name })),
-  ...products.value.filter(Boolean).map(p => ({ ...p, id: `product-${p._id}`, type: 'product', name: p.title || p.filename }))
-])
+const combinedItems = computed(() => {
+  console.log('[ProductLibrary] Re-computing combinedItems. Folders:', folders.value, 'Products:', products.value);
+  const safeFolders = Array.isArray(folders.value) ? folders.value : [];
+  const safeProducts = Array.isArray(products.value) ? products.value : [];
+  return [
+    ...safeFolders.filter(Boolean).map(f => ({ ...f, id: `folder-${f._id}`, type: 'folder', name: f.name })),
+    ...safeProducts.filter(Boolean).map(p => ({ ...p, id: `product-${p._id}`, type: 'product', name: p.title || p.filename }))
+  ];
+})
 
 const selectedProducts = computed(() => selectedItems.value.filter(id => id.startsWith('product-')).map(id => id.replace('product-', '')))
 
@@ -117,18 +141,21 @@ const formatDate = d => d ? new Date(d).toLocaleString() : '—'
 const isImage = item => item && item.name && /\.(png|jpe?g|gif|webp)$/i.test(item.name)
 
 async function loadData(folderId = null) {
+  console.log(`[ProductLibrary] loadData called with folderId:`, folderId);
   loading.value = true
   try {
     const [folderData, productData, currentFolderData] = await Promise.all([
-      fetchFolders(folderId, filterTags.value, 'edited'),
+      fetchFolders(folderId, filterTags.value), // REMOVED 'edited'
       folderId ? fetchProducts(folderId, filterTags.value) : Promise.resolve([]),
       folderId ? getFolder(folderId) : Promise.resolve(null)
     ])
+    console.log('[ProductLibrary] API returned. Folders:', folderData.length, 'Products:', productData.length);
     folders.value = folderData
     products.value = productData
     currentFolder.value = currentFolderData
     buildBreadcrumb(currentFolderData)
   } catch (error) {
+    console.error('[ProductLibrary] Failed to load data:', error);
     toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load data', life: 3000 })
   } finally {
     loading.value = false
