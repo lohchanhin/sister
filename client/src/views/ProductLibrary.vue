@@ -40,6 +40,10 @@
             <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
           </el-select>
 
+          <el-button v-if="currentFolder" @click="downloadCurrentFolder">
+            <el-icon class="mr-1"><Download /></el-icon> 下載資料夾
+          </el-button>
+
           <el-button link size="small" class="absolute top-2 right-2" @click="showHelp = true">
             <el-icon>
               <InfoFilled />
@@ -366,7 +370,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   fetchFolders, createFolder, updateFolder, getFolder, deleteFolder,
-  updateFoldersViewers, reviewFolder, fetchFolderStages, updateFolderStage
+  updateFoldersViewers, reviewFolder, fetchFolderStages, updateFolderStage,
+  downloadFolder
 } from '../services/folders'
 import {
   fetchProducts, updateProduct, deleteProduct,
@@ -500,6 +505,17 @@ async function downloadSelected() {
   const link = document.createElement('a')
   link.href = url
   link.download = 'products.zip'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+async function downloadCurrentFolder() {
+  if (!currentFolder.value) return
+  const url = await downloadFolder(currentFolder.value._id, true)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `${currentFolder.value.name}.zip`
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)

@@ -5,6 +5,10 @@ import FolderReviewRecord from '../models/folderReviewRecord.model.js'
 import { getDescendantFolderIds, getRootFolder } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
 import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
+import path from 'node:path'
+import bucket, { uploadFile as gcsUploadFile, getSignedUrl } from '../utils/gcs.js'
+import fs from 'node:fs/promises'
+import { spawn } from 'node:child_process'
 
 const parseTags = (t) => {
   if (!t) return []
@@ -200,5 +204,52 @@ export const updateFoldersViewers = async (req, res) => {
   }
   await clearCacheByPrefix('folders:')
   res.json({ message: '已更新' })
+}
+
+export const downloadFolder = async (req, res) => {
+  const folderId = req.params.id
+  const deep = req.query.deep === 'true'
+  let ids = [folderId]
+  if (deep) {
+    const childIds = await getDescendantFolderIds(folderId)
+    ids = ids.concat(childIds)
+  }
+
+  const assets = await Asset.find({ folderId: { $in: ids } })
+  const filtered = assets.filter(a =>
+    !a.allowedUsers?.length || a.allowedUsers.some(id => id.equals(req.user._id))
+  )
+  if (!filtered.length) return res.status(404).json({ message: '找不到素材' })
+
+  const tmpDir = await fs.mkdtemp('/tmp/folder-dl-')
+  const files = []
+  for (const a of filtered) {
+    const dest = path.join(tmpDir, a.title || a.filename)
+    try {
+      await bucket.file(a.path).download({ destination: dest })
+      files.push(dest)
+    } catch (e) {
+      console.error('download error', e)
+    }
+  }
+
+  const zipName = `folder-${Date.now()}.zip`
+  const zipPath = path.join(tmpDir, zipName)
+  await new Promise((resolve, reject) => {
+    const proc = spawn('zip', ['-j', zipPath, ...files])
+    proc.on('error', reject)
+    proc.on('close', code => (code === 0 ? resolve() : reject(new Error('zip'))))
+  })
+
+  const gcsPath = await gcsUploadFile(zipPath, zipName, 'application/zip')
+  const url = await getSignedUrl(gcsPath, {
+    responseDisposition: `attachment; filename="${zipName}"`
+  })
+
+  for (const f of files) await fs.unlink(f).catch(() => {})
+  await fs.unlink(zipPath).catch(() => {})
+  await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {})
+
+  res.json({ url })
 }
 

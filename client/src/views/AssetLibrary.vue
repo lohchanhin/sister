@@ -40,6 +40,10 @@
             <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
           </el-select>
 
+          <el-button v-if="currentFolder" @click="downloadCurrentFolder">
+            <el-icon class="mr-1"><Download /></el-icon> 下載資料夾
+          </el-button>
+
         </div>
 
         <!-- ◤ 右側：檢視 / 批次動作 ◢ -->
@@ -347,7 +351,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers } from '../services/folders'
+import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, downloadFolder } from '../services/folders'
 import { fetchAssets, uploadAssetAuto, updateAsset, deleteAsset, updateAssetsViewers, getAssetUrl, batchDownloadAssets, deleteAssetsBulk } from '../services/assets'
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
@@ -487,6 +491,17 @@ async function downloadSelected() {
   const link = document.createElement('a')
   link.href = url
   link.download = 'assets.zip'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+async function downloadCurrentFolder() {
+  if (!currentFolder.value) return
+  const url = await downloadFolder(currentFolder.value._id, true)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `${currentFolder.value.name}.zip`
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
