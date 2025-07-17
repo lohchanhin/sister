@@ -1,4 +1,4 @@
-<!-- ProductLibrary.vue (Final Corrected Version with Manual Layouts) -->
+<!-- ProductLibrary.vue (Final Corrected Version) -->
 <template>
   <div>
     <Toolbar class="mb-4">
@@ -8,7 +8,8 @@
           <InputText v-model="newFolderName" placeholder="新資料夾名稱" @keyup.enter="createNewFolder" />
           <Button label="建立" icon="pi pi-plus" @click="createNewFolder" :disabled="!newFolderName" />
         </div>
-        <FileUpload mode="basic" :auto="true" :customUpload="true" @uploader="uploadRequest" class="ml-2" chooseLabel="上傳檔案" :disabled="!currentFolder" />
+        <FileUpload mode="basic" :auto="true" :customUpload="true" @uploader="uploadRequest" class="ml-2" chooseLabel="上傳單一檔案" :disabled="!currentFolder" />
+        <FileUpload mode="basic" :auto="true" :customUpload="true" @uploader="uploadRequest" class="ml-2" chooseLabel="批量上傳" :disabled="!currentFolder" :multiple="true" />
       </template>
       <template #end>
         <MultiSelect v-model="filterTags" :options="allTags" placeholder="標籤篩選" class="w-full md:w-20rem" />
@@ -89,6 +90,7 @@
           ></SplitButton>
           <Button v-else icon="pi pi-info-circle" class="p-button-rounded p-button-secondary" @click.stop="showDetailFor(item)"></Button>
           <Button v-if="item.type === 'folder'" icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadFolderItem(item)"></Button>
+          <Button v-else icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadSingleItem(item)"></Button>
         </div>
       </div>
     </div>
@@ -153,9 +155,9 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, reviewFolder, fetchFolderStages, updateFolderStage } from '../services/folders'
-import { fetchProducts, updateProduct, deleteProduct, updateProductsViewers, getProductUrl, batchDownloadProducts, deleteProducts, reviewProduct, fetchProductStages, updateProductStage } from '../services/products'
-import { uploadAssetAuto } from '../services/assets'
+import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, reviewFolder, fetchFolderStages, updateFolderStage, getDownloadProgress as getFolderDownloadProgress, startBatchDownload as startFolderBatchDownload } from '../services/folders'
+import { fetchProducts, updateProduct, deleteProduct, updateProductsViewers, getProductUrl, batchDownloadProducts, deleteProducts, reviewProduct, fetchProductStages, updateProductStage, getBatchDownloadProgress as getProductBatchDownloadProgress, startBatchDownload as startProductBatchDownload } from '../services/products'
+import { uploadAssetAuto, getAssetUrl } from '../services/assets'
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
@@ -325,42 +327,96 @@ async function createNewFolder() {
 }
 
 const uploadRequest = async (event) => {
-    const file = event.files[0];
-    const toastId = toast.add({ 
-        severity: 'info', 
-        summary: `Uploading ${file.name}`,
-        detail: 'Starting...', 
-        life: 60000 
-    });
+    const files = Array.isArray(event.files) ? event.files : [event.files];
+    toast.add({ severity: 'info', summary: '批量上傳開始', detail: `準備上傳 ${files.length} 個檔案...`, life: 3000 });
 
-    try {
-        await uploadAssetAuto(file, currentFolder.value?._id, { type: 'edited' }, (progressEvent) => {
-            const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+    for (const file of files) {
+        const toastId = toast.add({ 
+            severity: 'info', 
+            summary: `上傳中: ${file.name}`,
+            detail: '準備中...', 
+            life: 60000 
+        });
+        try {
+            await uploadAssetAuto(file, currentFolder.value?._id, { type: 'edited' }, (progressEvent) => {
+                const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+                toast.add({ 
+                    id: toastId,
+                    severity: 'info', 
+                    summary: `上傳中: ${file.name}`,
+                    detail: `${percent}%`,
+                });
+            });
             toast.add({ 
                 id: toastId,
-                severity: 'info', 
-                summary: `Uploading ${file.name}`,
-                detail: `${percent}%`,
+                severity: 'success', 
+                summary: '成功', 
+                detail: `${file.name} 上傳完畢`, 
+                life: 3000 
             });
-        });
-        toast.add({ 
-            id: toastId,
-            severity: 'success', 
-            summary: 'Success', 
-            detail: 'File uploaded', 
-            life: 3000 
-        });
-        loadData(currentFolder.value?._id);
-    } catch (error) {
-        toast.add({ 
-            id: toastId,
-            severity: 'error', 
-            summary: 'Error', 
-            detail: 'File upload failed', 
-            life: 3000 
-        });
+        } catch (error) {
+            toast.add({ 
+                id: toastId,
+                severity: 'error', 
+                summary: '失敗', 
+                detail: `${file.name} 上傳失敗`, 
+                life: 3000 
+            });
+        }
     }
+    loadData(currentFolder.value?._id);
 };
+
+async function pollProgress(progressId, type) {
+  const getProgress = type === 'folder' ? getFolderDownloadProgress : getProductBatchDownloadProgress;
+  const toastId = toast.add({ severity: 'info', summary: '壓縮中', detail: '正在準備您的下載...', life: 60000 });
+
+  try {
+    let progress = await getProgress(progressId);
+    while (progress && progress.percent < 100) {
+      toast.add({ id: toastId, severity: 'info', summary: '壓縮中', detail: `進度: ${progress.percent}%`, life: 60000 });
+      await new Promise(r => setTimeout(r, 1500));
+      progress = await getProgress(progressId);
+    }
+
+    if (progress?.url) {
+      toast.add({ id: toastId, severity: 'success', summary: '完成', detail: '下載即將開始', life: 3000 });
+      window.open(progress.url, '_blank');
+    } else {
+      throw new Error(progress?.error || '壓縮失敗');
+    }
+  } catch (error) {
+    toast.add({ id: toastId, severity: 'error', summary: '錯誤', detail: error.message, life: 5000 });
+  }
+}
+
+async function downloadFolderItem(item) {
+  try {
+    const { progressId } = await startFolderBatchDownload(item._id);
+    pollProgress(progressId, 'folder');
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: '無法開始下載', life: 3000 });
+  }
+}
+
+async function downloadSingleItem(item) {
+  try {
+    const url = await getProductUrl(item._id, true); // download=true
+    window.open(url, '_blank');
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: '下載失敗', life: 3000 });
+  }
+}
+
+async function downloadSelected() {
+  if (!selectedProducts.value.length) return;
+  try {
+    const { progressId } = await startProductBatchDownload(selectedProducts.value);
+    pollProgress(progressId, 'product');
+  } catch (error) {
+     toast.add({ severity: 'error', summary: 'Error', detail: '無法開始下載', life: 3000 });
+  }
+}
 
 async function previewProduct(item) {
   try {
@@ -426,30 +482,6 @@ async function applyBatch() {
     selectedItems.value = [];
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Batch update failed', life: 3000 });
-  }
-}
-
-async function downloadFolderItem(item) {
-  try {
-    const url = await downloadFolder(item._id);
-    window.open(url, '_blank');
-  } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Download failed', life: 3000 });
-  }
-}
-
-async function downloadSelected() {
-  if (!selectedProducts.value.length) return;
-  try {
-    const url = await batchDownloadProducts(selectedProducts.value);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'products.zip');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } catch (error) {
-     toast.add({ severity: 'error', summary: 'Error', detail: 'Download failed', life: 3000 });
   }
 }
 
