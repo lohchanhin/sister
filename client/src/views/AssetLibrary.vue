@@ -31,11 +31,45 @@
       </template>
 
       <template #list="slotProps">
-        <!-- List Item Layout -->
+        <div class="col-12">
+          <div class="flex flex-column xl:flex-row xl:align-items-start p-4 gap-4">
+            <Checkbox v-model="selectedItems" :value="slotProps.data.id" class="align-self-center xl:align-self-start"/>
+            <i :class="['text-4xl text-primary-500', slotProps.data.type === 'folder' ? 'pi pi-folder' : 'pi pi-file']"></i>
+            <div class="flex-1 flex flex-column gap-2">
+              <div class="font-bold text-lg cursor-pointer" @click="handleItemClick(slotProps.data)">{{ slotProps.data.name }}</div>
+              <div class="text-sm text-color-secondary">{{ slotProps.data.description }}</div>
+              <div class="flex align-items-center gap-2">
+                <i class="pi pi-calendar"></i>
+                <span>{{ formatDate(slotProps.data.createdAt) }} by {{ slotProps.data.creatorName || slotProps.data.uploaderName }}</span>
+              </div>
+              <div class="flex align-items-center gap-2">
+                <Tag v-for="tag in slotProps.data.tags" :key="tag" :value="tag"></Tag>
+              </div>
+            </div>
+            <div class="flex flex-row xl:flex-column align-items-center xl:align-items-end gap-2">
+              <Button icon="pi pi-info-circle" class="p-button-rounded p-button-secondary" @click="showDetailFor(slotProps.data)"></Button>
+              <Button v-if="slotProps.data.type === 'folder'" icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadFolderItem(slotProps.data)"></Button>
+            </div>
+          </div>
+        </div>
       </template>
 
       <template #grid="slotProps">
-        <!-- Grid Item Layout -->
+        <div class="col-12 md:col-4 lg:col-3 xl:col-2 p-2">
+          <div class="p-4 border-1 surface-border surface-card border-round h-full flex flex-column">
+            <div class="flex justify-content-between align-items-start">
+                <Checkbox v-model="selectedItems" :value="slotProps.data.id" @click.stop />
+                <Button icon="pi pi-info-circle" class="p-button-rounded p-button-text" @click.stop="showDetailFor(slotProps.data)"></Button>
+            </div>
+            <div class="flex-1 flex flex-column align-items-center text-center gap-3 cursor-pointer" @click="handleItemClick(slotProps.data)">
+              <i :class="['text-6xl mt-3', slotProps.data.type === 'folder' ? 'pi pi-folder' : 'pi pi-file']"></i>
+              <div class="font-bold">{{ slotProps.data.name }}</div>
+              <div class="flex align-items-center gap-2 flex-wrap justify-content-center">
+                <Tag v-for="tag in slotProps.data.tags" :key="tag" :value="tag"></Tag>
+              </div>
+            </div>
+          </div>
+        </div>
       </template>
     </DataView>
 
@@ -92,7 +126,18 @@ import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
 
-// ... (PrimeVue component imports) ...
+import Toolbar from 'primevue/toolbar'
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import FileUpload from 'primevue/fileupload'
+import MultiSelect from 'primevue/multiselect'
+import Breadcrumb from 'primevue/breadcrumb'
+import DataView from 'primevue/dataview'
+import DataViewLayoutOptions from 'primevue/dataviewlayoutoptions'
+import Checkbox from 'primevue/checkbox'
+import Dialog from 'primevue/dialog'
+import Textarea from 'primevue/textarea'
+import Tag from 'primevue/tag'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -295,6 +340,11 @@ function confirmDeleteSelected() {
         // delete logic
     }
   });
+}
+
+function downloadFolderItem(item) {
+  // Placeholder for folder download
+  toast.add({ severity: 'info', summary: 'Info', detail: 'Folder download not implemented yet.', life: 3000 });
 }
 
 async function previewAsset(item) {
