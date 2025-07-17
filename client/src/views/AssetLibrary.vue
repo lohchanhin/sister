@@ -2,6 +2,8 @@
 <template>
   <div>
     <Toast position="bottom-right" group="br" />
+    <!-- This will handle all dynamically grouped toasts -->
+    <Toast position="bottom-right" /> 
     <Toast position="top-center" group="upload-batch" />
     <Toolbar class="mb-4">
       <template #start>
@@ -192,6 +194,7 @@ const breadcrumbItems = ref([])
 
 const formatDate = d => d ? new Date(d).toLocaleString() : '—'
 const isImage = item => item && item.name && /\.(png|jpe?g|gif|webp)$/i.test(item.name)
+const isVideo = item => item && item.name && /\.(mp4|webm|ogg)$/i.test(item.name)
 
 async function loadData(folderId = null) {
   loading.value = true
@@ -300,7 +303,18 @@ async function downloadFolderItem(item) {
 async function downloadSingleItem(item) {
   try {
     const url = await getAssetUrl(item._id, true); // download=true
-    window.open(url, '_blank');
+    if (isVideo(item)) {
+      // For videos, create a link and click it to force download
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', item.name);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      // For other files, open in a new tab
+      window.open(url, '_blank');
+    }
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: '下載失敗', life: 3000 });
   }
@@ -375,11 +389,30 @@ async function applyBatch() {
 
 function confirmDeleteSelected() {
   confirm.require({
-    message: `Are you sure you want to delete ${selectedItems.value.length} items?`,
-    header: 'Confirmation',
+    message: `您確定要刪除這 ${selectedItems.value.length} 個項目嗎？此操作無法復原。`,
+    header: '確認刪除',
     icon: 'pi pi-exclamation-triangle',
     accept: async () => {
-        // delete logic
+      const assetIds = selectedItems.value.filter(id => id.startsWith('asset-')).map(id => id.replace('asset-', ''));
+      const folderIds = selectedItems.value.filter(id => id.startsWith('folder-')).map(id => id.replace('folder-', ''));
+      
+      try {
+        const deletePromises = [];
+        if (assetIds.length) {
+          assetIds.forEach(id => deletePromises.push(deleteAsset(id)));
+        }
+        if (folderIds.length) {
+          folderIds.forEach(id => deletePromises.push(deleteFolder(id)));
+        }
+        
+        await Promise.all(deletePromises);
+        
+        toast.add({ severity: 'success', summary: '成功', detail: '選取的項目已成功刪除', life: 3000 });
+        loadData(currentFolder.value?._id); // Refresh the data
+        selectedItems.value = []; // Clear selection
+      } catch (error) {
+        toast.add({ severity: 'error', summary: '錯誤', detail: '刪除過程中發生錯誤', life: 3000 });
+      }
     }
   });
 }

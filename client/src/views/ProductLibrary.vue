@@ -2,6 +2,8 @@
 <template>
   <div>
     <Toast position="bottom-right" group="br" />
+    <!-- This will handle all dynamically grouped toasts -->
+    <Toast position="bottom-right" />
     <Toast position="top-center" group="upload-batch" />
     <Toolbar class="mb-4">
       <template #start>
@@ -471,11 +473,32 @@ async function applyBatch() {
 
 function confirmDeleteSelected() {
   confirm.require({
-    message: `Are you sure you want to delete ${selectedItems.value.length} items?`,
-    header: 'Confirmation',
+    message: `您確定要刪除這 ${selectedItems.value.length} 個項目嗎？此操作無法復原。`,
+    header: '確認刪除',
     icon: 'pi pi-exclamation-triangle',
     accept: async () => {
-        // delete logic
+      const productIds = selectedItems.value.filter(id => id.startsWith('product-')).map(id => id.replace('product-', ''));
+      const folderIds = selectedItems.value.filter(id => id.startsWith('folder-')).map(id => id.replace('folder-', ''));
+      
+      try {
+        const deletePromises = [];
+        if (productIds.length) {
+          // Note: Assumes a deleteProduct function exists for single deletion.
+          // If a batch delete function (e.g., deleteProducts) exists, it would be more efficient.
+          productIds.forEach(id => deletePromises.push(deleteProduct(id)));
+        }
+        if (folderIds.length) {
+          folderIds.forEach(id => deletePromises.push(deleteFolder(id)));
+        }
+        
+        await Promise.all(deletePromises);
+        
+        toast.add({ severity: 'success', summary: '成功', detail: '選取的項目已成功刪除', life: 3000 });
+        loadData(currentFolder.value?._id); // Refresh the data
+        selectedItems.value = []; // Clear selection
+      } catch (error) {
+        toast.add({ severity: 'error', summary: '錯誤', detail: '刪除過程中發生錯誤', life: 3000 });
+      }
     }
   });
 }
