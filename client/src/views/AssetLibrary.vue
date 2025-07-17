@@ -135,7 +135,7 @@ import { fetchAssets, uploadAssetAuto, updateAsset, deleteAsset, updateAssetsVie
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
-import { showProgressToast } from '../utils/toastProgress'
+import { useProgressStore } from '../stores/progress'
 
 import Toolbar from 'primevue/toolbar'
 import Button from 'primevue/button'
@@ -154,6 +154,7 @@ const confirm = useConfirm()
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const progressStore = useProgressStore()
 
 const loading = ref(false)
 const folders = ref([])
@@ -249,19 +250,18 @@ async function createNewFolder() {
 
 const uploadRequest = async (event) => {
     const files = Array.isArray(event.files) ? event.files : [event.files];
-    showProgressToast(toast, 'upload-batch', '批量上傳開始', `準備上傳 ${files.length} 個檔案...`, 'info', 3000);
-
+    
     for (const file of files) {
-        const groupId = `upload-${file.name}-${Date.now()}`;
-        showProgressToast(toast, groupId, `上傳中: ${file.name}`, '0%');
+        const taskId = `upload-${file.name}-${Date.now()}`;
+        progressStore.addTask({ id: taskId, name: file.name, status: 'uploading' });
         try {
             await uploadAssetAuto(file, currentFolder.value?._id, 'raw', (progressEvent) => {
                 const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
-                showProgressToast(toast, groupId, `上傳中: ${file.name}`, `${percent}%`);
+                progressStore.updateTaskProgress(taskId, percent);
             });
-            showProgressToast(toast, groupId, '成功', `${file.name} 上傳完畢`, 'success', 3000);
+            progressStore.updateTaskStatus(taskId, 'success');
         } catch (error) {
-            showProgressToast(toast, groupId, '失敗', `${file.name} 上傳失敗`, 'error', 5000);
+            progressStore.updateTaskStatus(taskId, 'error', '上傳失敗');
         }
     }
     loadData(currentFolder.value?._id);
@@ -269,25 +269,25 @@ const uploadRequest = async (event) => {
 
 async function pollProgress(progressId, name, type) {
   const getProgress = type === 'folder' ? getFolderDownloadProgress : getAssetBatchDownloadProgress;
-  const groupId = `dl-${progressId}`;
-  showProgressToast(toast, groupId, `壓縮中: ${name}`, '準備中...');
+  const taskId = `dl-${progressId}`;
+  progressStore.addTask({ id: taskId, name, status: 'compressing' });
 
   try {
     let progress = await getProgress(progressId);
     while (progress && progress.percent < 100 && !progress.error) {
-      showProgressToast(toast, groupId, `壓縮中: ${name}`, `進度: ${progress.percent}%`);
+      progressStore.updateTaskProgress(taskId, progress.percent);
       await new Promise(r => setTimeout(r, 1500));
       progress = await getProgress(progressId);
     }
 
     if (progress?.url) {
-      showProgressToast(toast, groupId, '壓縮完成', '下載即將開始', 'success', 3000);
+      progressStore.updateTaskStatus(taskId, 'success');
       window.open(progress.url, '_blank');
     } else {
       throw new Error(progress?.error || '壓縮失敗');
     }
   } catch (error) {
-    showProgressToast(toast, groupId, '壓縮失敗', error.message, 'error', 5000);
+    progressStore.updateTaskStatus(taskId, 'error', error.message);
   }
 }
 

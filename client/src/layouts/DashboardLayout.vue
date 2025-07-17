@@ -6,6 +6,7 @@
         <router-view />
       </div>
     </main>
+    <ProgressTracker />
   </div>
 </template>
 
@@ -13,6 +14,7 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import Sidebar from '../components/Sidebar.vue'
+import ProgressTracker from '../components/ProgressTracker.vue'
 
 const store = useAuthStore()
 onMounted(() => store.fetchProfile()) // 重新整理時取個人資訊
