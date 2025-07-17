@@ -78,10 +78,10 @@
               :modelValue="stage.completed" 
               :binary="true" 
               :inputId="stage._id"
-              :disabled="!stage.responsibleUsers.includes(authStore.user._id)"
+              :disabled="stage.responsible && stage.responsible._id !== authStore.user._id"
               @change="updateStageStatus(stage, $event)"
             />
-            <label :for="stage._id" class="ml-2">{{ stage.stageId.name }}</label>
+            <label :for="stage._id" class="ml-2">{{ stage.name }}</label>
           </div>
         </div>
       </div>
@@ -223,9 +223,9 @@ async function updateStageStatus(stage, event) {
   try {
     const completed = event.target.checked;
     if (detail.value.type === 'folder') {
-      await updateFolderStage(detail.value._id, stage.stageId._id, completed);
+      await updateFolderStage(detail.value._id, stage._id, completed);
     } else {
-      await updateProductStage(detail.value._id, stage.stageId._id, completed);
+      await updateProductStage(detail.value._id, stage._id, completed);
     }
     stage.completed = completed; // Optimistic update
     toast.add({ severity: 'success', summary: 'Success', detail: 'Stage status updated', life: 3000 });
