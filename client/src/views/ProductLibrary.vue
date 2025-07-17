@@ -1,4 +1,4 @@
-<!-- ProductLibrary.vue (Final Refactor) -->
+<!-- ProductLibrary.vue (Final Refactor with Review Feature) -->
 <template>
   <div>
     <Toolbar class="mb-4">
@@ -35,12 +35,20 @@
         <div class="p-4 border-1 surface-border surface-card border-round h-full flex flex-column">
           <div class="flex justify-content-between align-items-start">
               <Checkbox v-model="selectedItems" :value="item.id" @click.stop />
-              <Button icon="pi pi-info-circle" class="p-button-rounded p-button-text" @click.stop="showDetailFor(item)"></Button>
+              <SplitButton 
+                icon="pi pi-cog" 
+                :model="getItemActions(item)"
+                v-if="authStore.hasPermission('REVIEW_MANAGE')"
+                @click="showDetailFor(item)"
+                class="p-button-sm p-button-secondary"
+              ></SplitButton>
+              <Button v-else icon="pi pi-info-circle" class="p-button-rounded p-button-text" @click.stop="showDetailFor(item)"></Button>
           </div>
           <div class="flex-1 flex flex-column align-items-center text-center gap-3 cursor-pointer" @click="handleItemClick(item)">
             <i :class="['text-6xl mt-3', item.type === 'folder' ? 'pi pi-folder' : 'pi pi-box']"></i>
             <div class="font-bold">{{ item.name }}</div>
             <div class="flex align-items-center gap-2 flex-wrap justify-content-center">
+              <Tag :value="item.reviewStatus" :severity="getStatusSeverity(item.reviewStatus)" />
               <Tag v-for="tag in item.tags" :key="tag" :value="tag"></Tag>
             </div>
           </div>
@@ -95,8 +103,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, downloadFolder } from '../services/folders'
-import { fetchProducts, updateProduct, deleteProduct, updateProductsViewers, getProductUrl, batchDownloadProducts, deleteProducts } from '../services/products'
+import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, downloadFolder, reviewFolder } from '../services/folders'
+import { fetchProducts, updateProduct, deleteProduct, updateProductsViewers, getProductUrl, batchDownloadProducts, deleteProducts, reviewProduct } from '../services/products'
 import { uploadAssetAuto } from '../services/assets'
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
@@ -112,6 +120,7 @@ import Checkbox from 'primevue/checkbox'
 import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
 import Tag from 'primevue/tag'
+import SplitButton from 'primevue/splitbutton'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -157,6 +166,44 @@ const breadcrumbItems = ref([])
 
 const formatDate = d => d ? new Date(d).toLocaleString() : '—'
 const isImage = item => item && item.name && /\.(png|jpe?g|gif|webp)$/i.test(item.name)
+
+const getStatusSeverity = (status) => {
+  switch (status) {
+    case 'approved': return 'success'
+    case 'rejected': return 'danger'
+    default: return 'warning'
+  }
+}
+
+const getItemActions = (item) => {
+  return [
+    {
+      label: 'Approve',
+      icon: 'pi pi-check',
+      command: () => handleReview(item, 'approved')
+    },
+    {
+      label: 'Reject',
+      icon: 'pi pi-times',
+      command: () => handleReview(item, 'rejected')
+    }
+  ]
+}
+
+async function handleReview(item, status) {
+  try {
+    const id = item._id;
+    if (item.type === 'folder') {
+      await reviewFolder(id, status);
+    } else {
+      await reviewProduct(id, status);
+    }
+    toast.add({ severity: 'success', summary: 'Success', detail: `Item ${status}`, life: 3000 });
+    loadData(currentFolder.value?._id);
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to update status', life: 3000 });
+  }
+}
 
 async function loadData(folderId = null) {
   loading.value = true
