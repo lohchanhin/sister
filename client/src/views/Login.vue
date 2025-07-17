@@ -13,13 +13,16 @@
             </span>
           </div>
           <div class="field">
-            <Password
-              id="password"
-              v-model="password"
-              placeholder="密碼"
-              :feedback="false"
-              toggleMask
-            />
+            <span class="p-input-icon-left">
+              <i class="pi pi-lock" />
+              <Password
+                id="password"
+                v-model="password"
+                placeholder="密碼"
+                :feedback="false"
+                toggleMask
+              />
+            </span>
           </div>
           <Button type="submit" label="登入" class="w-full mt-4" />
         </form>

@@ -1,7 +1,7 @@
-export function showProgressToast(toast, groupId, summary, detail, type = 'info', life = 60000) {
-  toast.removeGroup(groupId)
+export function showProgressToast(toast, key, summary, detail, type = 'info', life = 60000) {
   toast.add({
-    group: groupId,
+    key: key,
+    group: 'br', // Use a consistent group for all progress toasts
     severity: type,
     summary,
     detail,
