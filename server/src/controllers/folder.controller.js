@@ -2,17 +2,14 @@ import Folder from '../models/folder.model.js'
 import Asset from '../models/asset.model.js'
 import ReviewStage from '../models/reviewStage.model.js'
 import FolderReviewRecord from '../models/folderReviewRecord.model.js'
-import { getDescendantFolderIds, getRootFolder } from '../utils/folderTree.js'
+import { getDescendantFolderIds, getRootFolder, getAncestorFolderIds } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
-import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
+import { getCache, setCache, clearCacheByPrefix, delCache } from '../utils/cache.js'
 import path from 'node:path'
 import bucket, { uploadFile as gcsUploadFile, getSignedUrl } from '../utils/gcs.js'
 import fs from 'node:fs/promises'
 import archiver from 'archiver'
 import { createWriteStream } from 'node:fs'
-
-// 用於追蹤所有下載進度
-const zipProgress = {}
 
 const parseTags = (t) => {
   if (!t) return []
@@ -236,7 +233,8 @@ export const downloadFolder = async (req, res) => {
   const deep = req.query.deep === 'true'
 
   const progressId = Date.now().toString(36) + Math.random().toString(36).slice(2)
-  zipProgress[progressId] = { percent: 0, url: null, error: null }
+  const cacheKey = `zip_progress:${progressId}`
+  await setCache(cacheKey, { percent: 0, url: null, error: null }, 600)
   res.json({ progressId })
 
   ;(async () => {
@@ -254,7 +252,7 @@ export const downloadFolder = async (req, res) => {
       )
 
       if (!filtered.length) {
-        zipProgress[progressId] = { percent: 100, url: null, error: '找不到可下載的素材' }
+        await setCache(cacheKey, { percent: 100, url: null, error: '找不到可下載的素材' }, 600)
         return
       }
 
@@ -271,21 +269,21 @@ export const downloadFolder = async (req, res) => {
 
         output.on('close', resolve)
         archive.on('error', reject)
-        archive.on('entry', () => {
+        archive.on('entry', async () => {
           processed++
-          zipProgress[progressId].percent = Math.round((processed / total) * 100)
+          const percent = Math.round((processed / total) * 100)
+          await setCache(cacheKey, { percent, url: null, error: null }, 600)
         })
 
         archive.pipe(output)
 
         for (const asset of filtered) {
           const fileStream = bucket.file(asset.path).createReadStream()
-          fileStream.on('error', (err) => {
+          fileStream.on('error', async (err) => {
             console.error(`Error streaming file ${asset.path}:`, err)
-            // 在這裡我們可以選擇忽略這個檔案並繼續，或者直接 reject 來終止整個壓縮過程
-            // 為了穩健性，我們先選擇忽略，但可以在進度中標記部分失敗
-            if (!zipProgress[progressId].error) zipProgress[progressId].error = ''
-            zipProgress[progressId].error += `無法下載 ${asset.title || asset.filename}. `
+            const currentProgress = await getCache(cacheKey) || {}
+            const newError = (currentProgress.error || '') + `無法下載 ${asset.title || asset.filename}. `
+            await setCache(cacheKey, { ...currentProgress, error: newError }, 600)
           })
           archive.append(fileStream, { name: asset.title || asset.filename })
         }
@@ -298,24 +296,26 @@ export const downloadFolder = async (req, res) => {
         responseDisposition: `attachment; filename="${zipName}"`
       })
 
-      zipProgress[progressId] = { ...zipProgress[progressId], percent: 100, url }
+      const finalProgress = await getCache(cacheKey) || {}
+      await setCache(cacheKey, { ...finalProgress, percent: 100, url }, 600)
 
     } catch (e) {
       console.error('zip error', e)
-      zipProgress[progressId] = { percent: 100, url: null, error: e.message }
+      await setCache(cacheKey, { percent: 100, url: null, error: e.message }, 600)
     } finally {
       if (tmpDir) {
         await fs.rm(tmpDir, { recursive: true, force: true }).catch(err => console.error(`Failed to remove temp dir ${tmpDir}:`, err))
       }
-      // 設定一個超時來清理進度物件
-      setTimeout(() => delete zipProgress[progressId], 10 * 60 * 1000) 
     }
   })()
 }
 
-// 新增一個 API 端點來獲取進度
-export const getDownloadProgress = (req, res) => {
-  const data = zipProgress[req.params.id]
+export const getDownloadProgress = async (req, res) => {
+  const cacheKey = `zip_progress:${req.params.id}`
+  const data = await getCache(cacheKey)
   if (!data) return res.status(404).json({ message: 'not found' })
+  if (data.url || data.error) {
+    await delCache(cacheKey)
+  }
   res.json(data)
 }
