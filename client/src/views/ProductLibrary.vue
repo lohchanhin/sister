@@ -99,8 +99,8 @@ const previewVisible = ref(false)
 const previewItem = ref(null)
 
 const combinedItems = computed(() => [
-  ...folders.value.map(f => ({ ...f, id: `folder-${f._id}`, type: 'folder', name: f.name })),
-  ...products.value.map(p => ({ ...p, id: `product-${p._id}`, type: 'product', name: p.title || p.filename }))
+  ...folders.value.filter(Boolean).map(f => ({ ...f, id: `folder-${f._id}`, type: 'folder', name: f.name })),
+  ...products.value.filter(Boolean).map(p => ({ ...p, id: `product-${p._id}`, type: 'product', name: p.title || p.filename }))
 ])
 
 const selectedProducts = computed(() => selectedItems.value.filter(id => id.startsWith('product-')).map(id => id.replace('product-', '')))

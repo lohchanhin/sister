@@ -162,8 +162,8 @@ const previewVisible = ref(false)
 const previewItem = ref(null)
 
 const combinedItems = computed(() => [
-  ...folders.value.map(f => ({ ...f, id: `folder-${f._id}`, type: 'folder', name: f.name })),
-  ...assets.value.map(a => ({ ...a, id: `asset-${a._id}`, type: 'asset', name: a.title || a.filename }))
+  ...folders.value.filter(Boolean).map(f => ({ ...f, id: `folder-${f._id}`, type: 'folder', name: f.name })),
+  ...assets.value.filter(Boolean).map(a => ({ ...a, id: `asset-${a._id}`, type: 'asset', name: a.title || a.filename }))
 ])
 
 const selectedAssets = computed(() => selectedItems.value.filter(id => id.startsWith('asset-')).map(id => id.replace('asset-', '')))
