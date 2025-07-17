@@ -1,4 +1,4 @@
-<!-- AssetLibrary.vue (Final Corrected Version) -->
+<!-- AssetLibrary.vue (Generated from ProductLibrary) -->
 <template>
   <div>
     <Toolbar class="mb-4">
@@ -17,61 +17,65 @@
 
     <Breadcrumb :home="breadcrumbHome" :model="breadcrumbItems" class="mb-4 p-3 border-1 surface-border border-round" />
 
-    <DataView :value="combinedItems" :layout="viewMode" paginator :rows="12" :loading="loading" dataKey="id">
-      <template #header>
-        <div class="flex flex-column md:flex-row md:justify-content-between">
-          <div class="flex align-items-center mb-2 md:mb-0">
-            <Checkbox v-model="selectAll" :binary="true" class="mr-2" />
-            <Button label="批次設定" icon="pi pi-users" class="p-button-secondary mr-2" @click="openBatchDialog" :disabled="!selectedItems.length" />
-            <Button label="批次下載" icon="pi pi-download" class="p-button-secondary mr-2" @click="downloadSelected" :disabled="!selectedAssets.length" />
-            <Button label="批次刪除" icon="pi pi-trash" class="p-button-danger" @click="confirmDeleteSelected" :disabled="!selectedItems.length" />
-          </div>
-          <DataViewLayoutOptions v-model="viewMode" />
-        </div>
-      </template>
+    <div class="flex flex-column md:flex-row md:justify-content-between mb-4">
+      <div class="flex align-items-center mb-2 md:mb-0">
+        <Checkbox v-model="selectAll" :binary="true" class="mr-2" />
+        <Button label="批次設定" icon="pi pi-users" class="p-button-secondary mr-2" @click="openBatchDialog" :disabled="!selectedItems.length" />
+        <Button label="批次下載" icon="pi pi-download" class="p-button-secondary mr-2" @click="downloadSelected" :disabled="!selectedAssets.length" />
+        <Button label="批次刪除" icon="pi pi-trash" class="p-button-danger" @click="confirmDeleteSelected" :disabled="!selectedItems.length" />
+      </div>
+       <div class="flex gap-2">
+        <Button icon="pi pi-table" @click="viewMode = 'grid'" :class="{'p-button-primary': viewMode === 'grid', 'p-button-secondary': viewMode !== 'grid'}" />
+        <Button icon="pi pi-list" @click="viewMode = 'list'" :class="{'p-button-primary': viewMode === 'list', 'p-button-secondary': viewMode !== 'list'}" />
+      </div>
+    </div>
 
-      <template #list="slotProps">
-        <div class="col-12">
-          <div class="flex flex-column xl:flex-row xl:align-items-start p-4 gap-4">
-            <Checkbox v-model="selectedItems" :value="slotProps.data.id" class="align-self-center xl:align-self-start"/>
-            <i :class="['text-4xl text-primary-500', slotProps.data.type === 'folder' ? 'pi pi-folder' : 'pi pi-file']"></i>
-            <div class="flex-1 flex flex-column gap-2 cursor-pointer" @click="handleItemClick(slotProps.data)">
-              <div class="font-bold text-lg">{{ slotProps.data.name }}</div>
-              <div class="text-sm text-color-secondary">{{ slotProps.data.description }}</div>
-              <div class="flex align-items-center gap-2">
-                <i class="pi pi-calendar"></i>
-                <span>{{ formatDate(slotProps.data.createdAt) }} by {{ slotProps.data.creatorName || slotProps.data.uploaderName }}</span>
-              </div>
-              <div class="flex align-items-center gap-2">
-                <Tag v-for="tag in slotProps.data.tags" :key="tag" :value="tag"></Tag>
-              </div>
-            </div>
-            <div class="flex flex-row xl:flex-column align-items-center xl:align-items-end gap-2">
-              <Button icon="pi pi-info-circle" class="p-button-rounded p-button-secondary" @click="showDetailFor(slotProps.data)"></Button>
-              <Button v-if="slotProps.data.type === 'folder'" icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadFolderItem(slotProps.data)"></Button>
-            </div>
-          </div>
-        </div>
-      </template>
+    <div v-if="!combinedItems.length && !loading" class="col-12 text-center text-color-secondary p-4">
+      <i class="pi pi-inbox" style="font-size: 2rem"></i>
+      <p>此資料夾為空</p>
+    </div>
 
-      <template #grid="slotProps">
-        <div class="col-12 md:col-4 lg:col-3 xl:col-2 p-2">
-          <div class="p-4 border-1 surface-border surface-card border-round h-full flex flex-column">
-            <div class="flex justify-content-between align-items-start">
-                <Checkbox v-model="selectedItems" :value="slotProps.data.id" @click.stop />
-                <Button icon="pi pi-info-circle" class="p-button-rounded p-button-text" @click.stop="showDetailFor(slotProps.data)"></Button>
-            </div>
-            <div class="flex-1 flex flex-column align-items-center text-center gap-3 cursor-pointer" @click="handleItemClick(slotProps.data)">
-              <i :class="['text-6xl mt-3', slotProps.data.type === 'folder' ? 'pi pi-folder' : 'pi pi-file']"></i>
-              <div class="font-bold">{{ slotProps.data.name }}</div>
-              <div class="flex align-items-center gap-2 flex-wrap justify-content-center">
-                <Tag v-for="tag in slotProps.data.tags" :key="tag" :value="tag"></Tag>
-              </div>
+    <!-- Grid View -->
+    <div v-if="viewMode === 'grid'" class="grid">
+      <div v-for="item in combinedItems" :key="item.id" class="col-12 md:col-4 lg:col-3 xl:col-2 p-2">
+        <div class="p-4 border-1 surface-border surface-card border-round h-full flex flex-column">
+          <div class="flex justify-content-between align-items-start">
+              <Checkbox v-model="selectedItems" :value="item.id" @click.stop />
+              <Button icon="pi pi-info-circle" class="p-button-rounded p-button-text" @click.stop="showDetailFor(item)"></Button>
+          </div>
+          <div class="flex-1 flex flex-column align-items-center text-center gap-3 cursor-pointer" @click="handleItemClick(item)">
+            <i :class="['text-6xl mt-3', item.type === 'folder' ? 'pi pi-folder' : 'pi pi-file']"></i>
+            <div class="font-bold">{{ item.name }}</div>
+            <div class="flex align-items-center gap-2 flex-wrap justify-content-center">
+              <Tag v-for="tag in item.tags" :key="tag" :value="tag"></Tag>
             </div>
           </div>
         </div>
-      </template>
-    </DataView>
+      </div>
+    </div>
+
+    <!-- List View -->
+    <div v-else-if="viewMode === 'list'" class="flex flex-column gap-2">
+      <div v-for="item in combinedItems" :key="item.id" class="flex flex-column xl:flex-row xl:align-items-start p-4 gap-4 border-1 surface-border surface-card border-round">
+        <Checkbox v-model="selectedItems" :value="item.id" class="align-self-center xl:align-self-start"/>
+        <i :class="['text-4xl text-primary-500', item.type === 'folder' ? 'pi pi-folder' : 'pi pi-file']"></i>
+        <div class="flex-1 flex flex-column gap-2 cursor-pointer" @click="handleItemClick(item)">
+          <div class="font-bold text-lg">{{ item.name }}</div>
+          <div class="flex align-items-center gap-2">
+            <Tag v-for="tag in item.tags" :key="tag" :value="tag"></Tag>
+          </div>
+          <div class="text-sm text-color-secondary">{{ item.description }}</div>
+          <div class="flex align-items-center gap-2">
+            <i class="pi pi-calendar"></i>
+            <span>{{ formatDate(item.createdAt) }} by {{ item.creatorName || item.uploaderName }}</span>
+          </div>
+        </div>
+        <div class="flex flex-row xl:flex-column align-items-center xl:align-items-end gap-2">
+          <Button icon="pi pi-info-circle" class="p-button-rounded p-button-secondary" @click="showDetailFor(item)"></Button>
+          <Button v-if="item.type === 'folder'" icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadFolderItem(item)"></Button>
+        </div>
+      </div>
+    </div>
 
     <!-- Dialogs -->
     <Dialog v-model:visible="showDetail" :header="detail.name" :style="{width: '50vw'}" :modal="true">
@@ -132,7 +136,6 @@ import InputText from 'primevue/inputtext'
 import FileUpload from 'primevue/fileupload'
 import MultiSelect from 'primevue/multiselect'
 import Breadcrumb from 'primevue/breadcrumb'
-import DataView from 'primevue/dataview'
 import Checkbox from 'primevue/checkbox'
 import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
