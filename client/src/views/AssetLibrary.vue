@@ -118,7 +118,17 @@ const batchUsers = ref([])
 const previewVisible = ref(false)
 const previewItem = ref(null)
 
-// ... (Computed properties: combinedItems, selectedAssets, selectAll) ...
+const combinedItems = computed(() => [
+  ...folders.value.map(f => ({ ...f, id: `folder-${f._id}`, type: 'folder', name: f.name })),
+  ...assets.value.map(a => ({ ...a, id: `asset-${a._id}`, type: 'asset', name: a.title || a.filename }))
+])
+
+const selectedAssets = computed(() => selectedItems.value.filter(id => id.startsWith('asset-')).map(id => id.replace('asset-', '')))
+
+const selectAll = computed({
+  get: () => combinedItems.value.length > 0 && selectedItems.value.length === combinedItems.value.length,
+  set: val => { selectedItems.value = val ? combinedItems.value.map(i => i.id) : [] }
+})
 
 const breadcrumbHome = ref({ icon: 'pi pi-home', to: '/assets' })
 const breadcrumbItems = ref([])
@@ -126,10 +136,56 @@ const breadcrumbItems = ref([])
 const formatDate = d => d ? new Date(d).toLocaleString() : '—'
 const isImage = item => item && item.name && /\.(png|jpe?g|gif|webp)$/i.test(item.name)
 
-async function loadData(folderId = null) { /* ... */ }
-function buildBreadcrumb(folder) { /* ... */ }
-function goUp() { /* ... */ }
-async function createNewFolder() { /* ... */ }
+async function loadData(folderId = null) {
+  loading.value = true
+  try {
+    const [folderData, assetData, currentFolderData] = await Promise.all([
+      fetchFolders(folderId, filterTags.value, 'raw'),
+      folderId ? fetchAssets(folderId, 'raw', filterTags.value) : Promise.resolve([]),
+      folderId ? getFolder(folderId) : Promise.resolve(null)
+    ])
+    folders.value = folderData
+    assets.value = assetData
+    currentFolder.value = currentFolderData
+    buildBreadcrumb(currentFolderData)
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load data', life: 3000 })
+  } finally {
+    loading.value = false
+    selectedItems.value = []
+  }
+}
+
+function buildBreadcrumb(folder) {
+  const items = []
+  let current = folder
+  while (current) {
+    items.unshift({ label: current.name, to: { name: 'Assets', params: { folderId: current._id } } })
+    current = current.parent // This requires parent to be populated, or another strategy
+  }
+  breadcrumbItems.value = items
+}
+
+function goUp() {
+  if (currentFolder.value?.parentId) {
+    router.push({ name: 'Assets', params: { folderId: currentFolder.value.parentId } })
+  } else {
+    router.push({ name: 'Assets' })
+  }
+}
+
+async function createNewFolder() {
+  if (!newFolderName.value.trim()) return
+  try {
+    await createFolder({ name: newFolderName.value, parentId: currentFolder.value?._id, type: 'raw' })
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Folder created', life: 3000 })
+    newFolderName.value = ''
+    loadData(currentFolder.value?._id)
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to create folder', life: 3000 })
+  }
+}
+
 const uploadRequest = async (event) => {
     const file = event.files[0];
     const toastId = toast.add({ 
@@ -251,6 +307,15 @@ async function previewAsset(item) {
   }
 }
 
-// ... (onMounted and watchers) ...
+onMounted(() => {
+  loadData(route.params.folderId || null)
+  fetchTags().then(tags => allTags.value = tags.map(t => t.name))
+  if (authStore.hasPermission('user:read')) {
+      fetchUsers().then(u => users.value = u)
+  }
+})
+
+watch(() => route.params.folderId, (newId) => loadData(newId || null))
+watch(filterTags, () => loadData(currentFolder.value?._id))
 
 </script>
