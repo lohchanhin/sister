@@ -7,53 +7,23 @@
 
     <Breadcrumb :home="breadcrumbHome" :model="breadcrumbItems" class="mb-4 p-3 border-1 surface-border border-round" />
 
-    <DataView :value="combinedItems" :layout="viewMode" paginator :rows="12" :loading="loading" :dataKey="(slotProps) => slotProps.data ? slotProps.data.id : slotProps.index">
-      <template #header>
-        <!-- ... Header content ... -->
-      </template>
-
-      <template #list="slotProps">
-        <div class="col-12">
-          <div class="flex flex-column xl:flex-row xl:align-items-start p-4 gap-4">
-            <Checkbox v-model="selectedItems" :value="slotProps.data.id" class="align-self-center xl:align-self-start"/>
-            <i :class="['text-4xl text-primary-500', slotProps.data.type === 'folder' ? 'pi pi-folder' : 'pi pi-box']"></i>
-            <div class="flex-1 flex flex-column gap-2">
-              <div class="font-bold text-lg cursor-pointer" @click="handleItemClick(slotProps.data)">{{ slotProps.data.name }}</div>
-              <div class="text-sm text-color-secondary">{{ slotProps.data.description }}</div>
-              <div class="flex align-items-center gap-2">
-                <i class="pi pi-calendar"></i>
-                <span>{{ formatDate(slotProps.data.createdAt) }} by {{ slotProps.data.creatorName || slotProps.data.uploaderName }}</span>
-              </div>
-              <div class="flex align-items-center gap-2">
-                <Tag v-for="tag in slotProps.data.tags" :key="tag" :value="tag"></Tag>
-              </div>
-            </div>
-            <div class="flex flex-row xl:flex-column align-items-center xl:align-items-end gap-2">
-              <Button icon="pi pi-info-circle" class="p-button-rounded p-button-secondary" @click="showDetailFor(slotProps.data)"></Button>
-              <Button v-if="slotProps.data.type === 'folder'" icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadFolderItem(slotProps.data)"></Button>
+    <div class="grid">
+      <div v-for="item in combinedItems" :key="item.id" class="col-12 md:col-4 lg:col-3 xl:col-2 p-2">
+        <div class="p-4 border-1 surface-border surface-card border-round h-full flex flex-column">
+          <div class="flex justify-content-between align-items-start">
+              <Checkbox v-model="selectedItems" :value="item.id" @click.stop />
+              <Button icon="pi pi-info-circle" class="p-button-rounded p-button-text" @click.stop="showDetailFor(item)"></Button>
+          </div>
+          <div class="flex-1 flex flex-column align-items-center text-center gap-3 cursor-pointer" @click="handleItemClick(item)">
+            <i :class="['text-6xl mt-3', item.type === 'folder' ? 'pi pi-folder' : 'pi pi-box']"></i>
+            <div class="font-bold">{{ item.name }}</div>
+            <div class="flex align-items-center gap-2 flex-wrap justify-content-center">
+              <Tag v-for="tag in item.tags" :key="tag" :value="tag"></Tag>
             </div>
           </div>
         </div>
-      </template>
-
-      <template #grid="slotProps">
-        <div class="col-12 md:col-4 lg:col-3 xl:col-2 p-2">
-          <div class="p-4 border-1 surface-border surface-card border-round h-full flex flex-column">
-            <div class="flex justify-content-between align-items-start">
-                <Checkbox v-model="selectedItems" :value="slotProps.data.id" @click.stop />
-                <Button icon="pi pi-info-circle" class="p-button-rounded p-button-text" @click.stop="showDetailFor(slotProps.data)"></Button>
-            </div>
-            <div class="flex-1 flex flex-column align-items-center text-center gap-3 cursor-pointer" @click="handleItemClick(slotProps.data)">
-              <i :class="['text-6xl mt-3', slotProps.data.type === 'folder' ? 'pi pi-folder' : 'pi pi-box']"></i>
-              <div class="font-bold">{{ slotProps.data.name }}</div>
-              <div class="flex align-items-center gap-2 flex-wrap justify-content-center">
-                <Tag v-for="tag in slotProps.data.tags" :key="tag" :value="tag"></Tag>
-              </div>
-            </div>
-          </div>
-        </div>
-      </template>
-    </DataView>
+      </div>
+    </div>
 
     <!-- DEBUGGING LIST -->
     <div class="mt-4 p-4 border-2 border-dashed border-red-500">
