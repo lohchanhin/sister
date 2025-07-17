@@ -53,6 +53,7 @@
 
         <!-- ◤ 右側：檢視 / 批次動作 ◢ -->
         <div class="flex items-end gap-3">
+          <el-checkbox v-model="selectAll" v-if="allIds.length">全選</el-checkbox>
           <el-button-group>
             <el-button :type="viewMode === 'card' ? 'primary' : 'default'" @click="viewMode = 'card'">
               <el-icon class="mr-1">
@@ -410,6 +411,11 @@ const filterTags = ref([])
 const allTags = ref([])
 
 const selectedItems = ref([])
+const allIds = computed(() => [...folders.value.map(f => f._id), ...products.value.map(p => p._id)])
+const selectAll = computed({
+  get: () => allIds.value.length > 0 && selectedItems.value.length === allIds.value.length,
+  set: val => { selectedItems.value = val ? [...allIds.value] : [] }
+})
 const batchDialog = ref(false)
 const batchUsers = ref([])
 const showHelp = ref(false)
