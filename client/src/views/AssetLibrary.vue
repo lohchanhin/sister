@@ -312,23 +312,25 @@ const uploadRequest = async (event) => {
 
 async function pollProgress(progressId, name, type) {
   const getProgress = type === 'folder' ? getFolderDownloadProgress : getAssetBatchDownloadProgress;
-  downloadProgress.value = { id: `dl-${progressId}`, percent: 0, name };
+  const toastId = `dl-${progressId}`;
+  toast.add({ id: toastId, group: 'br', severity: 'info', summary: `壓縮中: ${name}`, detail: '準備中...', life: 60000 });
 
   try {
     let progress = await getProgress(progressId);
     while (progress && progress.percent < 100 && !progress.error) {
-      downloadProgress.value = { ...downloadProgress.value, percent: progress.percent };
+      toast.add({ id: toastId, group: 'br', severity: 'info', summary: `壓縮中: ${name}`, detail: `進度: ${progress.percent}%`, life: 60000 });
       await new Promise(r => setTimeout(r, 1500));
       progress = await getProgress(progressId);
     }
 
     if (progress?.url) {
-      downloadProgress.value = { ...downloadProgress.value, percent: 100, url: progress.url };
+      toast.add({ id: toastId, group: 'br', severity: 'success', summary: '壓縮完成', detail: '下載即將開始', life: 3000 });
+      window.open(progress.url, '_blank');
     } else {
       throw new Error(progress?.error || '壓縮失敗');
     }
   } catch (error) {
-    downloadProgress.value = { ...downloadProgress.value, error: error.message };
+    toast.add({ id: toastId, group: 'br', severity: 'error', summary: '壓縮失敗', detail: error.message, life: 5000 });
   }
 }
 
