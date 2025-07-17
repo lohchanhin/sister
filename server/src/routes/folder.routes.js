@@ -10,7 +10,8 @@ import {
   deleteFolder,
   updateFoldersViewers,
   reviewFolder,
-  downloadFolder
+  downloadFolder,
+  getDownloadProgress
 } from '../controllers/folder.controller.js'
 import {
   getFolderStages,
