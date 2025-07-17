@@ -52,3 +52,9 @@ export const fetchFolderStages = id =>
 export const updateFolderStage = (folderId, stageId, completed) =>
   api.put(`/folders/${folderId}/stages/${stageId}`, { completed }).then(res => res.data)
 
+export const downloadFolder = (id, deep = false) => {
+  const params = {}
+  if (deep) params.deep = 'true'
+  return api.get(`/folders/${id}/download`, { params }).then(res => res.data.url)
+}
+
