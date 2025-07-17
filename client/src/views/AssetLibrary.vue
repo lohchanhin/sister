@@ -271,6 +271,7 @@ const uploadRequest = async (event) => {
         const toastId = `upload-${file.name}-${Date.now()}`;
         toast.add({ 
             id: toastId,
+            group: 'br',
             severity: 'info', 
             summary: `上傳中: ${file.name}`,
             detail: '準備中...', 
@@ -281,6 +282,7 @@ const uploadRequest = async (event) => {
                 const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
                 toast.add({ 
                     id: toastId,
+                    group: 'br',
                     severity: 'info', 
                     summary: `上傳中: ${file.name}`,
                     detail: `${percent}%`,
@@ -288,6 +290,7 @@ const uploadRequest = async (event) => {
             });
             toast.add({ 
                 id: toastId,
+                group: 'br',
                 severity: 'success', 
                 summary: '成功', 
                 detail: `${file.name} 上傳完畢`, 
@@ -296,6 +299,7 @@ const uploadRequest = async (event) => {
         } catch (error) {
             toast.add({ 
                 id: toastId,
+                group: 'br',
                 severity: 'error', 
                 summary: '失敗', 
                 detail: `${file.name} 上傳失敗`, 
