@@ -113,10 +113,31 @@ export const getFolders = async (req, res) => {
 }
 
 export const getFolder = async (req, res) => {
-  const folder = await Folder.findById(req.params.id).populate('createdBy', 'username name')
+  let folder = await Folder.findById(req.params.id).populate('createdBy', 'username name')
   if (!folder) return res.status(404).json({ message: '找不到資料夾' })
+
+  // Recursively populate parent folders
+  let current = folder;
+  const parentChain = [];
+  while (current && current.parentId) {
+    current = await Folder.findById(current.parentId);
+    if (current) {
+      parentChain.push(current);
+    }
+  }
+  
+  // Reconstruct the folder object with the parent chain for breadcrumbs
+  let result = folder.toObject();
+  if (parentChain.length > 0) {
+    let nested = result;
+    for (let i = 0; i < parentChain.length; i++) {
+      nested.parent = parentChain[i].toObject();
+      nested = nested.parent;
+    }
+  }
+
   res.json({
-    ...folder.toObject(),
+    ...result,
     creatorName: folder.createdBy?.name || folder.createdBy?.username
   })
 }
