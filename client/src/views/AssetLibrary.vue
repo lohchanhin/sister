@@ -487,13 +487,16 @@ async function applyBatch() {
 async function downloadSelected() {
   const ids = selectedItems.value.filter(id => assets.value.some(a => a._id === id))
   if (!ids.length) return
-  const url = await batchDownloadAssets(ids)
+  const uid = 'd-' + Date.now()
+  ui.startDownload(uid, '壓縮下載')
+  const url = await batchDownloadAssets(ids, p => ui.updateDownload(uid, p))
   const link = document.createElement('a')
   link.href = url
   link.download = 'assets.zip'
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
+  ui.finishDownload(uid)
 }
 
 async function downloadCurrentFolder() {

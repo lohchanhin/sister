@@ -1,10 +1,16 @@
 <template>
   <transition name="slide-up">
-    <div v-if="Object.keys(ui.uploads).length" class="snackbar">
-      <div v-for="(u, id) in ui.uploads" :key="id" class="item">
+    <div v-if="Object.keys(ui.uploads).length || Object.keys(ui.downloads).length" class="snackbar">
+      <div v-for="(u, id) in ui.uploads" :key="'u' + id" class="item">
         <span class="name">{{ u.name }}</span>
         <div class="progress">
           <div class="bar" :class="{ error: u.error }" :style="{ width: u.percent + '%' }"></div>
+        </div>
+      </div>
+      <div v-for="(d, id) in ui.downloads" :key="'d' + id" class="item">
+        <span class="name">{{ d.name }}</span>
+        <div class="progress">
+          <div class="bar" :style="{ width: d.percent + '%' }"></div>
         </div>
       </div>
     </div>

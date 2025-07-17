@@ -8,10 +8,13 @@ import ReviewRecord from '../models/reviewRecord.model.js'
 import path from 'node:path'
 import bucket, { uploadFile as gcsUploadFile, getSignedUrl } from '../utils/gcs.js'
 import fs from 'node:fs/promises'
-import { spawn } from 'node:child_process'
+import { createWriteStream } from 'node:fs'
+import archiver from 'archiver'
 import { getDescendantFolderIds, getAncestorFolderIds, getRootFolder } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
 import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
+
+const zipProgress = {}
 
 const parseTags = (t) => {
   if (!t) return []
@@ -351,39 +354,71 @@ export const batchDownload = async (req, res) => {
     return res.status(400).json({ message: '參數錯誤' })
   }
 
-  const assets = await Asset.find({ _id: { $in: ids } })
-  if (!assets.length) return res.status(404).json({ message: '找不到素材' })
+  const progressId = Date.now().toString(36) + Math.random().toString(36).slice(2)
+  zipProgress[progressId] = { percent: 0, url: null }
+  res.json({ progressId })
 
-  const tmpDir = await fs.mkdtemp('/tmp/asset-batch-')
-  const files = []
-  for (const a of assets) {
-    const dest = path.join(tmpDir, a.title || a.filename)
+  ;(async () => {
     try {
-      await bucket.file(a.path).download({ destination: dest })
-      files.push(dest)
+      const assets = await Asset.find({ _id: { $in: ids } })
+      if (!assets.length) {
+        zipProgress[progressId] = { percent: 100, url: null, error: '找不到素材' }
+        return
+      }
+
+      const tmpDir = await fs.mkdtemp('/tmp/asset-batch-')
+      const files = []
+      for (const a of assets) {
+        const dest = path.join(tmpDir, a.title || a.filename)
+        try {
+          await bucket.file(a.path).download({ destination: dest })
+          files.push(dest)
+        } catch (e) {
+          console.error('download error', e)
+        }
+      }
+
+      const zipName = `assets-${Date.now()}.zip`
+      const zipPath = path.join(tmpDir, zipName)
+      await new Promise((resolve, reject) => {
+        const output = createWriteStream(zipPath)
+        const archive = archiver('zip', { zlib: { level: 9 } })
+        let done = 0
+        archive.on('entry', () => {
+          done++
+          zipProgress[progressId].percent = Math.round((done / files.length) * 100)
+        })
+        archive.on('error', reject)
+        output.on('close', resolve)
+        archive.pipe(output)
+        for (const f of files) {
+          archive.file(f, { name: path.basename(f) })
+        }
+        archive.finalize()
+      })
+
+      const gcsPath = await gcsUploadFile(zipPath, zipName, 'application/zip')
+      const url = await getSignedUrl(gcsPath, {
+        responseDisposition: `attachment; filename="${zipName}"`
+      })
+
+      for (const f of files) await fs.unlink(f).catch(() => {})
+      await fs.unlink(zipPath).catch(() => {})
+      await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {})
+
+      zipProgress[progressId] = { percent: 100, url }
+      setTimeout(() => delete zipProgress[progressId], 10 * 60 * 1000)
     } catch (e) {
-      console.error('download error', e)
+      console.error('zip error', e)
+      zipProgress[progressId] = { percent: 100, url: null, error: e.message }
     }
-  }
+  })()
+}
 
-  const zipName = `assets-${Date.now()}.zip`
-  const zipPath = path.join(tmpDir, zipName)
-  await new Promise((resolve, reject) => {
-    const proc = spawn('zip', ['-j', zipPath, ...files])
-    proc.on('error', reject)
-    proc.on('close', code => (code === 0 ? resolve() : reject(new Error('zip'))))
-  })
-
-  const gcsPath = await gcsUploadFile(zipPath, zipName, 'application/zip')
-  const url = await getSignedUrl(gcsPath, {
-    responseDisposition: `attachment; filename="${zipName}"`
-  })
-
-  for (const f of files) await fs.unlink(f).catch(() => {})
-  await fs.unlink(zipPath).catch(() => {})
-  await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {})
-
-  res.json({ url })
+export const getBatchDownloadProgress = (req, res) => {
+  const data = zipProgress[req.params.id]
+  if (!data) return res.status(404).json({ message: 'not found' })
+  res.json(data)
 }
 
 export const deleteAssets = async (req, res) => {

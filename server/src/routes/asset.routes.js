@@ -16,6 +16,7 @@ import {
     presign,
     createAsset,
     batchDownload,
+    getBatchDownloadProgress,
     deleteAssets
 } from '../controllers/asset.controller.js'
 import {
@@ -40,6 +41,7 @@ router.post(
 )
 router.post('/', protect, requirePerm(PERMISSIONS.ASSET_CREATE), createAsset)
 router.post('/batch-download', protect, batchDownload)
+router.get('/batch-download/:id', protect, getBatchDownloadProgress)
 router.get('/', protect, requirePerm(PERMISSIONS.ASSET_READ), getAssets)
 router.post(
   '/:id/comment',
