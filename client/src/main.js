@@ -7,7 +7,7 @@ import App from './App.vue'
 import PrimeVue from 'primevue/config'
 import ToastService from 'primevue/toastservice'
 import ConfirmationService from 'primevue/confirmationservice'
-import 'primevue/resources/themes/saga-blue/theme.css' // Saga-Blue 主題
+import 'primevue/resources/themes/aura-light-blue/theme.css' // Aura Light Blue 主題
 import 'primevue/resources/primevue.min.css'
 import 'primeicons/primeicons.css'
 import 'primeflex/primeflex.css'
