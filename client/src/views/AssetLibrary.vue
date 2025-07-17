@@ -1,4 +1,4 @@
-<!-- AssetLibrary.vue (Final Refactor) -->
+<!-- AssetLibrary.vue (Final Refactor with Preview) -->
 <template>
   <div>
     <Toolbar class="mb-4">
@@ -81,7 +81,7 @@
     <Dialog v-model:visible="previewVisible" :header="previewItem?.name" :style="{width: '60vw'}" :modal="true">
         <div class="flex justify-content-center">
             <img v-if="isImage(previewItem)" :src="previewItem.url" class="w-full h-auto" style="max-height: 70vh; object-fit: contain;" />
-            <video v-else controls class="w-full h-auto" style="max-height: 70vh;">
+            <video v-else-if="previewItem" controls class="w-full h-auto" style="max-height: 70vh;">
                 <source :src="previewItem.url" />
             </video>
         </div>
@@ -246,11 +246,21 @@ const uploadRequest = async (event) => {
     }
 };
 
+async function previewAsset(item) {
+  try {
+    const url = await getAssetUrl(item._id);
+    previewItem.value = { ...item, url };
+    previewVisible.value = true;
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Could not load asset for preview', life: 3000 });
+  }
+}
+
 function handleItemClick(item) {
   if (item.type === 'folder') {
     router.push({ name: 'Assets', params: { folderId: item._id } })
   } else {
-    // previewAsset(item)
+    previewAsset(item)
   }
 }
 

@@ -1,4 +1,4 @@
-<!-- ProductLibrary.vue (Final Refactor with Review Feature) -->
+<!-- ProductLibrary.vue (Final Refactor with Preview) -->
 <template>
   <div>
     <Toolbar class="mb-4">
@@ -89,7 +89,7 @@
     <Dialog v-model:visible="previewVisible" :header="previewItem?.name" :style="{width: '60vw'}" :modal="true">
         <div class="flex justify-content-center">
             <img v-if="isImage(previewItem)" :src="previewItem.url" class="w-full h-auto" style="max-height: 70vh; object-fit: contain;" />
-            <video v-else controls class="w-full h-auto" style="max-height: 70vh;">
+            <video v-else-if="previewItem" controls class="w-full h-auto" style="max-height: 70vh;">
                 <source :src="previewItem.url" />
             </video>
         </div>
@@ -103,7 +103,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, downloadFolder, reviewFolder } from '../services/folders'
+import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, reviewFolder } from '../services/folders'
 import { fetchProducts, updateProduct, deleteProduct, updateProductsViewers, getProductUrl, batchDownloadProducts, deleteProducts, reviewProduct } from '../services/products'
 import { uploadAssetAuto } from '../services/assets'
 import { fetchUsers } from '../services/user'
@@ -294,11 +294,21 @@ const uploadRequest = async (event) => {
     }
 };
 
+async function previewProduct(item) {
+  try {
+    const url = await getProductUrl(item._id);
+    previewItem.value = { ...item, url };
+    previewVisible.value = true;
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Could not load product for preview', life: 3000 });
+  }
+}
+
 function handleItemClick(item) {
   if (item.type === 'folder') {
     router.push({ name: 'Products', params: { folderId: item._id } })
   } else {
-    // previewProduct(item)
+    previewProduct(item)
   }
 }
 
