@@ -126,8 +126,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, getDownloadProgress as getFolderDownloadProgress, startBatchDownload as startFolderBatchDownload } from '../services/folders'
-import { fetchAssets, uploadAssetAuto, updateAsset, deleteAsset, updateAssetsViewers, getAssetUrl, batchDownloadAssets, deleteAssetsBulk, getBatchDownloadProgress as getAssetBatchDownloadProgress, startBatchDownload as startAssetBatchDownload } from '../services/assets'
+import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, startBatchDownload as startFolderBatchDownload, getDownloadProgress as getFolderDownloadProgress } from '../services/folders'
+import { fetchAssets, uploadAssetAuto, updateAsset, deleteAsset, updateAssetsViewers, getAssetUrl, startBatchDownload as startAssetBatchDownload, getBatchDownloadProgress as getAssetBatchDownloadProgress } from '../services/assets'
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
@@ -245,7 +245,9 @@ const uploadRequest = async (event) => {
     toast.add({ severity: 'info', summary: '批量上傳開始', detail: `準備上傳 ${files.length} 個檔案...`, life: 3000 });
 
     for (const file of files) {
-        const toastId = toast.add({ 
+        const toastId = `upload-${file.name}-${Date.now()}`;
+        toast.add({ 
+            id: toastId,
             severity: 'info', 
             summary: `上傳中: ${file.name}`,
             detail: '準備中...', 
@@ -273,7 +275,7 @@ const uploadRequest = async (event) => {
                 id: toastId,
                 severity: 'error', 
                 summary: '失敗', 
-                detail: `${file.name} 上傳失敗`, 
+                detail: `${file.name} ���傳失敗`, 
                 life: 3000 
             });
         }
@@ -283,11 +285,12 @@ const uploadRequest = async (event) => {
 
 async function pollProgress(progressId, type) {
   const getProgress = type === 'folder' ? getFolderDownloadProgress : getAssetBatchDownloadProgress;
-  const toastId = toast.add({ severity: 'info', summary: '壓縮中', detail: '正在準備您的下載...', life: 60000 });
+  const toastId = `download-progress-${progressId}`;
+  toast.add({ id: toastId, severity: 'info', summary: '壓縮中', detail: '正在準備您的下載...', life: 60000 });
 
   try {
     let progress = await getProgress(progressId);
-    while (progress && progress.percent < 100) {
+    while (progress && progress.percent < 100 && !progress.error) {
       toast.add({ id: toastId, severity: 'info', summary: '壓縮中', detail: `進度: ${progress.percent}%`, life: 60000 });
       await new Promise(r => setTimeout(r, 1500));
       progress = await getProgress(progressId);
