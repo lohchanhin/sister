@@ -7,6 +7,15 @@
 
     <Breadcrumb :home="breadcrumbHome" :model="breadcrumbItems" class="mb-4 p-3 border-1 surface-border border-round" />
 
+    <div class="flex flex-column md:flex-row md:justify-content-between mb-4">
+      <div class="flex align-items-center mb-2 md:mb-0">
+        <Checkbox v-model="selectAll" :binary="true" class="mr-2" />
+        <Button label="批次設定" icon="pi pi-users" class="p-button-secondary mr-2" @click="openBatchDialog" :disabled="!selectedItems.length" />
+        <Button label="批次下載" icon="pi pi-download" class="p-button-secondary mr-2" @click="downloadSelected" :disabled="!selectedAssets.length" />
+        <Button label="批次刪除" icon="pi pi-trash" class="p-button-danger" @click="confirmDeleteSelected" :disabled="!selectedItems.length" />
+      </div>
+    </div>
+
     <div class="grid">
       <div v-for="item in combinedItems" :key="item.id" class="col-12 md:col-4 lg:col-3 xl:col-2 p-2">
         <div class="p-4 border-1 surface-border surface-card border-round h-full flex flex-column">
