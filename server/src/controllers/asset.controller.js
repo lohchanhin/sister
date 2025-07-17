@@ -362,7 +362,7 @@ export const batchDownload = async (req, res) => {
     try {
       const assets = await Asset.find({ _id: { $in: ids } })
       if (!assets.length) {
-        await setCache(cacheKey, { percent: 100, url: null, error: '找不到���材' }, 600)
+        await setCache(cacheKey, { percent: 100, url: null, error: '找不到素材' }, 600)
         return
       }
 
