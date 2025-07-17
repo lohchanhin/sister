@@ -145,7 +145,7 @@ async function loadData(folderId = null) {
   loading.value = true
   try {
     const [folderData, productData, currentFolderData] = await Promise.all([
-      fetchFolders(folderId, filterTags.value), // REMOVED 'edited'
+      fetchFolders(folderId, filterTags.value, 'edited'), // RESTORED 'edited'
       folderId ? fetchProducts(folderId, filterTags.value) : Promise.resolve([]),
       folderId ? getFolder(folderId) : Promise.resolve(null)
     ])
