@@ -1,6 +1,7 @@
 <!-- AssetLibrary.vue (Final Corrected Version) -->
 <template>
   <div>
+    <Toast position="bottom-right" group="br" />
     <Toolbar class="mb-4">
       <template #start>
         <Button icon="pi pi-arrow-left" class="p-button-secondary mr-2" @click="goUp" :disabled="!currentFolder" />
@@ -142,6 +143,7 @@ import Checkbox from 'primevue/checkbox'
 import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
 import Tag from 'primevue/tag'
+import Toast from 'primevue/toast'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -166,6 +168,27 @@ const batchDialog = ref(false)
 const batchUsers = ref([])
 const previewVisible = ref(false)
 const previewItem = ref(null)
+const downloadProgress = ref(null)
+
+watch(downloadProgress, (newVal) => {
+  if (!newVal) return;
+  
+  const { id, percent, error, url, name } = newVal;
+  const summary = error ? '壓縮失敗' : (percent < 100 ? `壓縮中: ${name}` : `壓縮完成: ${name}`);
+  const severity = error ? 'error' : (percent < 100 ? 'info' : 'success');
+  const detail = error ? error : `進度: ${percent}%`;
+  const life = percent === 100 ? 4000 : 60000;
+
+  toast.add({ id, group: 'br', severity, summary, detail, life });
+
+  if (url) {
+    window.open(url, '_blank');
+    downloadProgress.value = null; // Reset after completion
+  }
+  if (error) {
+    downloadProgress.value = null; // Reset on error
+  }
+});
 
 const combinedItems = computed(() => {
   const safeFolders = Array.isArray(folders.value) ? folders.value : [];
@@ -275,7 +298,7 @@ const uploadRequest = async (event) => {
                 id: toastId,
                 severity: 'error', 
                 summary: '失敗', 
-                detail: `${file.name} ���傳失敗`, 
+                detail: `${file.name} 上傳失敗`, 
                 life: 3000 
             });
         }
@@ -283,34 +306,32 @@ const uploadRequest = async (event) => {
     loadData(currentFolder.value?._id);
 };
 
-async function pollProgress(progressId, type) {
+async function pollProgress(progressId, name, type) {
   const getProgress = type === 'folder' ? getFolderDownloadProgress : getAssetBatchDownloadProgress;
-  const toastId = `download-progress-${progressId}`;
-  toast.add({ id: toastId, severity: 'info', summary: '壓縮中', detail: '正在準備您的下載...', life: 60000 });
+  downloadProgress.value = { id: `dl-${progressId}`, percent: 0, name };
 
   try {
     let progress = await getProgress(progressId);
     while (progress && progress.percent < 100 && !progress.error) {
-      toast.add({ id: toastId, severity: 'info', summary: '壓縮中', detail: `進度: ${progress.percent}%`, life: 60000 });
+      downloadProgress.value = { ...downloadProgress.value, percent: progress.percent };
       await new Promise(r => setTimeout(r, 1500));
       progress = await getProgress(progressId);
     }
 
     if (progress?.url) {
-      toast.add({ id: toastId, severity: 'success', summary: '完成', detail: '下載即將開始', life: 3000 });
-      window.open(progress.url, '_blank');
+      downloadProgress.value = { ...downloadProgress.value, percent: 100, url: progress.url };
     } else {
       throw new Error(progress?.error || '壓縮失敗');
     }
   } catch (error) {
-    toast.add({ id: toastId, severity: 'error', summary: '錯誤', detail: error.message, life: 5000 });
+    downloadProgress.value = { ...downloadProgress.value, error: error.message };
   }
 }
 
 async function downloadFolderItem(item) {
   try {
     const { progressId } = await startFolderBatchDownload(item._id);
-    pollProgress(progressId, 'folder');
+    pollProgress(progressId, item.name, 'folder');
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: '無法開始下載', life: 3000 });
   }
@@ -329,7 +350,7 @@ async function downloadSelected() {
   if (!selectedAssets.value.length) return;
   try {
     const { progressId } = await startAssetBatchDownload(selectedAssets.value);
-    pollProgress(progressId, 'asset');
+    pollProgress(progressId, '批量下載', 'asset');
   } catch (error) {
      toast.add({ severity: 'error', summary: 'Error', detail: '無法開始下載', life: 3000 });
   }
