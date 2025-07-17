@@ -24,6 +24,7 @@ import {
 } from '../controllers/reviewRecord.controller.js'
 
 const router = Router()
+export const publicRouter = Router()
 
 router.post(
   '/upload',
@@ -40,6 +41,7 @@ router.post(
 )
 router.post('/', protect, requirePerm(PERMISSIONS.ASSET_CREATE), createAsset)
 router.post('/batch-download', protect, batchDownload)
+publicRouter.post('/batch-download', batchDownload)
 router.get('/', protect, requirePerm(PERMISSIONS.ASSET_READ), getAssets)
 router.post(
   '/:id/comment',
@@ -77,3 +79,4 @@ router.delete('/:id', protect, deleteAsset)    // assets
 
 
 export default router
+export { publicRouter }
