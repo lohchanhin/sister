@@ -26,8 +26,7 @@
             <Button label="批次下載" icon="pi pi-download" class="p-button-secondary mr-2" @click="downloadSelected" :disabled="!selectedAssets.length" />
             <Button label="批次刪除" icon="pi pi-trash" class="p-button-danger" @click="confirmDeleteSelected" :disabled="!selectedItems.length" />
           </div>
-          <DataViewLayoutOptions v-model="viewMode" />
-        </div>
+          </div>
       </template>
 
       <template #list="slotProps">
@@ -133,7 +132,6 @@ import FileUpload from 'primevue/fileupload'
 import MultiSelect from 'primevue/multiselect'
 import Breadcrumb from 'primevue/breadcrumb'
 import DataView from 'primevue/dataview'
-import DataViewLayoutOptions from 'primevue/dataviewlayoutoptions'
 import Checkbox from 'primevue/checkbox'
 import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
