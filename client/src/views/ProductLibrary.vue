@@ -101,6 +101,11 @@
                 <span class="font-medium truncate">{{ f.name }}</span>
                 <el-tag v-if="isRecent(f.updatedAt)" type="warning" size="small" class="ml-1">1天內有更新</el-tag>
               </el-checkbox>
+              <el-button link size="small" class="flex-shrink-0" @click.stop="downloadFolderItem(f)">
+                <el-icon style="font-size:24px;">
+                  <Download />
+                </el-icon>
+              </el-button>
               <el-button link size="small" class="flex-shrink-0" @click.stop="showDetailFor(f, 'folder')">
                 <el-icon style="font-size:24px;">
                   <InfoFilled />
@@ -200,7 +205,12 @@
             {{ f.progress.done }}/{{ f.progress.total }}
           </el-tag>
 
-          <!-- 詳細 -->
+          <!-- 下載與詳細 -->
+          <el-button link size="small" @click="downloadFolderItem(f)">
+            <el-icon>
+              <Download />
+            </el-icon>
+          </el-button>
           <el-button link size="small" @click="showDetailFor(f, 'folder')">
             <el-icon>
               <InfoFilled />
@@ -516,6 +526,16 @@ async function downloadCurrentFolder() {
   const link = document.createElement('a')
   link.href = url
   link.download = `${currentFolder.value.name}.zip`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+async function downloadFolderItem(folder) {
+  const url = await downloadFolder(folder._id, true)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `${folder.name}.zip`
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
