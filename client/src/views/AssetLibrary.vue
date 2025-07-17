@@ -253,7 +253,7 @@ const uploadRequest = async (event) => {
     
     for (const file of files) {
         const taskId = `upload-${file.name}-${Date.now()}`;
-        progressStore.addTask({ id: taskId, name: file.name, status: 'uploading' });
+        progressStore.addTask({ id: taskId, name: file.name, status: 'uploading', progress: 0 });
         try {
             await uploadAssetAuto(file, currentFolder.value?._id, 'raw', (progressEvent) => {
                 const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
@@ -270,25 +270,39 @@ const uploadRequest = async (event) => {
 async function pollProgress(progressId, name, type) {
   const getProgress = type === 'folder' ? getFolderDownloadProgress : getAssetBatchDownloadProgress;
   const taskId = `dl-${progressId}`;
-  progressStore.addTask({ id: taskId, name, status: 'compressing' });
+  progressStore.addTask({ id: taskId, name, status: 'compressing', progress: 0 });
 
-  try {
-    let progress = await getProgress(progressId);
-    while (progress && progress.percent < 100 && !progress.error) {
-      progressStore.updateTaskProgress(taskId, progress.percent);
-      await new Promise(r => setTimeout(r, 1500));
-      progress = await getProgress(progressId);
-    }
+  const poll = async (maxAttempts = 80, interval = 1500) => { // Approx 2 minutes
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const progress = await getProgress(progressId);
 
-    if (progress?.url) {
-      progressStore.updateTaskStatus(taskId, 'success');
-      window.open(progress.url, '_blank');
-    } else {
-      throw new Error(progress?.error || '壓縮失敗');
+        if (progress?.url) {
+          progressStore.updateTaskProgress(taskId, 100);
+          progressStore.updateTaskStatus(taskId, 'success');
+          window.open(progress.url, '_blank');
+          return; // Success
+        }
+
+        if (progress?.error) {
+          throw new Error(progress.error);
+        }
+        
+        if (progress?.percent) {
+          progressStore.updateTaskProgress(taskId, progress.percent);
+        }
+
+        await new Promise(r => setTimeout(r, interval));
+      } catch (error) {
+        progressStore.updateTaskStatus(taskId, 'error', error.message || '輪詢進度時發生錯誤');
+        return; // Stop polling on error
+      }
     }
-  } catch (error) {
-    progressStore.updateTaskStatus(taskId, 'error', error.message);
-  }
+    // If loop finishes without success or error
+    progressStore.updateTaskStatus(taskId, 'error', '操作超時');
+  };
+
+  poll();
 }
 
 async function downloadFolderItem(item) {

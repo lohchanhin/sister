@@ -260,32 +260,34 @@ export const downloadFolder = async (req, res) => {
       const zipName = `folder-${Date.now()}.zip`
       const zipPath = path.join(tmpDir, zipName)
       
-      await new Promise((resolve, reject) => {
+      await new Promise(async (resolve, reject) => {
         const output = createWriteStream(zipPath)
         const archive = archiver('zip', { zlib: { level: 9 } })
+
+        output.on('close', resolve)
+        archive.on('error', reject)
+        
+        archive.pipe(output)
 
         let processed = 0
         const total = filtered.length
 
-        output.on('close', resolve)
-        archive.on('error', reject)
-        archive.on('entry', async () => {
-          processed++
-          const percent = Math.round((processed / total) * 100)
-          await setCache(cacheKey, { percent, url: null, error: null }, 600)
-        })
-
-        archive.pipe(output)
-
         for (const asset of filtered) {
-          const fileStream = bucket.file(asset.path).createReadStream()
-          fileStream.on('error', async (err) => {
-            console.error(`Error streaming file ${asset.path}:`, err)
+          const localPath = path.join(tmpDir, asset.filename)
+          try {
+            await bucket.file(asset.path).download({ destination: localPath });
+            archive.file(localPath, { name: asset.title || asset.filename });
+            
+            processed++
+            const percent = Math.round((processed / total) * 100)
+            await setCache(cacheKey, { percent, url: null, error: null }, 600)
+
+          } catch (err) {
+            console.error(`Failed to download or archive ${asset.path}:`, err)
             const currentProgress = await getCache(cacheKey) || {}
-            const newError = (currentProgress.error || '') + `無法下載 ${asset.title || asset.filename}. `
+            const newError = (currentProgress.error || '') + `無法處理 ${asset.title || asset.filename}. `
             await setCache(cacheKey, { ...currentProgress, error: newError }, 600)
-          })
-          archive.append(fileStream, { name: asset.title || asset.filename })
+          }
         }
 
         archive.finalize()
