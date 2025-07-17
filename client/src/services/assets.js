@@ -145,7 +145,7 @@ export const batchDownloadAssets = async (ids, onProgress = null) => {
 }
 
 export const startBatchDownload = ids =>
-  api.post('/assets/batch-download', { ids }).then(res => res.data.progressId)
+  api.post('/assets/batch-download', { ids }).then(res => res.data)
 
 export const fetchBatchDownloadProgress = id =>
   api.get(`/assets/batch-download/${id}`).then(res => res.data)
