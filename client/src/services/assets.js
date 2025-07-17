@@ -129,8 +129,26 @@ export const getAssetUrl = (id, download = false) =>
     .get(`/assets/${id}/url`, { params: download ? { download: 1 } : {} })
     .then(res => res.data.url)
 
-export const batchDownloadAssets = ids =>
-  api.post('/assets/batch-download', { ids }).then(res => res.data.url)
+export const batchDownloadAssets = async (ids, onProgress = null) => {
+  const { progressId } = await api
+    .post('/assets/batch-download', { ids })
+    .then(res => res.data)
+  let data = { percent: 0, url: null }
+  while (!data.url) {
+    data = await api
+      .get(`/assets/batch-download/${progressId}`)
+      .then(res => res.data)
+    if (onProgress) onProgress(data.percent)
+    if (!data.url) await new Promise(r => setTimeout(r, 1000))
+  }
+  return data.url
+}
+
+export const startBatchDownload = ids =>
+  api.post('/assets/batch-download', { ids }).then(res => res.data.progressId)
+
+export const fetchBatchDownloadProgress = id =>
+  api.get(`/assets/batch-download/${id}`).then(res => res.data)
 
 export const deleteAssetsBulk = ids =>
   api.delete('/assets', { data: { ids } }).then(res => res.data)
