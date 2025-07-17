@@ -1,4 +1,4 @@
-<!-- ProductLibrary.vue (Final Refactor with All Features) -->
+<!-- ProductLibrary.vue (Final Corrected Version) -->
 <template>
   <div>
     <Toolbar class="mb-4">
@@ -17,44 +17,77 @@
 
     <Breadcrumb :home="breadcrumbHome" :model="breadcrumbItems" class="mb-4 p-3 border-1 surface-border border-round" />
 
-    <div class="flex flex-column md:flex-row md:justify-content-between mb-4">
-      <div class="flex align-items-center mb-2 md:mb-0">
-        <Checkbox v-model="selectAll" :binary="true" class="mr-2" />
-        <Button label="批次設定" icon="pi pi-users" class="p-button-secondary mr-2" @click="openBatchDialog" :disabled="!selectedItems.length" />
-        <Button label="批次下載" icon="pi pi-download" class="p-button-secondary mr-2" @click="downloadSelected" :disabled="!selectedProducts.length" />
-        <Button label="批次刪除" icon="pi pi-trash" class="p-button-danger" @click="confirmDeleteSelected" :disabled="!selectedItems.length" />
-      </div>
-    </div>
+    <DataView :value="combinedItems" :layout="viewMode" paginator :rows="12" :loading="loading" dataKey="id">
+      <template #header>
+        <div class="flex flex-column md:flex-row md:justify-content-between">
+          <div class="flex align-items-center mb-2 md:mb-0">
+            <Checkbox v-model="selectAll" :binary="true" class="mr-2" />
+            <Button label="批次設定" icon="pi pi-users" class="p-button-secondary mr-2" @click="openBatchDialog" :disabled="!selectedItems.length" />
+            <Button label="批次下載" icon="pi pi-download" class="p-button-secondary mr-2" @click="downloadSelected" :disabled="!selectedProducts.length" />
+            <Button label="批次刪除" icon="pi pi-trash" class="p-button-danger" @click="confirmDeleteSelected" :disabled="!selectedItems.length" />
+          </div>
+          <DataViewLayoutOptions v-model="viewMode" />
+        </div>
+      </template>
 
-    <div class="grid">
-      <div v-if="!combinedItems.length && !loading" class="col-12 text-center text-color-secondary p-4">
-        <i class="pi pi-inbox" style="font-size: 2rem"></i>
-        <p>此資料夾為空</p>
-      </div>
-      <div v-for="item in combinedItems" :key="item.id" class="col-12 md:col-4 lg:col-3 xl:col-2 p-2">
-        <div class="p-4 border-1 surface-border surface-card border-round h-full flex flex-column">
-          <div class="flex justify-content-between align-items-start">
-              <Checkbox v-model="selectedItems" :value="item.id" @click.stop />
+      <template #list="slotProps">
+        <div class="col-12">
+          <div class="flex flex-column xl:flex-row xl:align-items-start p-4 gap-4">
+            <Checkbox v-model="selectedItems" :value="slotProps.data.id" class="align-self-center xl:align-self-start"/>
+            <i :class="['text-4xl text-primary-500', slotProps.data.type === 'folder' ? 'pi pi-folder' : 'pi pi-box']"></i>
+            <div class="flex-1 flex flex-column gap-2 cursor-pointer" @click="handleItemClick(slotProps.data)">
+              <div class="font-bold text-lg">{{ slotProps.data.name }}</div>
+               <div class="flex align-items-center gap-2">
+                <Tag :value="slotProps.data.reviewStatus" :severity="getStatusSeverity(slotProps.data.reviewStatus)" />
+                <Tag v-for="tag in slotProps.data.tags" :key="tag" :value="tag"></Tag>
+              </div>
+              <div class="text-sm text-color-secondary">{{ slotProps.data.description }}</div>
+              <div class="flex align-items-center gap-2">
+                <i class="pi pi-calendar"></i>
+                <span>{{ formatDate(slotProps.data.createdAt) }} by {{ slotProps.data.creatorName || slotProps.data.uploaderName }}</span>
+              </div>
+            </div>
+            <div class="flex flex-row xl:flex-column align-items-center xl:align-items-end gap-2">
               <SplitButton 
                 icon="pi pi-cog" 
-                :model="getItemActions(item)"
+                :model="getItemActions(slotProps.data)"
                 v-if="authStore.hasPermission('REVIEW_MANAGE')"
-                @click="showDetailFor(item)"
+                @click="showDetailFor(slotProps.data)"
                 class="p-button-sm p-button-secondary"
               ></SplitButton>
-              <Button v-else icon="pi pi-info-circle" class="p-button-rounded p-button-text" @click.stop="showDetailFor(item)"></Button>
-          </div>
-          <div class="flex-1 flex flex-column align-items-center text-center gap-3 cursor-pointer" @click="handleItemClick(item)">
-            <i :class="['text-6xl mt-3', item.type === 'folder' ? 'pi pi-folder' : 'pi pi-box']"></i>
-            <div class="font-bold">{{ item.name }}</div>
-            <div class="flex align-items-center gap-2 flex-wrap justify-content-center">
-              <Tag :value="item.reviewStatus" :severity="getStatusSeverity(item.reviewStatus)" />
-              <Tag v-for="tag in item.tags" :key="tag" :value="tag"></Tag>
+              <Button v-else icon="pi pi-info-circle" class="p-button-rounded p-button-text" @click.stop="showDetailFor(slotProps.data)"></Button>
+              <Button v-if="slotProps.data.type === 'folder'" icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadFolderItem(slotProps.data)"></Button>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </template>
+
+      <template #grid="slotProps">
+        <div class="col-12 md:col-4 lg:col-3 xl:col-2 p-2">
+          <div class="p-4 border-1 surface-border surface-card border-round h-full flex flex-column">
+            <div class="flex justify-content-between align-items-start">
+                <Checkbox v-model="selectedItems" :value="slotProps.data.id" @click.stop />
+                <SplitButton 
+                  icon="pi pi-cog" 
+                  :model="getItemActions(slotProps.data)"
+                  v-if="authStore.hasPermission('REVIEW_MANAGE')"
+                  @click="showDetailFor(slotProps.data)"
+                  class="p-button-sm p-button-text"
+                ></SplitButton>
+                <Button v-else icon="pi pi-info-circle" class="p-button-rounded p-button-text" @click.stop="showDetailFor(slotProps.data)"></Button>
+            </div>
+            <div class="flex-1 flex flex-column align-items-center text-center gap-3 cursor-pointer" @click="handleItemClick(slotProps.data)">
+              <i :class="['text-6xl mt-3', slotProps.data.type === 'folder' ? 'pi pi-folder' : 'pi pi-box']"></i>
+              <div class="font-bold">{{ slotProps.data.name }}</div>
+              <div class="flex align-items-center gap-2 flex-wrap justify-content-center">
+                <Tag :value="slotProps.data.reviewStatus" :severity="getStatusSeverity(slotProps.data.reviewStatus)" />
+                <Tag v-for="tag in slotProps.data.tags" :key="tag" :value="tag"></Tag>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </DataView>
 
     <!-- Dialogs -->
     <Dialog v-model:visible="showDetail" :header="detail.name" :style="{width: '50vw'}" :modal="true">
@@ -78,7 +111,7 @@
               :modelValue="stage.completed" 
               :binary="true" 
               :inputId="stage._id"
-              :disabled="stage.responsible && stage.responsible._id !== authStore.user._id"
+              :disabled="!stage.responsible || stage.responsible._id !== authStore.user._id"
               @change="updateStageStatus(stage, $event)"
             />
             <label :for="stage._id" class="ml-2">{{ stage.name }}</label>
@@ -129,6 +162,8 @@ import InputText from 'primevue/inputtext'
 import FileUpload from 'primevue/fileupload'
 import MultiSelect from 'primevue/multiselect'
 import Breadcrumb from 'primevue/breadcrumb'
+import DataView from 'primevue/dataview'
+import DataViewLayoutOptions from 'primevue/dataviewlayoutoptions'
 import Checkbox from 'primevue/checkbox'
 import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
@@ -149,6 +184,7 @@ const newFolderName = ref('')
 const filterTags = ref([])
 const allTags = ref([])
 const users = ref([])
+const viewMode = ref('grid')
 const selectedItems = ref([])
 
 const detail = ref({})
@@ -388,6 +424,15 @@ async function applyBatch() {
     selectedItems.value = [];
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Batch update failed', life: 3000 });
+  }
+}
+
+async function downloadFolderItem(item) {
+  try {
+    const url = await downloadFolder(item._id);
+    window.open(url, '_blank');
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Download failed', life: 3000 });
   }
 }
 
