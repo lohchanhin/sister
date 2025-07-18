@@ -1,10 +1,20 @@
 <template>
-  <aside :class="['layout-sidebar', { 'layout-sidebar-collapsed': isCollapsed }]">
+  <aside
+    :class="['layout-sidebar', { 'layout-sidebar-collapsed': isCollapsed, 'layout-sidebar-mobile-hidden': !mobileVisible && isMobile }]"
+    v-if="!isMobile || mobileVisible"
+  >
     <div class="sidebar-header">
       <Button
         icon="pi pi-bars"
         class="p-button-text p-button-rounded"
         @click="toggleCollapse"
+      />
+      <!-- Add a close button for mobile -->
+      <Button
+        v-if="isMobile"
+        icon="pi pi-times"
+        class="p-button-text p-button-rounded p-button-danger ml-auto"
+        @click="closeSidebar"
       />
     </div>
 
@@ -12,7 +22,7 @@
       <Menu :model="navItems" class="w-full">
         <template #item="{ item, props }">
           <router-link v-if="item.route" v-slot="{ href, navigate }" :to="item.route" custom>
-            <a :href="href" v-bind="props.action" @click="navigate">
+            <a :href="href" v-bind="props.action" @click="navigate; closeSidebar()">
               <span :class="item.icon" />
               <span class="ml-2">{{ item.label }}</span>
             </a>
@@ -30,20 +40,30 @@
       />
     </div>
   </aside>
+  <div v-if="mobileVisible && isMobile" class="layout-sidebar-mask" @click="closeSidebar"></div>
 </template>
 
 <script setup>
-import { ref, computed, defineEmits } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, defineEmits, defineProps, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { MENU_NAMES } from '../menuNames'
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
 
-const emit = defineEmits(['toggle-collapse'])
+const emit = defineEmits(['toggle-collapse', 'update:mobileVisible'])
+const props = defineProps({
+  mobileVisible: {
+    type: Boolean,
+    default: false
+  }
+})
+
 const isCollapsed = ref(false)
 const store = useAuthStore()
 const router = useRouter()
+const route = useRoute()
+const isMobile = ref(window.innerWidth <= 991) // PrimeFlex 'md' breakpoint
 
 const allMenus = {
   dashboard: { route: '/dashboard', icon: 'pi pi-home' },
@@ -78,6 +98,31 @@ const logout = () => {
   store.logout()
   router.push('/login')
 }
+
+const closeSidebar = () => {
+  emit('update:mobileVisible', false)
+}
+
+const handleResize = () => {
+  isMobile.value = window.innerWidth <= 991
+  if (!isMobile.value) {
+    emit('update:mobileVisible', false) // Close sidebar if resized to desktop
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
+
+watch(route, () => {
+  if (isMobile.value) {
+    closeSidebar() // Close sidebar on route change for mobile
+  }
+})
 </script>
 
 <style scoped>
@@ -87,7 +132,7 @@ const logout = () => {
   width: 250px;
   background-color: var(--surface-a);
   border-right: 1px solid var(--surface-d);
-  transition: width 0.2s ease-in-out;
+  transition: width 0.2s ease-in-out, transform 0.2s ease-in-out; /* Add transform for mobile slide */
   height: 100vh;
   position: fixed;
   top: 0;
@@ -142,5 +187,43 @@ const logout = () => {
 
 :deep(.p-menuitem-link:hover) {
     background-color: transparent;
+}
+
+/* Mobile specific styles */
+@media screen and (max-width: 991px) {
+  .layout-sidebar {
+    transform: translateX(-100%); /* Hide by default on mobile */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); /* Add shadow for overlay effect */
+  }
+
+  .layout-sidebar-mobile-hidden {
+    transform: translateX(-100%);
+  }
+
+  .layout-sidebar:not(.layout-sidebar-mobile-hidden) {
+    transform: translateX(0); /* Show when mobileVisible is true */
+  }
+
+  .layout-sidebar-collapsed {
+    width: 250px; /* Full width when collapsed on mobile */
+  }
+
+  .layout-sidebar-collapsed .ml-2 {
+    display: block; /* Show labels when collapsed on mobile */
+  }
+
+  .sidebar-header {
+    justify-content: space-between; /* Space out toggle and close buttons */
+  }
+}
+
+.layout-sidebar-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999; /* Below sidebar, above content */
 }
 </style>
