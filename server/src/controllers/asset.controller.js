@@ -6,6 +6,7 @@ import Folder from '../models/folder.model.js'
 import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import path from 'node:path'
+import { decodeFilename } from '../utils/decodeFilename.js'
 import bucket, { uploadFile as gcsUploadFile, getSignedUrl } from '../utils/gcs.js'
 import fs from 'node:fs/promises'
 import { createWriteStream } from 'node:fs'
@@ -34,7 +35,8 @@ export const uploadFile = async (req, res) => {
 
   // 產生唯一檔名
   const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
-  const ext = path.extname(req.file.originalname)
+  const originalName = decodeFilename(req.file.originalname)
+  const ext = path.extname(originalName)
   const filename = unique + ext
 
   // 將暫存檔案串流上傳至 GCS
@@ -54,7 +56,7 @@ export const uploadFile = async (req, res) => {
 
   // ➤ 建立 Asset 資料
   const asset = await Asset.create({
-    title: req.file.originalname,
+    title: originalName,
     filename,
     path: gcsPath,
     type: req.body.type || 'raw',
