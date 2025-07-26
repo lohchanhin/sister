@@ -32,8 +32,12 @@ export const reviewProduct = (id, status) =>
 export const fetchProductStages = id =>
   fetchAssetStages(id)
 
-export const updateProductStage = (productId, stageId, completed) =>
-  updateAssetStage(productId, stageId, completed)
+export const updateProductStage = (
+  productId,
+  stageId,
+  completed,
+  fromDashboard = false
+) => updateAssetStage(productId, stageId, completed, fromDashboard)
 
 export const updateProductsViewers = (ids, users) =>
   updateAssetsViewers(ids, users)

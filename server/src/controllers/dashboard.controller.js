@@ -59,6 +59,7 @@ export const getSummary = async (req, res) => {
   )
 
   const totalStages = await ReviewStage.countDocuments()
+  const allStages = await ReviewStage.find().sort('order')
   const ids = filteredProducts.map(p => p._id)
   const progressRecords = await ReviewRecord.aggregate([
     { $match: { assetId: { $in: ids }, completed: true } },
@@ -67,14 +68,19 @@ export const getSummary = async (req, res) => {
   const progressMap = {}
   progressRecords.forEach(r => { progressMap[r._id.toString()] = r.done })
 
-  const recentProducts = filteredProducts.map(p => ({
-    _id: p._id,
-    fileName: p.filename,
-    fileType: p.type,
-    uploaderName: p.uploadedBy?.name || p.uploadedBy?.username,
-    createdAt: p.createdAt,
-    progress: { done: progressMap[p._id.toString()] || 0, total: totalStages }
-  }))
+  const recentProducts = filteredProducts.map(p => {
+    const done = progressMap[p._id.toString()] || 0
+    const pendingStage = done < allStages.length ? allStages[done].name : null
+    return {
+      _id: p._id,
+      fileName: p.filename,
+      fileType: p.type,
+      uploaderName: p.uploadedBy?.name || p.uploadedBy?.username,
+      createdAt: p.createdAt,
+      progress: { done, total: totalStages },
+      pendingStage
+    }
+  })
 
   /* -------- 素材統計 -------- */
   const [
