@@ -40,7 +40,13 @@
             <Column field="fileName" header="檔名" />
             <Column field="progress" header="進度">
               <template #body="{data}">
-                {{ data.progress.done }} / {{ data.progress.total }}
+                <div class="flex flex-column gap-1">
+                  <ProgressBar :value="(data.progress.done / data.progress.total) * 100" />
+                  <div class="text-sm">
+                    {{ data.progress.done }} / {{ data.progress.total }}
+                    <span v-if="data.pendingStage">- {{ data.pendingStage }}</span>
+                  </div>
+                </div>
               </template>
             </Column>
             <Column header="設定">
@@ -127,6 +133,7 @@ import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Checkbox from 'primevue/checkbox'
+import ProgressBar from 'primevue/progressbar'
 
 /* ===== Reactive State ===== */
 const recentAssets = ref([])
@@ -164,7 +171,12 @@ function closeStageDialog () {
 async function saveStages () {
   const promises = stageList.value.map(stage => {
     if (stage.checked !== stage.completed) {
-      return updateProductStage(currentProductId, stage._id, stage.checked)
+      return updateProductStage(
+        currentProductId,
+        stage._id,
+        stage.checked,
+        true
+      )
     }
     return Promise.resolve()
   })

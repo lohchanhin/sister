@@ -58,6 +58,7 @@ test('summary reflects stage progress after update', async () => {
     .expect(200)
 
   expect(res1.body.recentProducts[0].progress.done).toBe(0)
+  expect(res1.body.recentProducts[0].pendingStage).toBe('S1')
 
   await request(app)
     .put(`/api/assets/${assetId}/stages/${stageId}`)
@@ -71,4 +72,5 @@ test('summary reflects stage progress after update', async () => {
     .expect(200)
 
   expect(res2.body.recentProducts[0].progress.done).toBe(1)
+  expect(res2.body.recentProducts[0].pendingStage).toBeNull()
 })
