@@ -186,6 +186,7 @@ export const updateFolder = async (req, res) => {
     )
   }
   await clearCacheByPrefix('folders:')
+  await clearCacheByPrefix('assets:')
   res.json(folder)
 }
 
