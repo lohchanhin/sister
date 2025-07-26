@@ -22,11 +22,15 @@ export const updateStageStatus = async (req, res) => {
   const assetId = req.params.id
   const stageId = req.params.stageId
   const completed = !!req.body.completed
+  const fromDashboard =
+    req.query.dashboard === '1' ||
+    req.query.dashboard === 'true' ||
+    req.body.fromDashboard
 
   const stage = await ReviewStage.findById(stageId).populate('responsible')
   if (!stage) return res.status(404).json({ message: '階段不存在' })
 
-  if (String(stage.responsible._id) !== String(req.user._id)) {
+  if (!fromDashboard && String(stage.responsible._id) !== String(req.user._id)) {
     return res.status(403).json({ message: '無權審核此階段' })
   }
 
