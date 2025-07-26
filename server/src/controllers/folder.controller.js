@@ -47,6 +47,7 @@ export const createFolder = async (req, res) => {
     allowedUsers: await includeManagers(baseUsers)
   })
   await clearCacheByPrefix('folders:')
+  await clearCacheByPrefix('folderTree:')
   res.status(201).json(folder)
 }
 
@@ -187,6 +188,7 @@ export const updateFolder = async (req, res) => {
   }
   await clearCacheByPrefix('folders:')
   await clearCacheByPrefix('assets:')
+  await clearCacheByPrefix('folderTree:')
   res.json(folder)
 }
 
@@ -199,6 +201,7 @@ export const deleteFolder = async (req, res) => {
 
   await clearCacheByPrefix('folders:')
   await clearCacheByPrefix('assets:')
+  await clearCacheByPrefix('folderTree:')
   res.json({ message: '資料夾已刪除' })
 }
 
@@ -226,6 +229,7 @@ export const updateFoldersViewers = async (req, res) => {
     }
   }
   await clearCacheByPrefix('folders:')
+  await clearCacheByPrefix('folderTree:')
   res.json({ message: '已更新' })
 }
 
