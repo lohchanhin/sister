@@ -175,6 +175,7 @@ async function saveStages () {
         currentProductId,
         stage._id,
         stage.checked,
+        true,
         true
       )
     }

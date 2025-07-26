@@ -26,6 +26,7 @@ export const updateStageStatus = async (req, res) => {
     req.query.dashboard === '1' ||
     req.query.dashboard === 'true' ||
     req.body.fromDashboard
+  const skipPrevCheck = req.body.skipPrevCheck === true || req.query.skipPrevCheck === '1'
 
   const stage = await ReviewStage.findById(stageId).populate('responsible')
   if (!stage) return res.status(404).json({ message: '階段不存在' })
@@ -35,7 +36,7 @@ export const updateStageStatus = async (req, res) => {
   }
 
   // 檢查前置審核是否完成
-  if (completed) {
+  if (completed && !skipPrevCheck && !fromDashboard) {
     const prevStages = await ReviewStage.find({ order: { $lt: stage.order } }, '_id')
     if (prevStages.length) {
       const prevIds = prevStages.map((s) => s._id)

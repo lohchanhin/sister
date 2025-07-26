@@ -67,6 +67,15 @@ describe('updateStageStatus', () => {
       .expect(400)
   })
 
+  it('should succeed when skipPrevCheck is true', async () => {
+    const asset = await Asset.create({ filename: 'g.mp4', path: '/tmp/g.mp4', type: 'edited', reviewStatus: 'approved' })
+    await request(app)
+      .put(`/api/assets/${asset._id}/stages/${stageId2}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ completed: true, skipPrevCheck: true })
+      .expect(200)
+  })
+
   it('should allow dashboard update by non-responsible user', async () => {
     await request(app)
       .put(`/api/assets/${assetId}/stages/${stageId1}?dashboard=1`)

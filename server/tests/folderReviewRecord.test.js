@@ -60,6 +60,15 @@ describe('updateFolderStageStatus', () => {
       .expect(400)
   })
 
+  it('should succeed when skipPrevCheck is true', async () => {
+    const folder = await Folder.create({ name: 'F2', reviewStatus: 'approved' })
+    await request(app)
+      .put(`/api/folders/${folder._id}/stages/${stageId2}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ completed: true, skipPrevCheck: true })
+      .expect(200)
+  })
+
   it('should set reviewStatus to pending when not all stages done', async () => {
     await request(app)
       .put(`/api/folders/${folderId}/stages/${stageId1}`)

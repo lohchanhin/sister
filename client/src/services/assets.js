@@ -112,9 +112,16 @@ export const reviewAsset = (id, status) =>
 export const fetchAssetStages = id =>
   api.get(`/assets/${id}/stages`).then(res => res.data)
 
-export const updateAssetStage = (assetId, stageId, completed, fromDashboard = false) => {
+export const updateAssetStage = (
+  assetId,
+  stageId,
+  completed,
+  fromDashboard = false,
+  skipPrevCheck = false
+) => {
   const payload = { completed }
   if (fromDashboard) payload.fromDashboard = true
+  if (skipPrevCheck) payload.skipPrevCheck = true
   return api
     .put(`/assets/${assetId}/stages/${stageId}`, payload)
     .then(res => res.data)

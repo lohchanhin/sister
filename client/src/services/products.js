@@ -36,8 +36,9 @@ export const updateProductStage = (
   productId,
   stageId,
   completed,
-  fromDashboard = false
-) => updateAssetStage(productId, stageId, completed, fromDashboard)
+  fromDashboard = false,
+  skipPrevCheck = false
+) => updateAssetStage(productId, stageId, completed, fromDashboard, skipPrevCheck)
 
 export const updateProductsViewers = (ids, users) =>
   updateAssetsViewers(ids, users)
