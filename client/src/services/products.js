@@ -1,5 +1,5 @@
 import {
-  fetchProducts,
+  fetchProducts as fetchProductsRaw,
   uploadAssetAuto,
   updateAsset,
   deleteAsset,
@@ -14,7 +14,8 @@ import {
   getBatchDownloadProgress as getAssetBatchDownloadProgress
 } from './assets'
 
-export { fetchProducts }
+export const fetchProducts = (folderId, tags = [], deep = false) =>
+  fetchProductsRaw(folderId, tags, deep, true)
 
 export const uploadProduct = (file, folderId, progressCb) =>
   uploadAssetAuto(file, folderId, { type: 'edited' }, progressCb)

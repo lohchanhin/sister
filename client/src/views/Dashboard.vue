@@ -1,69 +1,5 @@
 <template>
   <div class="grid">
-    <!-- Filters -->
-    <div class="col-12">
-      <Card>
-        <template #content>
-          <div class="grid formgrid align-items-center">
-            <div class="col-12 md:col-4">
-              <Dropdown v-model="clientId" :options="clients" optionLabel="name" optionValue="_id" placeholder="選擇客戶" class="w-full" />
-            </div>
-            <div class="col-12 md:col-4">
-              <Dropdown v-model="platformId" :options="platforms" optionLabel="name" optionValue="_id" placeholder="選擇平台" class="w-full" />
-            </div>
-            <div class="col-12 md:col-4">
-              <Dropdown v-model="yMetric" :options="metrics" placeholder="選擇指標" class="w-full" />
-            </div>
-          </div>
-        </template>
-      </Card>
-    </div>
-
-    <!-- Ad Summary -->
-    <div class="col-12">
-      <Card>
-        <template #title>最新廣告數據 (近 7 天)</template>
-        <template #content>
-          <div class="grid text-center">
-            <div class="col">
-              <div>花費</div>
-              <div class="text-2xl font-bold mt-1">{{ adSummary.spent || 0 }}</div>
-            </div>
-            <div class="col">
-              <div>詢問</div>
-              <div class="text-2xl font-bold mt-1">{{ adSummary.enquiries || 0 }}</div>
-            </div>
-            <div class="col">
-              <div>觸及</div>
-              <div class="text-2xl font-bold mt-1">{{ adSummary.reach || 0 }}</div>
-            </div>
-            <div class="col">
-              <div>曝光</div>
-              <div class="text-2xl font-bold mt-1">{{ adSummary.impressions || 0 }}</div>
-            </div>
-            <div class="col">
-              <div>點擊</div>
-              <div class="text-2xl font-bold mt-1">{{ adSummary.clicks || 0 }}</div>
-            </div>
-          </div>
-        </template>
-      </Card>
-    </div>
-
-    <!-- Chart -->
-    <div class="col-12">
-      <Card>
-        <template #title>
-          <div class="flex justify-content-between align-items-center">
-            <span>廣告指標趨勢</span>
-            <Dropdown v-model="days" :options="dayOptions" optionLabel="label" optionValue="value" />
-          </div>
-        </template>
-        <template #content>
-          <Chart type="line" :data="chartData" :options="chartOptions" style="height: 300px" />
-        </template>
-      </Card>
-    </div>
 
     <!-- Asset Stats -->
     <div class="col-12">
@@ -92,6 +28,37 @@
       </Card>
     </div>
 
+    <!-- Recent Products -->
+    <div class="col-12">
+      <Card>
+        <template #title>近期成品進度</template>
+        <template #content>
+          <DataTable :value="recentProducts" :rows="5" responsiveLayout="scroll" emptyMessage="尚無成品">
+            <Column field="createdAt" header="上傳時間">
+              <template #body="{data}">{{ new Date(data.createdAt).toLocaleString() }}</template>
+            </Column>
+            <Column field="fileName" header="檔名" />
+            <Column field="progress" header="進度">
+              <template #body="{data}">
+                {{ data.progress.done }} / {{ data.progress.total }}
+              </template>
+            </Column>
+            <Column header="設定">
+              <template #body="{data}">
+                <Button icon="pi pi-cog" class="p-button-text" @click="openStages(data)" />
+              </template>
+            </Column>
+          </DataTable>
+        </template>
+      </Card>
+    </div>
+    <Dialog v-model:visible="stageDialogVisible" header="審查關卡" :modal="true">
+      <div v-for="stage in stageList" :key="stage._id" class="flex align-items-center mb-2">
+        <Checkbox :inputId="stage._id" :modelValue="stage.completed" :binary="true" @change="onStageChange(stage, $event)" class="mr-2" />
+        <label :for="stage._id">{{ stage.name }}</label>
+      </div>
+    </Dialog>
+    
     <!-- Recent Assets & Reviews -->
     <div class="col-12 md:col-6">
       <Card>
@@ -139,133 +106,47 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import api from '../services/api'
-import { fetchDailyData } from '../services/dashboard'
-import { fetchClients } from '../services/clients'
-import { fetchPlatforms } from '../services/platforms'
+import { fetchProducts, fetchProductStages, updateProductStage } from '../services/products'
 
 import Card from 'primevue/card'
-import Dropdown from 'primevue/dropdown'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
-import Chart from 'primevue/chart'
+import Dialog from 'primevue/dialog'
+import Checkbox from 'primevue/checkbox'
 
 /* ===== Reactive State ===== */
 const recentAssets = ref([])
 const recentReviews = ref([])
-const adSummary = ref({})
-const dailyData = ref([])
-const days = ref(7)
-const clients = ref([])
-const platforms = ref([])
-const clientId = ref('')
-const platformId = ref('')
-const yMetric = ref('')
+const recentProducts = ref([])
 const assetStats = ref({})
-
-const dayOptions = ref([
-  { label: '近 7 天', value: 7 },
-  { label: '近 14 天', value: 14 },
-  { label: '近 30 天', value: 30 }
-])
-
-const defaultMetrics = ['spent', 'enquiries', 'reach', 'impressions', 'clicks']
-const metrics = computed(() => {
-  const plat = platforms.value.find(p => p._id === platformId.value)
-  const nums = (plat?.fields || [])
-    .map(f => typeof f === 'string' ? { name: f, type: 'text' } : f)
-    .filter(f => f.type === 'number')
-    .map(f => f.name)
-  return nums.length ? nums : defaultMetrics
-})
-
-/* ===== Chart ===== */
-const chartData = ref({})
-const chartOptions = ref({
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: {
-            labels: {
-                color: '#495057'
-            }
-        }
-    },
-    scales: {
-        x: {
-            ticks: { color: '#495057' },
-            grid: { color: '#ebedef' }
-        },
-        y: {
-            ticks: { color: '#495057' },
-            grid: { color: '#ebedef' }
-        }
-    }
-})
-
-const setChartData = () => {
-  if (!dailyData.value.length || !yMetric.value) return
-  const labels = dailyData.value.map(d => d.date)
-  const data = dailyData.value.map(d => d[yMetric.value] ?? 0)
-  
-  chartData.value = {
-    labels,
-    datasets: [{
-      label: yMetric.value,
-      data,
-      fill: false,
-      borderColor: '#42A5F5',
-      tension: 0.4
-    }]
-  }
-}
+const stageDialogVisible = ref(false)
+const stageList = ref([])
+let currentProductId = null
 
 /* ===== API Requests ===== */
 async function fetchDashboard () {
-  const { data } = await api.get('/dashboard/summary', {
-    params: { clientId: clientId.value, platformId: platformId.value }
-  })
+  const { data } = await api.get('/dashboard/summary')
   recentAssets.value  = data.recentAssets
   recentReviews.value = data.recentReviews
-  adSummary.value     = data.adSummary
+  recentProducts.value = data.recentProducts
   assetStats.value    = data.assetStats
 }
 
-async function fetchDaily () {
-  dailyData.value = await fetchDailyData(days.value, clientId.value, platformId.value)
-  setChartData()
+async function openStages (item) {
+  stageDialogVisible.value = true
+  currentProductId = item._id
+  stageList.value = await fetchProductStages(item._id)
 }
 
-async function loadClients () {
-  clients.value = await fetchClients()
+async function onStageChange (stage, event) {
+  const completed = event.target.checked
+  await updateProductStage(currentProductId, stage._id, completed)
+  stage.completed = completed
 }
 
-async function loadPlatforms () {
-  if (!clientId.value) {
-    platforms.value = []
-    platformId.value = ''
-    return
-  }
-  platforms.value = await fetchPlatforms(clientId.value)
-  if (!platforms.value.find(p => p._id === platformId.value)) {
-    platformId.value = platforms.value[0]?._id || ''
-  }
-}
-
-/* ===== Watchers / Lifecycle ===== */
-onMounted(async () => {
-  await loadClients()
-  yMetric.value = metrics.value[0]
-  await fetchDashboard()
-  await fetchDaily()
-})
-
-watch(clientId, async () => { await loadPlatforms() })
-watch([clientId, platformId], () => { fetchDashboard(); fetchDaily() })
-watch(days, fetchDaily)
-watch(yMetric, setChartData)
-watch(metrics, m => { if (!m.includes(yMetric.value)) yMetric.value = m[0] })
+onMounted(fetchDashboard)
 </script>
