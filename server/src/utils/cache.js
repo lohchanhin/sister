@@ -24,12 +24,22 @@ export async function delCache(key) {
 }
 
 export async function clearCacheByPrefix(prefix) {
-  console.log('[Redis] KEYS', `${prefix}*`)
-  const keys = await redis.keys(`${prefix}*`)
+  console.log('[Redis] SCAN', `${prefix}*`)
+  let cursor = '0'
+  const pipeline = redis.pipeline()
 
-  if (keys.length) {
-    console.log('[Redis] DEL', keys)
-    await redis.del(keys)
+  do {
+    const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', `${prefix}*`, 'COUNT', 100)
+    cursor = nextCursor
+
+    if (keys.length) {
+      keys.forEach(key => pipeline.del(key))
+    }
+  } while (cursor !== '0')
+
+  if (pipeline.length) {
+    console.log('[Redis] DEL', pipeline.length, 'keys')
+    await pipeline.exec()
   }
 
 }
