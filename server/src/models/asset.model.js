@@ -27,6 +27,15 @@ const assetSchema = new mongoose.Schema(
     reviewStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     description:  { type: String, default: '' },
 
+    // ===== 新增進度與發布相關欄位 =====
+    editor:             { type: String, default: '' },               // 剪輯師
+    editCompletedAt:    { type: Date },                               // 完成剪輯日期
+    xhsStatus:          { type: String, enum: ['published', 'unpublished'], default: 'unpublished' },
+    scheduledPublishAt: { type: Date },                               // 設定發佈日期
+    finalChecked:       { type: Boolean, default: false },            // 最終檢查
+    fbSynced:           { type: Boolean, default: false },            // Facebook 同步
+    fbResponsible:      { type: String, default: '' },                // FB 負責人
+
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     folderId:   { type: mongoose.Schema.Types.ObjectId, ref: 'Folder', default: null },
 
