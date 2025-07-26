@@ -16,6 +16,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'testsecret'
 let mongo
 let app
 let token
+let token2
 let assetId
 let stageId1
 let stageId2
@@ -31,11 +32,17 @@ beforeAll(async () => {
 
   const role = await Role.create({ name: 'manager' })
   const user = await User.create({ username: 'admin', password: 'pwd', email: 'a@test', roleId: role._id })
+  await User.create({ username: 'staff', password: 'pwd', email: 'b@test', roleId: role._id })
 
   const res = await request(app)
     .post('/api/auth/login')
     .send({ username: 'admin', password: 'pwd' })
   token = res.body.token
+
+  const res2 = await request(app)
+    .post('/api/auth/login')
+    .send({ username: 'staff', password: 'pwd' })
+  token2 = res2.body.token
 
   const s1 = await ReviewStage.create({ name: 'S1', order: 1, responsible: user._id })
   const s2 = await ReviewStage.create({ name: 'S2', order: 2, responsible: user._id })
@@ -58,6 +65,14 @@ describe('updateStageStatus', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ completed: true })
       .expect(400)
+  })
+
+  it('should allow dashboard update by non-responsible user', async () => {
+    await request(app)
+      .put(`/api/assets/${assetId}/stages/${stageId1}?dashboard=1`)
+      .set('Authorization', `Bearer ${token2}`)
+      .send({ completed: true })
+      .expect(200)
   })
 
   it('should set reviewStatus to pending when not all stages done', async () => {
