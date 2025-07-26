@@ -103,7 +103,7 @@
         </div>
         <div class="field">
           <label for="edit-editor">剪輯師</label>
-          <InputText id="edit-editor" v-model="editItem.editor" />
+          <Dropdown id="edit-editor" v-model="editItem.editor" :options="editorList" editable filter />
         </div>
         <div class="field">
           <label for="edit-completed">完成剪輯日期</label>
@@ -127,7 +127,7 @@
         </div>
         <div class="field">
           <label for="edit-fb">FB 負責人</label>
-          <InputText id="edit-fb" v-model="editItem.fbResponsible" />
+          <Dropdown id="edit-fb" v-model="editItem.fbResponsible" :options="fbResponsibleList" editable filter />
         </div>
       </div>
       <template #footer>
@@ -214,6 +214,24 @@ const xhsOptions = [
   { label: '已發布', value: 'published' },
   { label: '未發布', value: 'unpublished' }
 ]
+const editorList = ref([])
+const fbResponsibleList = ref([])
+
+function loadLists() {
+  const editors = localStorage.getItem('editorList')
+  if (editors) {
+    try { editorList.value = JSON.parse(editors) } catch (e) { /* ignore */ }
+  }
+  const fb = localStorage.getItem('fbResponsibleList')
+  if (fb) {
+    try { fbResponsibleList.value = JSON.parse(fb) } catch (e) { /* ignore */ }
+  }
+}
+
+function saveLists() {
+  localStorage.setItem('editorList', JSON.stringify(editorList.value))
+  localStorage.setItem('fbResponsibleList', JSON.stringify(fbResponsibleList.value))
+}
 
 /* ===== API Requests ===== */
 async function fetchDashboard () {
@@ -257,6 +275,13 @@ async function saveEdit() {
     fbSynced: editItem.value.fbSynced,
     fbResponsible: editItem.value.fbResponsible
   })
+  if (editItem.value.editor && !editorList.value.includes(editItem.value.editor)) {
+    editorList.value.push(editItem.value.editor)
+  }
+  if (editItem.value.fbResponsible && !fbResponsibleList.value.includes(editItem.value.fbResponsible)) {
+    fbResponsibleList.value.push(editItem.value.fbResponsible)
+  }
+  saveLists()
   editDialogVisible.value = false
   await fetchDashboard()
 }
@@ -287,5 +312,8 @@ async function saveStages () {
   await fetchDashboard()
 }
 
-onMounted(fetchDashboard)
+onMounted(() => {
+  loadLists()
+  fetchDashboard()
+})
 </script>
