@@ -54,9 +54,19 @@
     </div>
     <Dialog v-model:visible="stageDialogVisible" header="審查關卡" :modal="true">
       <div v-for="stage in stageList" :key="stage._id" class="flex align-items-center mb-2">
-        <Checkbox :inputId="stage._id" :modelValue="stage.completed" :binary="true" @change="onStageChange(stage, $event)" class="mr-2" />
+        <Checkbox
+          :inputId="stage._id"
+          :modelValue="stage.checked"
+          :binary="true"
+          @change="onStageChange(stage, $event)"
+          class="mr-2"
+        />
         <label :for="stage._id">{{ stage.name }}</label>
       </div>
+      <template #footer>
+        <Button label="取消" class="p-button-text" @click="closeStageDialog" />
+        <Button label="儲存" icon="pi pi-check" @click="saveStages" />
+      </template>
     </Dialog>
     
     <!-- Recent Assets & Reviews -->
@@ -139,13 +149,27 @@ async function fetchDashboard () {
 async function openStages (item) {
   stageDialogVisible.value = true
   currentProductId = item._id
-  stageList.value = await fetchProductStages(item._id)
+  const list = await fetchProductStages(item._id)
+  stageList.value = list.map(s => ({ ...s, checked: s.completed }))
 }
 
 async function onStageChange (stage, event) {
-  const completed = event.target.checked
-  await updateProductStage(currentProductId, stage._id, completed)
-  stage.completed = completed
+  stage.checked = event.target.checked
+}
+
+function closeStageDialog () {
+  stageDialogVisible.value = false
+}
+
+async function saveStages () {
+  const promises = stageList.value.map(stage => {
+    if (stage.checked !== stage.completed) {
+      return updateProductStage(currentProductId, stage._id, stage.checked)
+    }
+    return Promise.resolve()
+  })
+  await Promise.all(promises)
+  stageDialogVisible.value = false
   await fetchDashboard()
 }
 
