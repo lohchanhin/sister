@@ -3,7 +3,7 @@
 
     <!-- Asset Stats -->
     <div class="col-12">
-       <Card>
+      <Card>
         <template #title>素材統計</template>
         <template #content>
           <div class="grid text-center">
@@ -35,30 +35,36 @@
         <template #content>
           <DataTable :value="recentProducts" :rows="5" responsiveLayout="scroll" emptyMessage="尚無成品">
             <Column field="createdAt" header="上傳時間">
-              <template #body="{data}">{{ new Date(data.createdAt).toLocaleString() }}</template>
+              <template #body="{ data }">{{ new Date(data.createdAt).toLocaleString() }}</template>
             </Column>
             <Column field="title" header="檔名">
-              <template #body="{data}">{{ data.title || data.fileName }}</template>
+              <template #body="{ data }">{{ data.title || data.fileName }}</template>
             </Column>
             <Column field="editor" header="剪輯師" />
             <Column field="editCompletedAt" header="完成剪輯日期">
-              <template #body="{data}">{{ data.editCompletedAt ? new Date(data.editCompletedAt).toLocaleDateString() : '' }}</template>
+              <template #body="{ data }">{{ data.editCompletedAt ? new Date(data.editCompletedAt).toLocaleDateString() :
+                '' }}</template>
             </Column>
             <Column field="xhsStatus" header="xhs發布狀態">
-              <template #body="{data}">{{ data.xhsStatus === 'published' ? '已發布' : '未發布' }}</template>
+              <template #body="{ data }">{{ data.xhsStatus === 'published' ? '已發布' : '未發布' }}</template>
             </Column>
             <Column field="scheduledPublishAt" header="發佈日期">
-              <template #body="{data}">{{ data.scheduledPublishAt ? new Date(data.scheduledPublishAt).toLocaleDateString() : '' }}</template>
+              <template #body="{ data }">{{ data.scheduledPublishAt ? new
+                Date(data.scheduledPublishAt).toLocaleDateString() : '' }}</template>
             </Column>
             <Column field="finalChecked" header="最終檢查">
-              <template #body="{data}"><Checkbox :modelValue="data.finalChecked" binary disabled /></template>
+              <template #body="{ data }">
+                <Checkbox :modelValue="data.finalChecked" binary disabled />
+              </template>
             </Column>
             <Column field="fbSynced" header="同步FB">
-              <template #body="{data}"><Checkbox :modelValue="data.fbSynced" binary disabled /></template>
+              <template #body="{ data }">
+                <Checkbox :modelValue="data.fbSynced" binary disabled />
+              </template>
             </Column>
             <Column field="fbResponsible" header="FB負責人" />
             <Column field="progress" header="進度">
-              <template #body="{data}">
+              <template #body="{ data }">
                 <div class="flex flex-column gap-1">
                   <ProgressBar :value="(data.progress.done / data.progress.total) * 100" />
                   <div class="text-sm">
@@ -69,7 +75,7 @@
               </template>
             </Column>
             <Column header="設定">
-              <template #body="{data}">
+              <template #body="{ data }">
                 <Button icon="pi pi-pencil" class="p-button-text mr-2" @click="openEdit(data)" />
                 <Button icon="pi pi-cog" class="p-button-text" @click="openStages(data)" />
               </template>
@@ -80,13 +86,8 @@
     </div>
     <Dialog v-model:visible="stageDialogVisible" header="審查關卡" :modal="true">
       <div v-for="stage in stageList" :key="stage._id" class="flex align-items-center mb-2">
-        <Checkbox
-          :inputId="stage._id"
-          :modelValue="stage.checked"
-          :binary="true"
-          @change="onStageChange(stage, $event)"
-          class="mr-2"
-        />
+        <Checkbox :inputId="stage._id" :modelValue="stage.checked" :binary="true" @change="onStageChange(stage, $event)"
+          class="mr-2" />
         <label :for="stage._id">{{ stage.name }}</label>
       </div>
       <template #footer>
@@ -107,15 +108,18 @@
         </div>
         <div class="field">
           <label for="edit-completed">完成剪輯日期</label>
-          <DatePicker id="edit-completed" v-model="editItem.editCompletedAt" inputId="edit-completed" style="width:100%" />
+          <DatePicker id="edit-completed" v-model="editItem.editCompletedAt" inputId="edit-completed"
+            style="width:100%" />
         </div>
         <div class="field">
           <label for="edit-xhs">xhs 發布狀態</label>
-          <Dropdown id="edit-xhs" v-model="editItem.xhsStatus" :options="xhsOptions" optionLabel="label" optionValue="value" />
+          <Dropdown id="edit-xhs" v-model="editItem.xhsStatus" :options="xhsOptions" optionLabel="label"
+            optionValue="value" />
         </div>
         <div class="field">
           <label for="edit-publish">發佈日期</label>
-          <DatePicker id="edit-publish" v-model="editItem.scheduledPublishAt" inputId="edit-publish" style="width:100%" />
+          <DatePicker id="edit-publish" v-model="editItem.scheduledPublishAt" inputId="edit-publish"
+            style="width:100%" />
         </div>
         <div class="field">
           <label class="mr-2">最終檢查</label>
@@ -135,24 +139,26 @@
         <Button label="儲存" icon="pi pi-check" @click="saveEdit" />
       </template>
     </Dialog>
-    
+
     <!-- Recent Assets & Reviews -->
     <div class="col-12 md:col-6">
       <Card>
         <template #title>
-            <div class="flex justify-content-between align-items-center">
-                <span>最近素材上傳</span>
-                <Button label="查看全部" class="p-button-link" @click="$router.push('/assets')" />
-            </div>
+          <div class="flex justify-content-between align-items-center">
+            <span>最近素材上傳</span>
+            <Button label="查看全部" class="p-button-link" @click="$router.push('/assets')" />
+          </div>
         </template>
         <template #content>
           <DataTable :value="recentAssets" :rows="5" responsiveLayout="scroll" emptyMessage="尚無素材上傳">
             <Column field="createdAt" header="上傳時間">
-              <template #body="{data}">{{ new Date(data.createdAt).toLocaleString() }}</template>
+              <template #body="{ data }">{{ new Date(data.createdAt).toLocaleString() }}</template>
             </Column>
             <Column field="fileName" header="檔名"></Column>
             <Column field="fileType" header="類型">
-                <template #body="{data}"><Tag :value="data.fileType" /></template>
+              <template #body="{ data }">
+                <Tag :value="data.fileType" />
+              </template>
             </Column>
             <Column field="uploaderName" header="上傳者"></Column>
           </DataTable>
@@ -160,19 +166,19 @@
       </Card>
     </div>
     <div class="col-12 md:col-6">
-       <Card>
+      <Card>
         <template #title>最近審查結果</template>
         <template #content>
           <DataTable :value="recentReviews" :rows="5" responsiveLayout="scroll" emptyMessage="尚無審查紀錄">
             <Column field="updatedAt" header="時間">
-                <template #body="{data}">{{ new Date(data.updatedAt).toLocaleString() }}</template>
+              <template #body="{ data }">{{ new Date(data.updatedAt).toLocaleString() }}</template>
             </Column>
             <Column field="assetFile" header="素材"></Column>
             <Column field="stage" header="階段"></Column>
             <Column field="completed" header="狀態">
-                <template #body="{data}">
-                    <Tag :severity="data.completed ? 'success' : 'warning'" :value="data.completed ? '完成' : '未完成'" />
-                </template>
+              <template #body="{ data }">
+                <Tag :severity="data.completed ? 'success' : 'warning'" :value="data.completed ? '完成' : '未完成'" />
+              </template>
             </Column>
             <Column field="updatedBy" header="審核者"></Column>
           </DataTable>
@@ -183,9 +189,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import api from '../services/api'
-import { fetchProducts, fetchProductStages, updateProductStage, updateProduct } from '../services/products'
+import { fetchProductStages, updateProductStage, updateProduct } from '../services/products'
 
 import Card from 'primevue/card'
 import Button from 'primevue/button'
@@ -204,6 +210,7 @@ const recentAssets = ref([])
 const recentReviews = ref([])
 const recentProducts = ref([])
 const assetStats = ref({})
+const refreshKey = ref(0)      // 強制 DataTable 重新 render
 const stageDialogVisible = ref(false)
 const stageList = ref([])
 let currentProductId = null
@@ -218,38 +225,59 @@ const xhsOptions = [
 const editorList = ref([])
 const fbResponsibleList = ref([])
 
+/* ===== LocalStorage Helpers ===== */
 function loadLists() {
   const editors = localStorage.getItem('editorList')
   if (editors) {
-    try { editorList.value = JSON.parse(editors) } catch (e) { /* ignore */ }
+    try { editorList.value = JSON.parse(editors) } catch (_) { }
   }
   const fb = localStorage.getItem('fbResponsibleList')
   if (fb) {
-    try { fbResponsibleList.value = JSON.parse(fb) } catch (e) { /* ignore */ }
+    try { fbResponsibleList.value = JSON.parse(fb) } catch (_) { }
   }
 }
-
 function saveLists() {
   localStorage.setItem('editorList', JSON.stringify(editorList.value))
   localStorage.setItem('fbResponsibleList', JSON.stringify(fbResponsibleList.value))
 }
 
-/* ===== API Requests ===== */
-async function fetchDashboard () {
+/* ===== API ===== */
+async function fetchDashboard() {
   const { data } = await api.get('/dashboard/summary')
-  recentAssets.value  = data.recentAssets
-  recentReviews.value = data.recentReviews
-  recentProducts.value = data.recentProducts
-  assetStats.value    = data.assetStats
+  recentAssets.value = structuredClone(data.recentAssets)
+  recentReviews.value = structuredClone(data.recentReviews)
+  recentProducts.value = structuredClone(data.recentProducts)
+  assetStats.value = { ...data.assetStats }
+  refreshKey.value++                         // 觸發 DataTable 重繪
 }
 
-async function openStages (item) {
+/* ===== Stages Dialog ===== */
+async function openStages(item) {
   stageDialogVisible.value = true
   currentProductId = item._id
   const list = await fetchProductStages(item._id)
   stageList.value = list.map(s => ({ ...s, checked: s.completed }))
 }
+async function onStageChange(stage, e) {
+  stage.checked = e.target.checked
+}
+function closeStageDialog() {
+  stageDialogVisible.value = false
+}
+async function saveStages() {
+  await Promise.all(
+    stageList.value.map(s =>
+      s.checked !== s.completed
+        ? updateProductStage(currentProductId, s._id, s.checked, true, true)
+        : Promise.resolve()
+    )
+  )
+  stageDialogVisible.value = false
+  await nextTick()
+  await fetchDashboard()
+}
 
+/* ===== Edit Dialog ===== */
 function openEdit(item) {
   editItem.value = {
     _id: item._id,
@@ -264,7 +292,6 @@ function openEdit(item) {
   }
   editDialogVisible.value = true
 }
-
 async function saveEdit() {
   await updateProduct(editItem.value._id, {
     title: editItem.value.title,
@@ -276,52 +303,23 @@ async function saveEdit() {
     fbSynced: editItem.value.fbSynced,
     fbResponsible: editItem.value.fbResponsible
   })
-  if (editItem.value.editor && !editorList.value.includes(editItem.value.editor)) {
+  if (editItem.value.editor && !editorList.value.includes(editItem.value.editor))
     editorList.value.push(editItem.value.editor)
-  }
-  if (editItem.value.fbResponsible && !fbResponsibleList.value.includes(editItem.value.fbResponsible)) {
+  if (editItem.value.fbResponsible && !fbResponsibleList.value.includes(editItem.value.fbResponsible))
     fbResponsibleList.value.push(editItem.value.fbResponsible)
-  }
   saveLists()
   editDialogVisible.value = false
+  await nextTick()
   await fetchDashboard()
 }
 
-async function onStageChange (stage, event) {
-  stage.checked = event.target.checked
-}
-
-function closeStageDialog () {
-  stageDialogVisible.value = false
-}
-
-async function saveStages () {
-  const promises = stageList.value.map(stage => {
-    if (stage.checked !== stage.completed) {
-      return updateProductStage(
-        currentProductId,
-        stage._id,
-        stage.checked,
-        true,
-        true
-      )
-    }
-    return Promise.resolve()
-  })
-  await Promise.all(promises)
-  stageDialogVisible.value = false
-  await fetchDashboard()
-}
-
+/* ===== Lifecycle ===== */
 onMounted(() => {
   loadLists()
   fetchDashboard()
-  dashboardTimer = setInterval(fetchDashboard, 30000)
+  dashboardTimer = setInterval(fetchDashboard, 30000)  // 前景輪詢 30s
 })
-
 onUnmounted(() => {
-  if (dashboardTimer) {
-    clearInterval(dashboardTimer)
-  }
+  if (dashboardTimer) clearInterval(dashboardTimer)
 })
 </script>
