@@ -66,6 +66,8 @@ GCS_CORS_ORIGIN=http://localhost:5173
 上傳後僅會儲存檔名，需另外呼叫 API 取得 signed URL 才能預覽或下載檔案。
 若需強制瀏覽器下載檔案，可對 `GET /api/assets/:id/url` 加入 `?download=1`
 參數取得下載專用的 URL。
+所有受保護的路由都會檢查使用者是否具有對應權限，
+缺乏權限時伺服器將回傳 `403` 並顯示 `權限不足`。
 3. 執行測試前請先在 `server` 目錄安裝相依套件：
    ```bash
    npm install
