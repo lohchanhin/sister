@@ -21,6 +21,7 @@ export const updateFolderStageStatus = async (req, res) => {
   const folderId = req.params.id
   const stageId = req.params.stageId
   const completed = !!req.body.completed
+  const skipPrevCheck = req.body.skipPrevCheck === true || req.query.skipPrevCheck === '1'
 
   const stage = await ReviewStage.findById(stageId).populate('responsible')
   if (!stage) return res.status(404).json({ message: '階段不存在' })
@@ -29,7 +30,7 @@ export const updateFolderStageStatus = async (req, res) => {
     return res.status(403).json({ message: '無權審核此階段' })
   }
 
-  if (completed) {
+  if (completed && !skipPrevCheck) {
     const prevStages = await ReviewStage.find({ order: { $lt: stage.order } }, '_id')
     if (prevStages.length) {
       const prevIds = prevStages.map(s => s._id)
