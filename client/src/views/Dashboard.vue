@@ -183,7 +183,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import api from '../services/api'
 import { fetchProducts, fetchProductStages, updateProductStage, updateProduct } from '../services/products'
 
@@ -207,6 +207,7 @@ const assetStats = ref({})
 const stageDialogVisible = ref(false)
 const stageList = ref([])
 let currentProductId = null
+let dashboardTimer = null
 
 const editDialogVisible = ref(false)
 const editItem = ref({})
@@ -315,5 +316,12 @@ async function saveStages () {
 onMounted(() => {
   loadLists()
   fetchDashboard()
+  dashboardTimer = setInterval(fetchDashboard, 30000)
+})
+
+onUnmounted(() => {
+  if (dashboardTimer) {
+    clearInterval(dashboardTimer)
+  }
 })
 </script>

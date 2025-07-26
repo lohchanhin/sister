@@ -123,6 +123,7 @@ server/  # 後端 API
 若需批次匯入，可 POST 至 `/api/clients/:clientId/platforms/:platformId/ad-daily/import` 上傳 CSV 或 Excel。
 
 儀表板會列出近期上傳的成品及其審查進度。
+儀表板資料會每 30 秒自動重新載入，以保持最新狀態。
 在此可一次勾選多個關卡，點擊「儲存」後會依序更新並重新載入資料。
 
 ### 週備註圖片管理
