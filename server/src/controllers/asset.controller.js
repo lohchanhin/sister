@@ -14,6 +14,7 @@ import archiver from 'archiver'
 import { getDescendantFolderIds, getAncestorFolderIds, getRootFolder } from '../utils/folderTree.js'
 import { includeManagers } from '../utils/includeManagers.js'
 import { getCache, setCache, clearCacheByPrefix, delCache } from '../utils/cache.js'
+import { clearDashboardCache } from './dashboard.controller.js'
 
 const parseTags = (t) => {
   if (!t) return []
@@ -75,12 +76,13 @@ export const uploadFile = async (req, res) => {
       $set: { updatedAt: new Date() }
     })
     const parents = await getAncestorFolderIds(asset.folderId)
-    if (parents.length) {
+  if (parents.length) {
       await Folder.updateMany({ _id: { $in: parents } }, { $set: { updatedAt: new Date() } })
     }
   }
 
   await clearCacheByPrefix('assets:')
+  await clearDashboardCache()
   res.status(201).json(asset)
 }
 
@@ -161,7 +163,7 @@ export const addComment = async (req, res) => {
   if (asset.folderId) {
     await Folder.updateOne({ _id: asset.folderId }, { $set: { updatedAt: new Date() } })
     const parents = await getAncestorFolderIds(asset.folderId)
-    if (parents.length) {
+  if (parents.length) {
       await Folder.updateMany({ _id: { $in: parents } }, { $set: { updatedAt: new Date() } })
     }
   }
@@ -225,6 +227,7 @@ export const reviewAsset = async (req, res) => {
   asset.reviewStatus = reviewStatus
   await asset.save()
   await clearCacheByPrefix('assets:')
+  await clearDashboardCache()
   res.json(asset)
 }
 
@@ -233,11 +236,12 @@ export const deleteAsset = async (req, res) => {
   if (asset?.folderId) {
     await Folder.updateOne({ _id: asset.folderId }, { $set: { updatedAt: new Date() } })
     const parents = await getAncestorFolderIds(asset.folderId)
-    if (parents.length) {
+  if (parents.length) {
       await Folder.updateMany({ _id: { $in: parents } }, { $set: { updatedAt: new Date() } })
     }
   }
   await clearCacheByPrefix('assets:')
+  await clearDashboardCache()
   res.json({ message: '素材已刪除' })
 }
 
@@ -297,6 +301,7 @@ export const updateAssetsViewers = async (req, res) => {
     await asset.save()
   }
   await clearCacheByPrefix('assets:')
+  await clearDashboardCache()
   res.json({ message: '已更新' })
 }
 
@@ -336,12 +341,13 @@ export const createAsset = async (req, res) => {
       $set: { updatedAt: new Date() }
     })
     const parents = await getAncestorFolderIds(asset.folderId)
-    if (parents.length) {
+  if (parents.length) {
       await Folder.updateMany({ _id: { $in: parents } }, { $set: { updatedAt: new Date() } })
     }
   }
 
   await clearCacheByPrefix('assets:')
+  await clearDashboardCache()
   res.status(201).json(asset)
 }
 
@@ -471,5 +477,6 @@ export const deleteAssets = async (req, res) => {
   }
 
   await clearCacheByPrefix('assets:')
+  await clearDashboardCache()
   res.json({ message: '已刪除' })
 }
