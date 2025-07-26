@@ -172,7 +172,18 @@ export const addComment = async (req, res) => {
 /* ---------- PUT /api/assets/:id ---------- */
 /* 允許更新：title、description */
 export const updateAsset = async (req, res) => {
-  const { title, description, allowedUsers } = req.body
+  const {
+    title,
+    description,
+    allowedUsers,
+    editor,
+    editCompletedAt,
+    xhsStatus,
+    scheduledPublishAt,
+    finalChecked,
+    fbSynced,
+    fbResponsible
+  } = req.body
 
   const asset = await Asset.findById(req.params.id)
   if (!asset) return res.status(404).json({ message: '找不到素材' })
@@ -183,6 +194,13 @@ export const updateAsset = async (req, res) => {
   if (Array.isArray(allowedUsers)) {
     asset.allowedUsers = await includeManagers(allowedUsers)
   }
+  if (editor !== undefined) asset.editor = editor
+  if (editCompletedAt !== undefined) asset.editCompletedAt = editCompletedAt ? new Date(editCompletedAt) : null
+  if (xhsStatus !== undefined) asset.xhsStatus = xhsStatus
+  if (scheduledPublishAt !== undefined) asset.scheduledPublishAt = scheduledPublishAt ? new Date(scheduledPublishAt) : null
+  if (finalChecked !== undefined) asset.finalChecked = finalChecked
+  if (fbSynced !== undefined) asset.fbSynced = fbSynced
+  if (fbResponsible !== undefined) asset.fbResponsible = fbResponsible
   // filename 不可修改，故不處理
 
   await asset.save()

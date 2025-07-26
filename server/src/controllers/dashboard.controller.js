@@ -77,6 +77,14 @@ export const getSummary = async (req, res) => {
       fileType: p.type,
       uploaderName: p.uploadedBy?.name || p.uploadedBy?.username,
       createdAt: p.createdAt,
+      title: p.title,
+      editor: p.editor,
+      editCompletedAt: p.editCompletedAt,
+      xhsStatus: p.xhsStatus,
+      scheduledPublishAt: p.scheduledPublishAt,
+      finalChecked: p.finalChecked,
+      fbSynced: p.fbSynced,
+      fbResponsible: p.fbResponsible,
       progress: { done, total: totalStages },
       pendingStage
     }

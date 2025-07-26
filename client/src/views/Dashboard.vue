@@ -37,7 +37,26 @@
             <Column field="createdAt" header="上傳時間">
               <template #body="{data}">{{ new Date(data.createdAt).toLocaleString() }}</template>
             </Column>
-            <Column field="fileName" header="檔名" />
+            <Column field="title" header="檔名">
+              <template #body="{data}">{{ data.title || data.fileName }}</template>
+            </Column>
+            <Column field="editor" header="剪輯師" />
+            <Column field="editCompletedAt" header="完成剪輯日期">
+              <template #body="{data}">{{ data.editCompletedAt ? new Date(data.editCompletedAt).toLocaleDateString() : '' }}</template>
+            </Column>
+            <Column field="xhsStatus" header="xhs發布狀態">
+              <template #body="{data}">{{ data.xhsStatus === 'published' ? '已發布' : '未發布' }}</template>
+            </Column>
+            <Column field="scheduledPublishAt" header="發佈日期">
+              <template #body="{data}">{{ data.scheduledPublishAt ? new Date(data.scheduledPublishAt).toLocaleDateString() : '' }}</template>
+            </Column>
+            <Column field="finalChecked" header="最終檢查">
+              <template #body="{data}"><Checkbox :modelValue="data.finalChecked" binary disabled /></template>
+            </Column>
+            <Column field="fbSynced" header="同步FB">
+              <template #body="{data}"><Checkbox :modelValue="data.fbSynced" binary disabled /></template>
+            </Column>
+            <Column field="fbResponsible" header="FB負責人" />
             <Column field="progress" header="進度">
               <template #body="{data}">
                 <div class="flex flex-column gap-1">
@@ -51,6 +70,7 @@
             </Column>
             <Column header="設定">
               <template #body="{data}">
+                <Button icon="pi pi-pencil" class="p-button-text mr-2" @click="openEdit(data)" />
                 <Button icon="pi pi-cog" class="p-button-text" @click="openStages(data)" />
               </template>
             </Column>
@@ -72,6 +92,47 @@
       <template #footer>
         <Button label="取消" class="p-button-text" @click="closeStageDialog" />
         <Button label="儲存" icon="pi pi-check" @click="saveStages" />
+      </template>
+    </Dialog>
+
+    <Dialog v-model:visible="editDialogVisible" header="編輯成品資料" :modal="true" style="width: 400px">
+      <div class="p-fluid">
+        <div class="field">
+          <label for="edit-title">檔名</label>
+          <InputText id="edit-title" v-model="editItem.title" />
+        </div>
+        <div class="field">
+          <label for="edit-editor">剪輯師</label>
+          <InputText id="edit-editor" v-model="editItem.editor" />
+        </div>
+        <div class="field">
+          <label for="edit-completed">完成剪輯日期</label>
+          <DatePicker id="edit-completed" v-model="editItem.editCompletedAt" inputId="edit-completed" style="width:100%" />
+        </div>
+        <div class="field">
+          <label for="edit-xhs">xhs 發布狀態</label>
+          <Dropdown id="edit-xhs" v-model="editItem.xhsStatus" :options="xhsOptions" optionLabel="label" optionValue="value" />
+        </div>
+        <div class="field">
+          <label for="edit-publish">發佈日期</label>
+          <DatePicker id="edit-publish" v-model="editItem.scheduledPublishAt" inputId="edit-publish" style="width:100%" />
+        </div>
+        <div class="field">
+          <label class="mr-2">最終檢查</label>
+          <Checkbox v-model="editItem.finalChecked" binary />
+        </div>
+        <div class="field">
+          <label class="mr-2">同步 Facebook</label>
+          <Checkbox v-model="editItem.fbSynced" binary />
+        </div>
+        <div class="field">
+          <label for="edit-fb">FB 負責人</label>
+          <InputText id="edit-fb" v-model="editItem.fbResponsible" />
+        </div>
+      </div>
+      <template #footer>
+        <Button label="取消" class="p-button-text" @click="editDialogVisible = false" />
+        <Button label="儲存" icon="pi pi-check" @click="saveEdit" />
       </template>
     </Dialog>
     
@@ -124,7 +185,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '../services/api'
-import { fetchProducts, fetchProductStages, updateProductStage } from '../services/products'
+import { fetchProducts, fetchProductStages, updateProductStage, updateProduct } from '../services/products'
 
 import Card from 'primevue/card'
 import Button from 'primevue/button'
@@ -134,6 +195,9 @@ import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Checkbox from 'primevue/checkbox'
 import ProgressBar from 'primevue/progressbar'
+import InputText from 'primevue/inputtext'
+import Dropdown from 'primevue/dropdown'
+import DatePicker from 'primevue/datepicker'
 
 /* ===== Reactive State ===== */
 const recentAssets = ref([])
@@ -143,6 +207,13 @@ const assetStats = ref({})
 const stageDialogVisible = ref(false)
 const stageList = ref([])
 let currentProductId = null
+
+const editDialogVisible = ref(false)
+const editItem = ref({})
+const xhsOptions = [
+  { label: '已發布', value: 'published' },
+  { label: '未發布', value: 'unpublished' }
+]
 
 /* ===== API Requests ===== */
 async function fetchDashboard () {
@@ -158,6 +229,36 @@ async function openStages (item) {
   currentProductId = item._id
   const list = await fetchProductStages(item._id)
   stageList.value = list.map(s => ({ ...s, checked: s.completed }))
+}
+
+function openEdit(item) {
+  editItem.value = {
+    _id: item._id,
+    title: item.title,
+    editor: item.editor,
+    editCompletedAt: item.editCompletedAt || null,
+    xhsStatus: item.xhsStatus || 'unpublished',
+    scheduledPublishAt: item.scheduledPublishAt || null,
+    finalChecked: item.finalChecked || false,
+    fbSynced: item.fbSynced || false,
+    fbResponsible: item.fbResponsible
+  }
+  editDialogVisible.value = true
+}
+
+async function saveEdit() {
+  await updateProduct(editItem.value._id, {
+    title: editItem.value.title,
+    editor: editItem.value.editor,
+    editCompletedAt: editItem.value.editCompletedAt,
+    xhsStatus: editItem.value.xhsStatus,
+    scheduledPublishAt: editItem.value.scheduledPublishAt,
+    finalChecked: editItem.value.finalChecked,
+    fbSynced: editItem.value.fbSynced,
+    fbResponsible: editItem.value.fbResponsible
+  })
+  editDialogVisible.value = false
+  await fetchDashboard()
 }
 
 async function onStageChange (stage, event) {
