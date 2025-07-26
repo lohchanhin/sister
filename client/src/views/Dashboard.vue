@@ -146,6 +146,7 @@ async function onStageChange (stage, event) {
   const completed = event.target.checked
   await updateProductStage(currentProductId, stage._id, completed)
   stage.completed = completed
+  await fetchDashboard()
 }
 
 onMounted(fetchDashboard)
