@@ -1,6 +1,7 @@
 import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import Asset from '../models/asset.model.js'
+import { clearDashboardCache } from './dashboard.controller.js'
 
 export const getAssetStages = async (req, res) => {
   const stages = await ReviewStage.find().populate('responsible').sort('order')
@@ -65,6 +66,8 @@ export const updateStageStatus = async (req, res) => {
     }
     await asset.save()
   }
+
+  await clearDashboardCache()
 
   res.json(record)
 }

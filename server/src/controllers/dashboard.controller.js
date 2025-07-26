@@ -3,7 +3,7 @@ import Asset from '../models/asset.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import ReviewStage from '../models/reviewStage.model.js'
 import AdDaily from '../models/adDaily.model.js'
-import { getCache, setCache } from '../utils/cache.js'
+import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
 
 export const getSummary = async (req, res) => {
   const cacheKey = `dashboard:${req.user._id}`
@@ -136,4 +136,8 @@ export const getDaily = async (req, res) => {
       clicks: d.clicks
     }))
   )
+}
+
+export const clearDashboardCache = async () => {
+  await clearCacheByPrefix('dashboard:')
 }
