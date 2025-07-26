@@ -9,5 +9,5 @@ fs.mkdirSync(uploadDir, { recursive: true })
 
 export const upload = multer({
   storage: multer.diskStorage({ destination: uploadDir }),
-  limits: { fileSize: 1500 * 1024 * 1024 } // 限制檔案大小為 10MB
+  limits: { fileSize: 1500 * 1024 * 1024 } // 限制檔案大小為 1.5GB
 })

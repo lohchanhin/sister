@@ -2,6 +2,8 @@
 <template>
   <div>
     <Toast position="bottom-right" group="br" />
+    <!-- This will handle all dynamically grouped toasts -->
+    <Toast position="bottom-right" /> 
     <Toast position="top-center" group="upload-batch" />
     <Toolbar class="mb-4">
       <template #start>
@@ -133,7 +135,7 @@ import { fetchAssets, uploadAssetAuto, updateAsset, deleteAsset, updateAssetsVie
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
-import { showProgressToast } from '../utils/toastProgress'
+import { useProgressStore } from '../stores/progress'
 
 import Toolbar from 'primevue/toolbar'
 import Button from 'primevue/button'
@@ -152,6 +154,7 @@ const confirm = useConfirm()
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const progressStore = useProgressStore()
 
 const loading = ref(false)
 const folders = ref([])
@@ -192,6 +195,7 @@ const breadcrumbItems = ref([])
 
 const formatDate = d => d ? new Date(d).toLocaleString() : '—'
 const isImage = item => item && item.name && /\.(png|jpe?g|gif|webp)$/i.test(item.name)
+const isVideo = item => item && item.name && /\.(mp4|webm|ogg)$/i.test(item.name)
 
 async function loadData(folderId = null) {
   loading.value = true
@@ -246,19 +250,18 @@ async function createNewFolder() {
 
 const uploadRequest = async (event) => {
     const files = Array.isArray(event.files) ? event.files : [event.files];
-    showProgressToast(toast, 'upload-batch', '批量上傳開始', `準備上傳 ${files.length} 個檔案...`, 'info', 3000);
-
+    
     for (const file of files) {
-        const groupId = `upload-${file.name}-${Date.now()}`;
-        showProgressToast(toast, groupId, `上傳中: ${file.name}`, '0%');
+        const taskId = `upload-${file.name}-${Date.now()}`;
+        progressStore.addTask({ id: taskId, name: file.name, status: 'uploading', progress: 0 });
         try {
             await uploadAssetAuto(file, currentFolder.value?._id, 'raw', (progressEvent) => {
                 const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
-                showProgressToast(toast, groupId, `上傳中: ${file.name}`, `${percent}%`);
+                progressStore.updateTaskProgress(taskId, percent);
             });
-            showProgressToast(toast, groupId, '成功', `${file.name} 上傳完畢`, 'success', 3000);
+            progressStore.updateTaskStatus(taskId, 'success');
         } catch (error) {
-            showProgressToast(toast, groupId, '失敗', `${file.name} 上傳失敗`, 'error', 5000);
+            progressStore.updateTaskStatus(taskId, 'error', '上傳失敗');
         }
     }
     loadData(currentFolder.value?._id);
@@ -266,26 +269,40 @@ const uploadRequest = async (event) => {
 
 async function pollProgress(progressId, name, type) {
   const getProgress = type === 'folder' ? getFolderDownloadProgress : getAssetBatchDownloadProgress;
-  const groupId = `dl-${progressId}`;
-  showProgressToast(toast, groupId, `壓縮中: ${name}`, '準備中...');
+  const taskId = `dl-${progressId}`;
+  progressStore.addTask({ id: taskId, name, status: 'compressing', progress: 0 });
 
-  try {
-    let progress = await getProgress(progressId);
-    while (progress && progress.percent < 100 && !progress.error) {
-      showProgressToast(toast, groupId, `壓縮中: ${name}`, `進度: ${progress.percent}%`);
-      await new Promise(r => setTimeout(r, 1500));
-      progress = await getProgress(progressId);
-    }
+  const poll = async (maxAttempts = 80, interval = 1500) => { // Approx 2 minutes
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const progress = await getProgress(progressId);
 
-    if (progress?.url) {
-      showProgressToast(toast, groupId, '壓縮完成', '下載即將開始', 'success', 3000);
-      window.open(progress.url, '_blank');
-    } else {
-      throw new Error(progress?.error || '壓縮失敗');
+        if (progress?.url) {
+          progressStore.updateTaskProgress(taskId, 100);
+          progressStore.updateTaskStatus(taskId, 'success');
+          window.open(progress.url, '_blank');
+          return; // Success
+        }
+
+        if (progress?.error) {
+          throw new Error(progress.error);
+        }
+        
+        if (progress?.percent) {
+          progressStore.updateTaskProgress(taskId, progress.percent);
+        }
+
+        await new Promise(r => setTimeout(r, interval));
+      } catch (error) {
+        progressStore.updateTaskStatus(taskId, 'error', error.message || '輪詢進度時發生錯誤');
+        return; // Stop polling on error
+      }
     }
-  } catch (error) {
-    showProgressToast(toast, groupId, '壓縮失敗', error.message, 'error', 5000);
-  }
+    // If loop finishes without success or error
+    progressStore.updateTaskStatus(taskId, 'error', '操作超時');
+  };
+
+  poll();
 }
 
 async function downloadFolderItem(item) {
@@ -300,7 +317,18 @@ async function downloadFolderItem(item) {
 async function downloadSingleItem(item) {
   try {
     const url = await getAssetUrl(item._id, true); // download=true
-    window.open(url, '_blank');
+    if (isVideo(item)) {
+      // For videos, create a link and click it to force download
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', item.name);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      // For other files, open in a new tab
+      window.open(url, '_blank');
+    }
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: '下載失敗', life: 3000 });
   }
@@ -375,11 +403,30 @@ async function applyBatch() {
 
 function confirmDeleteSelected() {
   confirm.require({
-    message: `Are you sure you want to delete ${selectedItems.value.length} items?`,
-    header: 'Confirmation',
+    message: `您確定要刪除這 ${selectedItems.value.length} 個項目嗎？此操作無法復原。`,
+    header: '確認刪除',
     icon: 'pi pi-exclamation-triangle',
     accept: async () => {
-        // delete logic
+      const assetIds = selectedItems.value.filter(id => id.startsWith('asset-')).map(id => id.replace('asset-', ''));
+      const folderIds = selectedItems.value.filter(id => id.startsWith('folder-')).map(id => id.replace('folder-', ''));
+      
+      try {
+        const deletePromises = [];
+        if (assetIds.length) {
+          assetIds.forEach(id => deletePromises.push(deleteAsset(id)));
+        }
+        if (folderIds.length) {
+          folderIds.forEach(id => deletePromises.push(deleteFolder(id)));
+        }
+        
+        await Promise.all(deletePromises);
+        
+        toast.add({ severity: 'success', summary: '成功', detail: '選取的項目已成功刪除', life: 3000 });
+        loadData(currentFolder.value?._id); // Refresh the data
+        selectedItems.value = []; // Clear selection
+      } catch (error) {
+        toast.add({ severity: 'error', summary: '錯誤', detail: '刪除過程中發生錯誤', life: 3000 });
+      }
     }
   });
 }
