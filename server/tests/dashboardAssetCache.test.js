@@ -28,7 +28,7 @@ beforeAll(async () => {
   app.use('/api/dashboard', dashboardRoutes)
   app.use('/api/assets', assetRoutes)
 
-  const role = await Role.create({ name: 'manager', permissions: ['asset:create', 'asset:read'] })
+  const role = await Role.create({ name: 'manager', permissions: ['asset:create', 'asset:read', 'asset:update'] })
   await User.create({ username: 'admin', password: 'pwd', email: 'a@test.com', roleId: role._id })
 
   const res = await request(app)
@@ -62,4 +62,32 @@ test('summary updates after asset creation', async () => {
     .set('Authorization', `Bearer ${token}`)
     .expect(200)
   expect(res2.body.assetStats.rawTotal).toBe(2)
+})
+
+test('summary updates after asset update', async () => {
+  const create = await request(app)
+    .post('/api/assets')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ filename: 'c.mp4', path: '/tmp/c.mp4', type: 'edited' })
+    .expect(201)
+
+  const id = create.body._id
+
+  const first = await request(app)
+    .get('/api/dashboard/summary')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200)
+  expect(first.body.recentProducts[0].finalChecked).toBe(false)
+
+  await request(app)
+    .put(`/api/assets/${id}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ finalChecked: true })
+    .expect(200)
+
+  const second = await request(app)
+    .get('/api/dashboard/summary')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200)
+  expect(second.body.recentProducts[0].finalChecked).toBe(true)
 })
