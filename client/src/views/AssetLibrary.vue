@@ -249,22 +249,28 @@ async function createNewFolder() {
 }
 
 const uploadRequest = async (event) => {
-    const files = Array.isArray(event.files) ? event.files : [event.files];
-    
-    for (const file of files) {
-        const taskId = `upload-${file.name}-${Date.now()}`;
-        progressStore.addTask({ id: taskId, name: file.name, status: 'uploading', progress: 0 });
-        try {
-            await uploadAssetAuto(file, currentFolder.value?._id, 'raw', (progressEvent) => {
-                const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
-                progressStore.updateTaskProgress(taskId, percent);
-            });
-            progressStore.updateTaskStatus(taskId, 'success');
-        } catch (error) {
-            progressStore.updateTaskStatus(taskId, 'error', '上傳失敗');
-        }
-    }
-    loadData(currentFolder.value?._id);
+  const files = Array.isArray(event.files) ? event.files : [event.files];
+  const uploadPromises = files.map(file => {
+    const taskId = `upload-${file.name}-${Date.now()}`;
+    progressStore.addTask({ id: taskId, name: file.name, status: 'uploading', progress: 0 });
+
+    const progressCb = (progressEvent) => {
+      let percent = 0;
+      if (progressEvent && typeof progressEvent.percent === 'number') {
+        percent = Math.round(progressEvent.percent);
+      } else if (progressEvent && progressEvent.total) {
+        percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+      }
+      progressStore.updateTaskProgress(taskId, percent);
+    };
+
+    return uploadAssetAuto(file, currentFolder.value?._id, 'raw', progressCb)
+      .then(() => progressStore.updateTaskStatus(taskId, 'success'))
+      .catch(() => progressStore.updateTaskStatus(taskId, 'error', '上傳失敗'));
+  });
+
+  await Promise.all(uploadPromises);
+  loadData(currentFolder.value?._id);
 };
 
 async function pollProgress(progressId, name, type) {
