@@ -243,6 +243,7 @@ function saveLists() {
 
 /* ===== API ===== */
 async function fetchDashboard() {
+  recentProducts.value = null;
   const { data } = await api.get('/dashboard/summary')
   recentAssets.value = structuredClone(data.recentAssets)
   recentReviews.value = structuredClone(data.recentReviews)
