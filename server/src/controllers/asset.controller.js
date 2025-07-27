@@ -214,6 +214,7 @@ export const updateAsset = async (req, res) => {
     }
   }
   await clearCacheByPrefix('assets:')
+  await clearDashboardCache()
   res.json(asset)
 }
 
