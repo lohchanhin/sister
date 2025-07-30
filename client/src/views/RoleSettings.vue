@@ -61,6 +61,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import { fetchRoles, createRole, updateRole, deleteRole, fetchPermissions, fetchMenus } from '../services/roles'
@@ -80,6 +81,7 @@ import Tag from 'primevue/tag'
 
 const toast = useToast()
 const confirm = useConfirm()
+const router = useRouter()
 const authStore = useAuthStore()
 
 if (!authStore.hasPermission('role:manage')) {

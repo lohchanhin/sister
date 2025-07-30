@@ -57,6 +57,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import { fetchUsers, createUser, updateUser, deleteUser } from '../services/user'
@@ -75,6 +76,7 @@ import Password from 'primevue/password'
 
 const toast = useToast()
 const confirm = useConfirm()
+const router = useRouter()
 const authStore = useAuthStore()
 
 if (!authStore.hasPermission('user:manage')) {

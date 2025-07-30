@@ -44,6 +44,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import { fetchReviewStages, createReviewStage, updateReviewStage, deleteReviewStage } from '../services/reviewStages'
@@ -62,6 +63,7 @@ import Dropdown from 'primevue/dropdown'
 
 const toast = useToast()
 const confirm = useConfirm()
+const router = useRouter()
 const authStore = useAuthStore()
 
 if (!authStore.hasPermission('review:manage')) {
