@@ -37,7 +37,7 @@ const routes = [
       { path: 'employees', name: 'EmployeeManager', component: EmployeeManager, meta: { menu: 'employees' } },
       { path: 'roles', name: 'RoleSettings', component: RoleSettings, meta: { menu: 'roles' } },
       { path: 'tags', name: 'TagManager', component: TagManager, meta: { menu: 'tags' } },
-      { path: 'review-stages', name: 'ReviewSettings', component: ReviewSettings, meta: { menu: 'review-stages' } },
+      { path: 'review-settings', name: 'ReviewSettings', component: ReviewSettings, meta: { menu: 'review-stages' } },
       { path: 'ad-clients', name: 'AdClients', component: AdClients, meta: { menu: 'ad-data' } },
       { path: 'clients/:clientId/platforms', name: 'AdPlatforms', component: AdPlatforms },
       { path: 'clients/:clientId/platforms/:platformId/data', name: 'AdData', component: AdData }
