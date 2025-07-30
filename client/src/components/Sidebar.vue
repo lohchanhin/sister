@@ -132,7 +132,7 @@ const mainMenuItems = [
   { path: '/assets', label: '素材庫', icon: 'pi pi-images', badge: null },
   { path: '/products', label: '成品區', icon: 'pi pi-box', badge: '3' },
 
-  { path: '/ad-data', label: '廣告數據', icon: 'pi pi-chart-line', badge: null }
+  // { path: '/ad-data', label: '廣告數據', icon: 'pi pi-chart-line', badge: null }
 ]
 
 const adminMenuItems = computed(() => {
