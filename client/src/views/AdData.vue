@@ -117,7 +117,7 @@
         <!-- 動態欄位 -->
         <div v-for="field in customColumns" :key="field.name" class="flex gap-2">
           <label :for="field.name" class="w-16 pt-2 text-right shrink-0">{{ field.name }}</label>
-          <div class="flex gap-2 w-full">
+          <div class="flex gap-2 w-full" style="display: none;">
             <DatePicker v-if="field.type === 'date'" v-model="recordForm.extraData[field.name]" :inputId="field.name"
               class="flex-1" />
             <InputText v-else v-model="recordForm.extraData[field.name]" :inputId="field.name" class="flex-1" />
