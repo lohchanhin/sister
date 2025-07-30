@@ -190,7 +190,7 @@ const selectAll = computed({
   set: val => { selectedItems.value = val ? combinedItems.value.map(i => i.id) : [] }
 })
 
-const breadcrumbHome = ref({ icon: 'pi pi-home', to: '/assets' })
+const breadcrumbHome = ref({ icon: 'pi pi-home', label: '素材庫', to: '/assets' })
 const breadcrumbItems = ref([])
 
 const formatDate = d => d ? new Date(d).toLocaleString() : '—'

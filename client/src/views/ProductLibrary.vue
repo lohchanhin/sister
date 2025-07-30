@@ -222,7 +222,7 @@ const selectAll = computed({
   set: val => { selectedItems.value = val ? combinedItems.value.map(i => i.id) : [] }
 })
 
-const breadcrumbHome = ref({ icon: 'pi pi-home', to: '/products' })
+const breadcrumbHome = ref({ icon: 'pi pi-home', label: '成品區', to: '/products' })
 const breadcrumbItems = ref([])
 
 const formatDate = d => d ? new Date(d).toLocaleString() : '—'
