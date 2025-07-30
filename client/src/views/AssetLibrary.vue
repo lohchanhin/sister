@@ -77,7 +77,7 @@
         </div>
         <div class="flex flex-row xl:flex-column align-items-center xl:align-items-end gap-2">
           <Button icon="pi pi-info-circle" class="p-button-rounded p-button-secondary" @click="showDetailFor(item)"></Button>
-          <Button icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadSingleItem(item)"></Button>
+          <Button v-if="item.type !== 'folder'" icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadSingleItem(item)"></Button>
         </div>
       </div>
     </div>
