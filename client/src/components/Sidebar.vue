@@ -132,13 +132,15 @@ const mainMenuItems = [
   { path: '/assets', label: '素材庫', icon: 'pi pi-images', badge: null },
   { path: '/products', label: '成品區', icon: 'pi pi-box', badge: '3' },
   { path: '/tasks', label: '任務管理', icon: 'pi pi-check-square', badge: null },
-  { path: '/ad-data', label: '廣告數據', icon: 'pi pi-chart-line', badge: null }
+  // 將廣告數據選項導向 ad-clients
+  { path: '/ad-clients', label: '廣告數據', icon: 'pi pi-chart-line', badge: null }
 ]
 
 const adminMenuItems = computed(() => {
   const items = [
-    { path: '/clients', label: '客戶管理', icon: 'pi pi-users' },
-    { path: '/platforms', label: '平台管理', icon: 'pi pi-globe' },
+    // 由於沒有獨立路由，統一導向 ad-clients
+    { path: '/ad-clients', label: '客戶管理', icon: 'pi pi-users' },
+    { path: '/ad-clients', label: '平台管理', icon: 'pi pi-globe' },
     { path: '/tags', label: '標籤管理', icon: 'pi pi-tags' }
   ]
   
