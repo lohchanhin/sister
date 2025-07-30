@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useUploadStore } from '../stores/upload'
 
 import Login from '../views/Login.vue'
 import DashboardLayout from '../layouts/DashboardLayout.vue'
@@ -52,6 +53,12 @@ const router = createRouter({
 
 /* -------- 路由守衛：驗證 JWT & 權限 -------- */
 router.beforeEach(async (to) => {
+  const uploadStore = useUploadStore()
+  if (uploadStore.hasPending) {
+    const leave = window.confirm('仍有上傳任務進行中，確定要離開嗎？')
+    if (!leave) return false
+    uploadStore.cancelAll()
+  }
   const store = useAuthStore()
   if (to.meta.public) return true // 公開頁面
 

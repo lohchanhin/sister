@@ -32,12 +32,12 @@
 
 <script setup>
 import { computed } from 'vue';
-import { useProgressStore } from '../stores/progress';
+import { useUploadStore } from '../stores/upload';
 import Card from 'primevue/card';
 import ProgressBar from 'primevue/progressbar';
 
-const progressStore = useProgressStore();
-const activeTasks = computed(() => progressStore.activeTasks);
+const uploadStore = useUploadStore();
+const activeTasks = computed(() => uploadStore.activeTasks);
 
 const getStatusText = (status) => {
   const statusMap = {
