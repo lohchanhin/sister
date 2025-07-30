@@ -205,6 +205,33 @@ export const deleteFolder = async (req, res) => {
   res.json({ message: '資料夾已刪除' })
 }
 
+export const moveFolders = async (req, res) => {
+  const { ids, parentId } = req.body
+  if (!Array.isArray(ids)) {
+    return res.status(400).json({ message: '參數錯誤' })
+  }
+  if (parentId) {
+    const exists = await Folder.findById(parentId)
+    if (!exists) return res.status(404).json({ message: '目標資料夾不存在' })
+  }
+
+  await Folder.updateMany(
+    { _id: { $in: ids } },
+    { parentId: parentId || null, updatedAt: new Date() }
+  )
+
+  if (parentId) {
+    const parents = await getAncestorFolderIds(parentId)
+    if (parents.length) {
+      await Folder.updateMany({ _id: { $in: parents } }, { $set: { updatedAt: new Date() } })
+    }
+  }
+
+  await clearCacheByPrefix('folders:')
+  await clearCacheByPrefix('folderTree:')
+  res.json({ message: '已移動' })
+}
+
 export const updateFoldersViewers = async (req, res) => {
   const { ids, allowedUsers } = req.body
   if (!Array.isArray(ids) || !Array.isArray(allowedUsers)) {

@@ -7,6 +7,7 @@ import {
   fetchAssetStages,
   updateAssetStage,
   updateAssetsViewers,
+  moveAssets,
   getAssetUrl,
   batchDownloadAssets,
   deleteAssetsBulk,
@@ -42,6 +43,9 @@ export const updateProductStage = (
 
 export const updateProductsViewers = (ids, users) =>
   updateAssetsViewers(ids, users)
+
+export const moveProducts = (ids, folderId) =>
+  moveAssets(ids, folderId)
 
 export const getProductUrl = (id, download = false) =>
   getAssetUrl(id, download)

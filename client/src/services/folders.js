@@ -43,6 +43,15 @@ export const updateFoldersViewers = async (ids, users) => {
   }
 }
 
+export const moveFolders = async (ids, parentId) => {
+  try {
+    const res = await api.put('/folders/move', { ids, parentId })
+    return res.data
+  } catch (e) {
+    throw e.response?.data?.message || '移動失敗'
+  }
+}
+
 export const reviewFolder = (id, status) =>
   api.put(`/folders/${id}/review`, { reviewStatus: status }).then(res => res.data)
 

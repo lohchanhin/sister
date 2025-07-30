@@ -136,6 +136,15 @@ export const updateAssetsViewers = async (ids, users) => {
   }
 }
 
+export const moveAssets = async (ids, folderId) => {
+  try {
+    const res = await api.put('/assets/move', { ids, folderId })
+    return res.data
+  } catch (e) {
+    throw e.response?.data?.message || '移動失敗'
+  }
+}
+
 export const getAssetUrl = (id, download = false) =>
   api
     .get(`/assets/${id}/url`, { params: download ? { download: 1 } : {} })

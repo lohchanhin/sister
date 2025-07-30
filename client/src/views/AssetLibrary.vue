@@ -118,19 +118,27 @@
             @click="openBatchDialog" 
             size="small"
           />
-          <Button 
-            icon="pi pi-download" 
+          <Button
+            icon="pi pi-download"
             label="批次下載"
             class="batch-btn secondary"
-            @click="downloadSelected" 
+            @click="downloadSelected"
             :disabled="!selectedAssets.length"
             size="small"
           />
-          <Button 
-            icon="pi pi-trash" 
+          <Button
+            icon="pi pi-folder-open"
+            label="移動至..."
+            class="batch-btn secondary"
+            @click="openMoveDialog"
+            size="small"
+            :disabled="!selectedItems.length"
+          />
+          <Button
+            icon="pi pi-trash"
             label="批次刪除"
             class="batch-btn danger"
-            @click="confirmDeleteSelected" 
+            @click="confirmDeleteSelected"
             size="small"
           />
         </div>
@@ -341,6 +349,21 @@
       </template>
     </Dialog>
 
+    <Dialog v-model:visible="moveDialog" header="移動至" class="batch-dialog" :modal="true">
+      <div class="dialog-form">
+        <div class="form-field">
+          <label class="field-label">選擇目標資料夾</label>
+          <Dropdown v-model="targetFolder" :options="folderOptions" optionLabel="label" optionValue="value" placeholder="選擇資料夾" class="field-input" />
+        </div>
+      </div>
+      <template #footer>
+        <div class="dialog-actions">
+          <Button label="取消" icon="pi pi-times" @click="moveDialog = false" class="action-btn secondary"/>
+          <Button label="確定" icon="pi pi-check" @click="applyMove" class="action-btn primary" />
+        </div>
+      </template>
+    </Dialog>
+
     <Dialog v-model:visible="previewVisible" :header="previewItem?.name" class="preview-dialog" :modal="true">
       <div class="preview-content">
         <img 
@@ -371,8 +394,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers } from '../services/folders'
-import { fetchAssets, updateAsset, deleteAsset, updateAssetsViewers, getAssetUrl, startBatchDownload as startAssetBatchDownload, getBatchDownloadProgress as getAssetBatchDownloadProgress } from '../services/assets'
+import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, moveFolders } from '../services/folders'
+import { fetchAssets, updateAsset, deleteAsset, updateAssetsViewers, getAssetUrl, startBatchDownload as startAssetBatchDownload, getBatchDownloadProgress as getAssetBatchDownloadProgress, moveAssets } from '../services/assets'
 import { useUploadStore } from '../stores/upload'
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
@@ -389,6 +412,7 @@ import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
 import Tag from 'primevue/tag'
 import Toast from 'primevue/toast'
+import Dropdown from 'primevue/dropdown'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -415,6 +439,9 @@ const batchDialog = ref(false)
 const batchUsers = ref([])
 const previewVisible = ref(false)
 const previewItem = ref(null)
+const moveDialog = ref(false)
+const targetFolder = ref(null)
+const folderOptions = ref([])
 
 const combinedItems = computed(() => {
   const safeFolders = Array.isArray(folders.value) ? folders.value : [];
@@ -626,6 +653,29 @@ function openBatchDialog() {
   batchDialog.value = true;
 }
 
+async function openMoveDialog() {
+  try {
+    const all = await fetchFolders(null, [], 'raw', true);
+    folderOptions.value = all.map(f => ({ value: f._id, label: buildPath(f, all) }));
+    targetFolder.value = null;
+    moveDialog.value = true;
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Error', detail: '無法取得資料夾列表', life: 3000 });
+  }
+}
+
+function buildPath(folder, list) {
+  let name = folder.name;
+  let current = folder;
+  while (current.parentId) {
+    const parent = list.find(f => f._id === current.parentId);
+    if (!parent) break;
+    name = parent.name + '/' + name;
+    current = parent;
+  }
+  return name;
+}
+
 async function applyBatch() {
   const assetIds = selectedItems.value.filter(id => id.startsWith('asset-')).map(id => id.replace('asset-', ''));
   const folderIds = selectedItems.value.filter(id => id.startsWith('folder-')).map(id => id.replace('folder-', ''));
@@ -637,6 +687,21 @@ async function applyBatch() {
     selectedItems.value = [];
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Batch update failed', life: 3000 });
+  }
+}
+
+async function applyMove() {
+  const assetIds = selectedItems.value.filter(id => id.startsWith('asset-')).map(id => id.replace('asset-', ''))
+  const folderIds = selectedItems.value.filter(id => id.startsWith('folder-')).map(id => id.replace('folder-', ''))
+  try {
+    if (assetIds.length) await moveAssets(assetIds, targetFolder.value)
+    if (folderIds.length) await moveFolders(folderIds, targetFolder.value)
+    toast.add({ severity: 'success', summary: '成功', detail: '已移動', life: 3000 })
+    moveDialog.value = false
+    selectedItems.value = []
+    loadData(currentFolder.value?._id)
+  } catch (error) {
+    toast.add({ severity: 'error', summary: '錯誤', detail: '移動失敗', life: 3000 })
   }
 }
 

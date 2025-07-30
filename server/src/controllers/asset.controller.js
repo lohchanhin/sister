@@ -459,6 +459,40 @@ export const getBatchDownloadProgress = async (req, res) => {
   res.json(data)
 }
 
+export const moveAssets = async (req, res) => {
+  const { ids, folderId } = req.body
+  if (!Array.isArray(ids)) {
+    return res.status(400).json({ message: '參數錯誤' })
+  }
+
+  let allowedUsers = null
+  if (folderId) {
+    const target = await Folder.findById(folderId)
+    if (!target) return res.status(404).json({ message: '目標資料夾不存在' })
+    const root = await getRootFolder(folderId)
+    allowedUsers = root?.allowedUsers || []
+  }
+
+  const assets = await Asset.find({ _id: { $in: ids } })
+  for (const asset of assets) {
+    asset.folderId = folderId || null
+    if (allowedUsers) asset.allowedUsers = allowedUsers
+    await asset.save()
+  }
+
+  if (folderId) {
+    await Folder.updateOne({ _id: folderId }, { $set: { updatedAt: new Date() } })
+    const parents = await getAncestorFolderIds(folderId)
+    if (parents.length) {
+      await Folder.updateMany({ _id: { $in: parents } }, { $set: { updatedAt: new Date() } })
+    }
+  }
+
+  await clearCacheByPrefix('assets:')
+  await clearDashboardCache()
+  res.json({ message: '已移動' })
+}
+
 export const deleteAssets = async (req, res) => {
   const { ids } = req.body
   if (!Array.isArray(ids) || !ids.length) {
