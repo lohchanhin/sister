@@ -1,6 +1,6 @@
 /* Modern Design System Variables */
 :root {
-  /* Colors */
+  /* Light theme colors */
   --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
@@ -41,6 +41,11 @@
   --space-lg: 1.5rem;
   --space-xl: 2rem;
   --space-2xl: 3rem;
+
+  /* Light theme text colors */
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
 }
 
 /* Dark theme variables */
@@ -52,8 +57,30 @@
   --surface-a: #334155;
   --surface-hover: #475569;
   --surface-border: rgba(255, 255, 255, 0.1);
+
+  /* Dark theme text colors - ensuring visibility */
   --text-color: #f8fafc;
   --text-color-secondary: #cbd5e1;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+
+  /* Dark theme gradients */
+  --primary-gradient: linear-gradient(135deg, #8b9cf7 0%, #a78bfa 100%);
+  --secondary-gradient: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
+  --success-gradient: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  --warning-gradient: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  --danger-gradient: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+}
+
+/* Ensure text visibility in both themes */
+body {
+  color: var(--text-color, #1e293b);
+}
+
+.dark-theme body {
+  color: var(--text-color);
+  background-color: var(--surface-ground);
 }
 
 /* Shared styles for AssetLibrary and ProductLibrary */
@@ -169,6 +196,10 @@
   box-shadow: var(--shadow-2xl);
 }
 
+.dark-theme .glass-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
 /* Gradient Text */
 .gradient-text {
   background: var(--primary-gradient);
@@ -178,11 +209,29 @@
   font-weight: 700;
 }
 
+/* Text utilities with proper dark theme support */
+.text-primary {
+  color: var(--text-primary) !important;
+}
+
+.text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+.text-tertiary {
+  color: var(--text-tertiary) !important;
+}
+
 /* Loading Animation */
 .loading-shimmer {
   background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
+}
+
+.dark-theme .loading-shimmer {
+  background: linear-gradient(90deg, #334155 25%, #475569 50%, #334155 75%);
+  background-size: 200% 100%;
 }
 
 @keyframes shimmer {
@@ -351,6 +400,14 @@
   background: linear-gradient(135deg, #5a67d8 0%, #667eea 100%);
 }
 
+.dark-theme ::-webkit-scrollbar-thumb {
+  background: var(--primary-gradient);
+}
+
+.dark-theme ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #a78bfa 0%, #8b9cf7 100%);
+}
+
 /* Responsive Grid System */
 .responsive-grid {
   display: grid;
@@ -392,6 +449,160 @@
 
 .rounded-hard {
   border-radius: var(--radius-2xl);
+}
+
+/* Form Elements Dark Theme Support */
+.dark-theme input,
+.dark-theme textarea,
+.dark-theme select {
+  background-color: var(--surface-ground);
+  border-color: var(--surface-border);
+  color: var(--text-color);
+}
+
+.dark-theme input:focus,
+.dark-theme textarea:focus,
+.dark-theme select:focus {
+  border-color: #8b9cf7;
+  box-shadow: 0 0 0 3px rgba(139, 156, 247, 0.1);
+}
+
+.dark-theme input::placeholder,
+.dark-theme textarea::placeholder {
+  color: var(--text-color-secondary);
+}
+
+/* Button Dark Theme Support */
+.dark-theme .p-button {
+  color: var(--text-color);
+}
+
+.dark-theme .p-button.p-button-secondary {
+  background-color: var(--surface-a);
+  border-color: var(--surface-border);
+  color: var(--text-color);
+}
+
+.dark-theme .p-button.p-button-secondary:hover {
+  background-color: var(--surface-hover);
+}
+
+/* Card Dark Theme Support */
+.dark-theme .p-card {
+  background-color: var(--surface-card);
+  border-color: var(--surface-border);
+  color: var(--text-color);
+}
+
+.dark-theme .p-card .p-card-title {
+  color: var(--text-color);
+}
+
+.dark-theme .p-card .p-card-subtitle {
+  color: var(--text-color-secondary);
+}
+
+.dark-theme .p-card .p-card-content {
+  color: var(--text-color);
+}
+
+/* Dialog Dark Theme Support */
+.dark-theme .p-dialog {
+  background-color: var(--surface-card);
+  border-color: var(--surface-border);
+  color: var(--text-color);
+}
+
+.dark-theme .p-dialog .p-dialog-header {
+  background-color: var(--surface-card);
+  border-color: var(--surface-border);
+  color: var(--text-color);
+}
+
+.dark-theme .p-dialog .p-dialog-content {
+  background-color: var(--surface-card);
+  color: var(--text-color);
+}
+
+.dark-theme .p-dialog .p-dialog-footer {
+  background-color: var(--surface-card);
+  border-color: var(--surface-border);
+}
+
+/* Toast Dark Theme Support */
+.dark-theme .p-toast .p-toast-message {
+  background-color: var(--surface-card);
+  border-color: var(--surface-border);
+  color: var(--text-color);
+}
+
+/* Dropdown Dark Theme Support */
+.dark-theme .p-dropdown {
+  background-color: var(--surface-ground);
+  border-color: var(--surface-border);
+  color: var(--text-color);
+}
+
+.dark-theme .p-dropdown:hover {
+  border-color: #8b9cf7;
+}
+
+.dark-theme .p-dropdown-panel {
+  background-color: var(--surface-card);
+  border-color: var(--surface-border);
+}
+
+.dark-theme .p-dropdown-item {
+  color: var(--text-color);
+}
+
+.dark-theme .p-dropdown-item:hover {
+  background-color: var(--surface-hover);
+}
+
+/* MultiSelect Dark Theme Support */
+.dark-theme .p-multiselect {
+  background-color: var(--surface-ground);
+  border-color: var(--surface-border);
+  color: var(--text-color);
+}
+
+.dark-theme .p-multiselect:hover {
+  border-color: #8b9cf7;
+}
+
+.dark-theme .p-multiselect-panel {
+  background-color: var(--surface-card);
+  border-color: var(--surface-border);
+}
+
+.dark-theme .p-multiselect-item {
+  color: var(--text-color);
+}
+
+.dark-theme .p-multiselect-item:hover {
+  background-color: var(--surface-hover);
+}
+
+/* Tag Dark Theme Support */
+.dark-theme .p-tag {
+  background-color: rgba(139, 156, 247, 0.1);
+  color: #8b9cf7;
+  border: 1px solid rgba(139, 156, 247, 0.2);
+}
+
+/* Breadcrumb Dark Theme Support */
+.dark-theme .p-breadcrumb {
+  background-color: var(--surface-card);
+  border-color: var(--surface-border);
+}
+
+.dark-theme .p-breadcrumb .p-breadcrumb-list li .p-menuitem-link {
+  color: var(--text-color);
+}
+
+.dark-theme .p-breadcrumb .p-breadcrumb-list li .p-menuitem-link:hover {
+  color: #8b9cf7;
 }
 
 /* Responsive Design */
@@ -499,5 +710,15 @@
 
 ::-moz-selection {
   background: rgba(102, 126, 234, 0.3);
+  color: var(--text-color);
+}
+
+.dark-theme ::selection {
+  background: rgba(139, 156, 247, 0.3);
+  color: var(--text-color);
+}
+
+.dark-theme ::-moz-selection {
+  background: rgba(139, 156, 247, 0.3);
   color: var(--text-color);
 }

@@ -1,14 +1,18 @@
-<!-- ProductLibrary.vue (Final Corrected Version) -->
 <template>
-  <div>
+  <div class="shared-library-container">
     <Toast position="bottom-right" group="br" />
-    <!-- This will handle all dynamically grouped toasts -->
     <Toast position="bottom-right" />
     <Toast position="top-center" group="upload-batch" />
-    <Toolbar class="mb-4">
+
+    <div class="header">
+      <div class="title">成品區</div>
+      <div class="subtitle">管理您的完成作品和最終產出</div>
+    </div>
+
+    <Toolbar class="toolbar">
       <template #start>
         <Button icon="pi pi-arrow-left" class="p-button-secondary mr-2" @click="goUp" :disabled="!currentFolder" />
-        <div class="p-inputgroup w-full md:w-auto">
+        <div class="p-inputgroup">
           <InputText v-model="newFolderName" placeholder="新資料夾名稱" @keyup.enter="createNewFolder" />
           <Button label="建立" icon="pi pi-plus" @click="createNewFolder" :disabled="!newFolderName" />
         </div>
@@ -20,45 +24,44 @@
       </template>
     </Toolbar>
 
-    <Breadcrumb :home="breadcrumbHome" :model="breadcrumbItems" class="mb-4 p-3 border-1 surface-border border-round" />
+    <Breadcrumb :home="breadcrumbHome" :model="breadcrumbItems" class="breadcrumb" />
 
-    <div class="flex flex-column md:flex-row md:justify-content-between mb-4">
-      <div class="flex align-items-center mb-2 md:mb-0">
+    <div class="actions">
+      <div class="left">
         <Checkbox v-model="selectAll" :binary="true" class="mr-2" />
         <Button label="批次設定" icon="pi pi-users" class="p-button-secondary mr-2" @click="openBatchDialog" :disabled="!selectedItems.length" />
         <Button label="批次下載" icon="pi pi-download" class="p-button-secondary mr-2" @click="downloadSelected" :disabled="!selectedProducts.length" />
         <Button label="批次刪除" icon="pi pi-trash" class="p-button-danger" @click="confirmDeleteSelected" :disabled="!selectedItems.length" />
       </div>
-      <div class="flex gap-2">
-        <Button icon="pi pi-table" @click="viewMode = 'grid'" :class="{'p-button-primary': viewMode === 'grid', 'p-button-secondary': viewMode !== 'grid'}" />
-        <Button icon="pi pi-list" @click="viewMode = 'list'" :class="{'p-button-primary': viewMode === 'list', 'p-button-secondary': viewMode !== 'list'}" />
+      <div class="right">
+        <Button icon="pi pi-table" @click="viewMode = 'grid'" :class="{ 'p-button-primary': viewMode === 'grid', 'p-button-secondary': viewMode !== 'grid' }" />
+        <Button icon="pi pi-list" @click="viewMode = 'list'" :class="{ 'p-button-primary': viewMode === 'list', 'p-button-secondary': viewMode !== 'list' }" />
       </div>
     </div>
 
-    <div v-if="!combinedItems.length && !loading" class="col-12 text-center text-color-secondary p-4">
+    <div v-if="!combinedItems.length && !loading" class="empty-message">
       <i class="pi pi-inbox" style="font-size: 2rem"></i>
       <p>此資料夾為空</p>
     </div>
 
-    <!-- Grid View -->
-    <div v-if="viewMode === 'grid'" class="grid">
-      <div v-for="item in combinedItems" :key="item.id" class="col-12 md:col-4 lg:col-3 xl:col-2 p-2">
-        <div class="p-4 border-1 surface-border surface-card border-round h-full flex flex-column">
-          <div class="flex justify-content-between align-items-start">
-              <Checkbox v-model="selectedItems" :value="item.id" @click.stop />
-              <SplitButton 
-                icon="pi pi-cog" 
-                :model="getItemActions(item)"
-                v-if="authStore.hasPermission('REVIEW_MANAGE')"
-                @click="showDetailFor(item)"
-                class="p-button-sm p-button-text"
-              ></SplitButton>
-              <Button v-else icon="pi pi-info-circle" class="p-button-rounded p-button-text" @click.stop="showDetailFor(item)"></Button>
+    <div v-if="viewMode === 'grid'" class="grid-view">
+      <div v-for="item in combinedItems" :key="item.id" class="grid-item">
+        <div class="item-container">
+          <div class="item-header">
+            <Checkbox v-model="selectedItems" :value="item.id" @click.stop />
+            <SplitButton
+              icon="pi pi-cog"
+              :model="getItemActions(item)"
+              v-if="authStore.hasPermission('REVIEW_MANAGE')"
+              @click="showDetailFor(item)"
+              class="p-button-sm p-button-text"
+            ></SplitButton>
+            <Button v-else icon="pi pi-info-circle" class="p-button-rounded p-button-text" @click.stop="showDetailFor(item)"></Button>
           </div>
-          <div class="flex-1 flex flex-column align-items-center text-center gap-3 cursor-pointer" @click="handleItemClick(item)">
-            <i :class="['text-6xl mt-3', item.type === 'folder' ? 'pi pi-folder' : 'pi pi-box']"></i>
-            <div class="font-bold">{{ item.name }}</div>
-            <div class="flex align-items-center gap-2 flex-wrap justify-content-center">
+          <div class="item-content" @click="handleItemClick(item)">
+            <i :class="['item-icon', item.type === 'folder' ? 'pi pi-folder' : 'pi pi-box']"></i>
+            <div class="item-name">{{ item.name }}</div>
+            <div class="item-tags">
               <Tag :value="item.reviewStatus" :severity="getStatusSeverity(item.reviewStatus)" />
               <Tag v-for="tag in item.tags" :key="tag" :value="tag"></Tag>
             </div>
@@ -67,26 +70,25 @@
       </div>
     </div>
 
-    <!-- List View -->
-    <div v-else-if="viewMode === 'list'" class="flex flex-column gap-2">
-      <div v-for="item in combinedItems" :key="item.id" class="flex flex-column xl:flex-row xl:align-items-start p-4 gap-4 border-1 surface-border surface-card border-round">
-        <Checkbox v-model="selectedItems" :value="item.id" class="align-self-center xl:align-self-start"/>
-        <i :class="['text-4xl text-primary-500', item.type === 'folder' ? 'pi pi-folder' : 'pi pi-box']"></i>
-        <div class="flex-1 flex flex-column gap-2 cursor-pointer" @click="handleItemClick(item)">
-          <div class="font-bold text-lg">{{ item.name }}</div>
-          <div class="flex align-items-center gap-2">
+    <div v-else-if="viewMode === 'list'" class="list-view">
+      <div v-for="item in combinedItems" :key="item.id" class="list-item">
+        <Checkbox v-model="selectedItems" :value="item.id" class="list-item-checkbox" />
+        <i :class="['item-icon', item.type === 'folder' ? 'pi pi-folder' : 'pi pi-box']"></i>
+        <div class="list-item-details" @click="handleItemClick(item)">
+          <div class="list-item-name">{{ item.name }}</div>
+          <div class="list-item-tags">
             <Tag :value="item.reviewStatus" :severity="getStatusSeverity(item.reviewStatus)" />
             <Tag v-for="tag in item.tags" :key="tag" :value="tag"></Tag>
           </div>
-          <div class="text-sm text-color-secondary">{{ item.description }}</div>
-          <div class="flex align-items-center gap-2">
+          <div class="list-item-description">{{ item.description }}</div>
+          <div class="list-item-date">
             <i class="pi pi-calendar"></i>
             <span>{{ formatDate(item.createdAt) }} by {{ item.creatorName || item.uploaderName }}</span>
           </div>
         </div>
-        <div class="flex flex-row xl:flex-column align-items-center xl:align-items-end gap-2">
-          <SplitButton 
-            icon="pi pi-cog" 
+        <div class="list-item-actions">
+          <SplitButton
+            icon="pi pi-cog"
             :model="getItemActions(item)"
             v-if="authStore.hasPermission('REVIEW_MANAGE')"
             @click="showDetailFor(item)"
@@ -98,8 +100,7 @@
       </div>
     </div>
 
-    <!-- Dialogs -->
-    <Dialog v-model:visible="showDetail" :header="detail.name" :style="{width: '50vw'}" :modal="true">
+    <Dialog v-model:visible="showDetail" :header="detail.name" :style="{ width: '50vw' }" :modal="true">
       <div class="p-fluid">
         <div class="field">
           <label for="detail-name">名稱</label>
@@ -116,9 +117,9 @@
         <div v-if="reviewStages.length" class="field">
           <label>審查關卡</label>
           <div v-for="stage in reviewStages" :key="stage._id" class="flex align-items-center">
-            <Checkbox 
-              :modelValue="stage.completed" 
-              :binary="true" 
+            <Checkbox
+              :modelValue="stage.completed"
+              :binary="true"
               :inputId="stage._id"
               :disabled="!stage.responsible || stage.responsible._id !== authStore.user._id"
               @change="updateStageStatus(stage, $event)"
@@ -128,26 +129,26 @@
         </div>
       </div>
       <template #footer>
-        <Button label="取消" icon="pi pi-times" @click="showDetail = false" class="p-button-text"/>
+        <Button label="取消" icon="pi pi-times" @click="showDetail = false" class="p-button-text" />
         <Button label="儲存" icon="pi pi-check" @click="saveDetail" autofocus />
       </template>
     </Dialog>
 
-    <Dialog v-model:visible="batchDialog" header="批次設定可查看者" :style="{width: '300px'}" :modal="true">
-        <MultiSelect v-model="batchUsers" :options="users" optionLabel="username" optionValue="_id" placeholder="選擇使用者" class="w-full" />
-        <template #footer>
-            <Button label="取消" icon="pi pi-times" @click="batchDialog = false" class="p-button-text"/>
-            <Button label="確定" icon="pi pi-check" @click="applyBatch" autofocus />
-        </template>
+    <Dialog v-model:visible="batchDialog" header="批次設定可查看者" :style="{ width: '300px' }" :modal="true">
+      <MultiSelect v-model="batchUsers" :options="users" optionLabel="username" optionValue="_id" placeholder="選擇使用者" class="w-full" />
+      <template #footer>
+        <Button label="取消" icon="pi pi-times" @click="batchDialog = false" class="p-button-text" />
+        <Button label="確定" icon="pi pi-check" @click="applyBatch" autofocus />
+      </template>
     </Dialog>
 
-    <Dialog v-model:visible="previewVisible" :header="previewItem?.name" :style="{width: '60vw'}" :modal="true">
-        <div class="flex justify-content-center">
-            <img v-if="isImage(previewItem)" :src="previewItem.url" class="w-full h-auto" style="max-height: 70vh; object-fit: contain;" />
-            <video v-else-if="previewItem" controls class="w-full h-auto" style="max-height: 70vh;">
-                <source :src="previewItem.url" />
-            </video>
-        </div>
+    <Dialog v-model:visible="previewVisible" :header="previewItem?.name" :style="{ width: '60vw' }" :modal="true">
+      <div class="flex justify-content-center">
+        <img v-if="isImage(previewItem)" :src="previewItem.url" class="w-full h-auto" style="max-height: 70vh; object-fit: contain;" />
+        <video v-else-if="previewItem" controls class="w-full h-auto" style="max-height: 70vh;">
+          <source :src="previewItem.url" />
+        </video>
+      </div>
     </Dialog>
   </div>
 </template>
@@ -508,3 +509,183 @@ watch(() => route.params.folderId, (newId) => loadData(newId || null))
 watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 
 </script>
+
+<style scoped>
+.shared-library-container {
+  padding: 1rem;
+}
+
+.header {
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: var(--text-color-secondary);
+}
+
+.toolbar {
+  margin-bottom: 1rem;
+}
+
+.p-inputgroup {
+  width: 100%;
+  max-width: 300px;
+}
+
+.breadcrumb {
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background-color: var(--surface-d);
+  color: var(--text-color-secondary);
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.actions .left,
+.actions .right {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.empty-message {
+  text-align: center;
+  color: var(--text-color-secondary);
+  padding: 2rem;
+  border: 1px dashed var(--surface-border);
+  border-radius: 6px;
+}
+
+/* Grid View */
+.grid-view {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.grid-item {
+  display: flex;
+}
+
+.item-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  background-color: var(--surface-card);
+  padding: 0.5rem;
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+}
+
+.item-icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+  color: var(--primary-color);
+}
+
+.item-name {
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.item-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+/* List View */
+.list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  background-color: var(--surface-card);
+}
+
+.list-item-checkbox {
+  margin-right: 1rem;
+}
+
+.list-item-icon {
+  font-size: 2rem;
+  margin-right: 1rem;
+  color: var(--primary-color);
+}
+
+.list-item-details {
+  flex: 1;
+  cursor: pointer;
+}
+
+.list-item-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.list-item-tags {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.list-item-description {
+  color: var(--text-color-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.list-item-date {
+  display: flex;
+  align-items: center;
+  color: var(--text-color-secondary);
+}
+
+.list-item-date i {
+  margin-right: 0.25rem;
+}
+
+.list-item-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+</style>
