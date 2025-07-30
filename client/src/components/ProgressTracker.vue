@@ -56,8 +56,15 @@ const getStatusText = (status) => {
   position: fixed;
   bottom: 1rem;
   right: 1rem;
-  width: 350px;
-  z-index: 1100; /* Higher than other elements */
+  width: 100%;
+  max-width: 350px;
+  z-index: 1100;
+}
+
+@media (min-width: 576px) {
+  .progress-tracker-container {
+    width: 350px;
+  }
 }
 
 .card-title {

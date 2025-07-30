@@ -67,7 +67,8 @@ const onSubmit = async () => {
 }
 
 .login-card {
-  width: 25rem;
+  max-width: 25rem;
+  width: 100%;
   box-shadow: var(--elevation-4);
 }
 </style>
