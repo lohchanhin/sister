@@ -17,6 +17,5 @@
     "concurrently": "^8.2.0"
   },
   "dependencies": {
-    "ll": "^1.2.0"
   }
 }
