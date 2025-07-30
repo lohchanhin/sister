@@ -155,5 +155,3 @@ onMounted(() => {
   loadStages()
   loadUsers()
 })
-
-</script>
