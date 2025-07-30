@@ -77,8 +77,7 @@
         </div>
         <div class="flex flex-row xl:flex-column align-items-center xl:align-items-end gap-2">
           <Button icon="pi pi-info-circle" class="p-button-rounded p-button-secondary" @click="showDetailFor(item)"></Button>
-          <Button v-if="item.type === 'folder'" icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadFolderItem(item)"></Button>
-          <Button v-else icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadSingleItem(item)"></Button>
+          <Button icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadSingleItem(item)"></Button>
         </div>
       </div>
     </div>
@@ -130,12 +129,11 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, startBatchDownload as startFolderBatchDownload, getDownloadProgress as getFolderDownloadProgress } from '../services/folders'
+import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers } from '../services/folders'
 import { fetchAssets, updateAsset, deleteAsset, updateAssetsViewers, getAssetUrl, startBatchDownload as startAssetBatchDownload, getBatchDownloadProgress as getAssetBatchDownloadProgress } from '../services/assets'
 import { useUploadStore } from '../stores/upload'
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
-import { useAuthStore } from '../stores/auth'
 import { useProgressStore } from '../stores/progress'
 
 import Toolbar from 'primevue/toolbar'
@@ -154,7 +152,6 @@ const toast = useToast()
 const confirm = useConfirm()
 const router = useRouter()
 const route = useRoute()
-const authStore = useAuthStore()
 const progressStore = useProgressStore()
 const uploadStore = useUploadStore()
 
@@ -258,8 +255,8 @@ const uploadRequest = async (event) => {
   loadData(currentFolder.value?._id)
 }
 
-async function pollProgress(progressId, name, type) {
-  const getProgress = type === 'folder' ? getFolderDownloadProgress : getAssetBatchDownloadProgress;
+async function pollProgress(progressId, name) {
+  const getProgress = getAssetBatchDownloadProgress;
   const taskId = `dl-${progressId}`;
   progressStore.addTask({ id: taskId, name, status: 'compressing', progress: 0 });
 
@@ -296,14 +293,6 @@ async function pollProgress(progressId, name, type) {
   poll();
 }
 
-async function downloadFolderItem(item) {
-  try {
-    const { progressId } = await startFolderBatchDownload(item._id);
-    pollProgress(progressId, item.name, 'folder');
-  } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: '無法開始下載', life: 3000 });
-  }
-}
 
 async function downloadSingleItem(item) {
   try {
@@ -329,7 +318,7 @@ async function downloadSelected() {
   if (!selectedAssets.value.length) return;
   try {
     const { progressId } = await startAssetBatchDownload(selectedAssets.value);
-    pollProgress(progressId, '批量下載', 'asset');
+    pollProgress(progressId, '批量下載');
   } catch (error) {
      toast.add({ severity: 'error', summary: 'Error', detail: '無法開始下載', life: 3000 });
   }

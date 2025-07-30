@@ -93,8 +93,7 @@
             class="p-button-sm p-button-secondary"
           ></SplitButton>
           <Button v-else icon="pi pi-info-circle" class="p-button-rounded p-button-secondary" @click.stop="showDetailFor(item)"></Button>
-          <Button v-if="item.type === 'folder'" icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadFolderItem(item)"></Button>
-          <Button v-else icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadSingleItem(item)"></Button>
+          <Button icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadSingleItem(item)"></Button>
         </div>
       </div>
     </div>
@@ -159,7 +158,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, reviewFolder, fetchFolderStages, updateFolderStage, startBatchDownload as startFolderBatchDownload, getDownloadProgress as getFolderDownloadProgress } from '../services/folders'
+import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, reviewFolder, fetchFolderStages, updateFolderStage } from '../services/folders'
 import { fetchProducts, updateProduct, deleteProduct, updateProductsViewers, getProductUrl, batchDownloadProducts, deleteProducts, reviewProduct, fetchProductStages, updateProductStage, startBatchDownload as startProductBatchDownload, getBatchDownloadProgress as getProductBatchDownloadProgress } from '../services/products'
 import { useUploadStore } from '../stores/upload'
 import { fetchUsers } from '../services/user'
@@ -342,8 +341,8 @@ const uploadRequest = async (event) => {
   loadData(currentFolder.value?._id)
 }
 
-async function pollProgress(progressId, name, type) {
-  const getProgress = type === 'folder' ? getFolderDownloadProgress : getProductBatchDownloadProgress;
+async function pollProgress(progressId, name) {
+  const getProgress = getProductBatchDownloadProgress;
   const taskId = `dl-${progressId}`;
   progressStore.addTask({ id: taskId, name, status: 'compressing', progress: 0 });
 
@@ -380,14 +379,6 @@ async function pollProgress(progressId, name, type) {
   poll();
 }
 
-async function downloadFolderItem(item) {
-  try {
-    const { progressId } = await startFolderBatchDownload(item._id);
-    pollProgress(progressId, item.name, 'folder');
-  } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: '無法開始下載', life: 3000 });
-  }
-}
 
 async function downloadSingleItem(item) {
   try {
@@ -402,7 +393,7 @@ async function downloadSelected() {
   if (!selectedProducts.value.length) return;
   try {
     const { progressId } = await startProductBatchDownload(selectedProducts.value);
-    pollProgress(progressId, '批量下載', 'product');
+    pollProgress(progressId, '批量下載');
   } catch (error) {
      toast.add({ severity: 'error', summary: 'Error', detail: '無法開始下載', life: 3000 });
   }
