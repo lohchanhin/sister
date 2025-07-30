@@ -105,27 +105,28 @@
 
 
     <!-- ─────────── Dialog：新增/編輯每日 ─────────── -->
-    <Dialog v-model:visible="dialogVisible" :header="editing ? '編輯每日記錄' : '新增每日記錄'" modal style="width: 520px">
+    <Dialog v-model:visible="dialogVisible" :header="editing ? '編輯每日記錄' : '新增每日記錄'" modal
+      style="max-width: 480px; width: 100%">
       <div class="flex flex-col gap-4">
         <!-- 日期欄 -->
-        <div class="flex items-center gap-4">
-          <label for="date" class="w-20 shrink-0 text-right">日期</label>
-          <DatePicker v-model="recordForm.date" inputId="date" class="flex-1" />
+        <div class="flex gap-2">
+          <label for="date" class="w-16 pt-2 text-right shrink-0">日期</label>
+          <DatePicker v-model="recordForm.date" inputId="date" class="w-full" />
         </div>
 
         <!-- 動態欄位 -->
-        <div v-for="field in customColumns" :key="field.name" class="flex items-center gap-4">
-          <label :for="field.name" class="w-20 shrink-0 text-right">{{ field.name }}</label>
-          <div class="flex items-center gap-2 flex-1">
+        <div v-for="field in customColumns" :key="field.name" class="flex gap-2">
+          <label :for="field.name" class="w-16 pt-2 text-right shrink-0">{{ field.name }}</label>
+          <div class="flex gap-2 w-full">
             <DatePicker v-if="field.type === 'date'" v-model="recordForm.extraData[field.name]" :inputId="field.name"
               class="flex-1" />
             <InputText v-else v-model="recordForm.extraData[field.name]" :inputId="field.name" class="flex-1" />
-            <!-- 固定色票下拉 -->
+            <!-- 色票選擇 -->
             <Dropdown v-model="recordForm.colors[field.name]" :options="colorOptions" optionLabel="label"
-              optionValue="value" placeholder="顏色" style="width: 100px" showClear>
+              optionValue="value" placeholder="顏色" class="w-24" showClear>
               <template #option="slotProps">
                 <div class="flex items-center">
-                  <span class="inline-block w-3 h-3 mr-2 align-middle rounded-sm"
+                  <span class="inline-block w-3 h-3 mr-2 rounded-sm"
                     :style="{ backgroundColor: slotProps.option.value }" />
                   <div>{{ slotProps.option.label }}</div>
                 </div>
@@ -141,6 +142,7 @@
         <Button label="確定" @click="handleConfirm" />
       </template>
     </Dialog>
+
 
 
     <!-- ─────────── Dialog：操作說明 ─────────── -->
