@@ -1,5 +1,5 @@
 <template>
-  <div class="grid">
+  <div class="grid dashboard-grid">
 
     <!-- Asset Stats -->
     <div class="col-12">
@@ -33,7 +33,7 @@
       <Card>
         <template #title>近期成品進度</template>
         <template #content>
-          <DataTable :value="recentProducts" :rows="5" responsiveLayout="scroll" emptyMessage="尚無成品">
+          <DataTable v-if="!isMobile" :value="recentProducts" :rows="5" responsiveLayout="scroll" emptyMessage="尚無成品">
             <Column field="createdAt" header="上傳時間">
               <template #body="{ data }">{{ new Date(data.createdAt).toLocaleString() }}</template>
             </Column>
@@ -81,6 +81,20 @@
               </template>
             </Column>
           </DataTable>
+          <div v-else class="mobile-card-list">
+            <Card v-for="p in recentProducts" :key="p._id" class="mobile-card">
+              <template #title>{{ p.title || p.fileName }}</template>
+              <template #content>
+                <div class="text-sm mb-2">上傳時間: {{ new Date(p.createdAt).toLocaleString() }}</div>
+                <div class="text-sm mb-2">進度 {{ p.progress.done }} / {{ p.progress.total }}</div>
+                <div class="text-sm mb-2">{{ p.xhsStatus === 'published' ? '已發布' : '未發布' }}</div>
+                <div class="flex justify-content-end">
+                  <Button icon="pi pi-pencil" class="p-button-text mr-2" @click="openEdit(p)" />
+                  <Button icon="pi pi-cog" class="p-button-text" @click="openStages(p)" />
+                </div>
+              </template>
+            </Card>
+          </div>
         </template>
       </Card>
     </div>
@@ -150,7 +164,7 @@
           </div>
         </template>
         <template #content>
-          <DataTable :value="recentAssets" :rows="5" responsiveLayout="scroll" emptyMessage="尚無素材上傳">
+          <DataTable v-if="!isMobile" :value="recentAssets" :rows="5" responsiveLayout="scroll" emptyMessage="尚無素材上傳">
             <Column field="createdAt" header="上傳時間">
               <template #body="{ data }">{{ new Date(data.createdAt).toLocaleString() }}</template>
             </Column>
@@ -162,6 +176,16 @@
             </Column>
             <Column field="uploaderName" header="上傳者"></Column>
           </DataTable>
+          <div v-else class="mobile-card-list">
+            <Card v-for="a in recentAssets" :key="a._id" class="mobile-card">
+              <template #title>{{ a.fileName }}</template>
+              <template #content>
+                <div class="text-sm mb-2">{{ new Date(a.createdAt).toLocaleString() }}</div>
+                <div class="text-sm mb-2"><Tag :value="a.fileType" /></div>
+                <div class="text-sm mb-2">{{ a.uploaderName }}</div>
+              </template>
+            </Card>
+          </div>
         </template>
       </Card>
     </div>
@@ -169,7 +193,7 @@
       <Card>
         <template #title>最近審查結果</template>
         <template #content>
-          <DataTable :value="recentReviews" :rows="5" responsiveLayout="scroll" emptyMessage="尚無審查紀錄">
+          <DataTable v-if="!isMobile" :value="recentReviews" :rows="5" responsiveLayout="scroll" emptyMessage="尚無審查紀錄">
             <Column field="updatedAt" header="時間">
               <template #body="{ data }">{{ new Date(data.updatedAt).toLocaleString() }}</template>
             </Column>
@@ -182,6 +206,19 @@
             </Column>
             <Column field="updatedBy" header="審核者"></Column>
           </DataTable>
+          <div v-else class="mobile-card-list">
+            <Card v-for="r in recentReviews" :key="r._id" class="mobile-card">
+              <template #title>{{ r.assetFile }}</template>
+              <template #content>
+                <div class="text-sm mb-2">{{ new Date(r.updatedAt).toLocaleString() }}</div>
+                <div class="text-sm mb-2">{{ r.stage }}</div>
+                <div class="text-sm mb-2">
+                  <Tag :severity="r.completed ? 'success' : 'warning'" :value="r.completed ? '完成' : '未完成'" />
+                </div>
+                <div class="text-sm">{{ r.updatedBy }}</div>
+              </template>
+            </Card>
+          </div>
         </template>
       </Card>
     </div>
@@ -215,6 +252,11 @@ const stageDialogVisible = ref(false)
 const stageList = ref([])
 let currentProductId = null
 let dashboardTimer = null
+const isMobile = ref(window.innerWidth <= 991)
+
+const handleResize = () => {
+  isMobile.value = window.innerWidth <= 991
+}
 
 const editDialogVisible = ref(false)
 const editItem = ref({})
@@ -319,8 +361,28 @@ onMounted(() => {
   loadLists()
   fetchDashboard()
   dashboardTimer = setInterval(fetchDashboard, 30000)  // 前景輪詢 30s
+  window.addEventListener('resize', handleResize)
+  handleResize()
 })
 onUnmounted(() => {
   if (dashboardTimer) clearInterval(dashboardTimer)
+  window.removeEventListener('resize', handleResize)
 })
 </script>
+
+<style scoped>
+@media screen and (max-width: 991px) {
+  .dashboard-grid {
+    display: flex;
+    flex-direction: column;
+  }
+  .mobile-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .mobile-card-list .p-card {
+    font-size: 0.9rem;
+  }
+}
+</style>
