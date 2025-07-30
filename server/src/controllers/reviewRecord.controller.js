@@ -2,8 +2,13 @@ import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import Asset from '../models/asset.model.js'
 import { clearDashboardCache } from './dashboard.controller.js'
+import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
 
 export const getAssetStages = async (req, res) => {
+  const cacheKey = `assetStages:${req.params.id}`
+  const cached = await getCache(cacheKey)
+  if (cached) return res.json(cached)
+
   const stages = await ReviewStage.find().populate('responsible').sort('order')
   const records = await ReviewRecord.find({ assetId: req.params.id })
   const map = {}
@@ -15,6 +20,7 @@ export const getAssetStages = async (req, res) => {
     responsible: s.responsible,
     completed: map[s._id.toString()]?.completed || false
   }))
+  await setCache(cacheKey, list)
   res.json(list)
 }
 
@@ -72,6 +78,7 @@ export const updateStageStatus = async (req, res) => {
     await asset.save()
   }
 
+  await clearCacheByPrefix('assetStages:')
   await clearDashboardCache()
 
   res.json(record)

@@ -1,8 +1,13 @@
 import ReviewStage from '../models/reviewStage.model.js'
 import FolderReviewRecord from '../models/folderReviewRecord.model.js'
 import Folder from '../models/folder.model.js'
+import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
 
 export const getFolderStages = async (req, res) => {
+  const cacheKey = `folderStages:${req.params.id}`
+  const cached = await getCache(cacheKey)
+  if (cached) return res.json(cached)
+
   const stages = await ReviewStage.find().populate('responsible').sort('order')
   const records = await FolderReviewRecord.find({ folderId: req.params.id })
   const map = {}
@@ -14,6 +19,7 @@ export const getFolderStages = async (req, res) => {
     responsible: s.responsible,
     completed: map[s._id.toString()]?.completed || false
   }))
+  await setCache(cacheKey, list)
   res.json(list)
 }
 
@@ -65,6 +71,8 @@ export const updateFolderStageStatus = async (req, res) => {
     }
     await folder.save()
   }
+
+  await clearCacheByPrefix('folderStages:')
 
   res.json(record)
 }

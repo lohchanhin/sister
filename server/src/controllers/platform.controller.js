@@ -1,6 +1,7 @@
 import Platform from '../models/platform.model.js'
 import AdDaily from '../models/adDaily.model.js'
 import WeeklyNote from '../models/weeklyNote.model.js'
+import { getCache, setCache, delCache, clearCacheByPrefix } from '../utils/cache.js'
 
 export const createPlatform = async (req, res) => {
   try {
@@ -12,6 +13,7 @@ export const createPlatform = async (req, res) => {
       mode,
       clientId: req.params.clientId
     })
+    await clearCacheByPrefix('platforms:')
     res.status(201).json(platform)
   } catch (err) {
     if (err.code === 11000) {
@@ -22,13 +24,21 @@ export const createPlatform = async (req, res) => {
 }
 
 export const getPlatforms = async (req, res) => {
+  const cacheKey = `platforms:${req.params.clientId}`
+  const cached = await getCache(cacheKey)
+  if (cached) return res.json(cached)
   const list = await Platform.find({ clientId: req.params.clientId })
+  await setCache(cacheKey, list)
   res.json(list)
 }
 
 export const getPlatform = async (req, res) => {
+  const cacheKey = `platform:${req.params.id}`
+  const cached = await getCache(cacheKey)
+  if (cached) return res.json(cached)
   const p = await Platform.findOne({ _id: req.params.id, clientId: req.params.clientId })
   if (!p) return res.status(404).json({ message: '平台不存在' })
+  await setCache(cacheKey, p)
   res.json(p)
 }
 
@@ -41,6 +51,8 @@ export const updatePlatform = async (req, res) => {
       { new: true }
     )
     if (!p) return res.status(404).json({ message: '平台不存在' })
+    await clearCacheByPrefix('platforms:')
+    await delCache(`platform:${req.params.id}`)
     res.json(p)
   } catch (err) {
     if (err.code === 11000) {
@@ -52,6 +64,8 @@ export const updatePlatform = async (req, res) => {
 
 export const deletePlatform = async (req, res) => {
   await Platform.findOneAndDelete({ _id: req.params.id, clientId: req.params.clientId })
+  await clearCacheByPrefix('platforms:')
+  await delCache(`platform:${req.params.id}`)
   res.json({ message: '平台已刪除' })
 }
 
@@ -66,5 +80,7 @@ export const transferPlatform = async (req, res) => {
   await platform.save()
   await AdDaily.updateMany({ platformId: req.params.id }, { clientId })
   await WeeklyNote.updateMany({ platformId: req.params.id }, { clientId })
+  await clearCacheByPrefix('platforms:')
+  await delCache(`platform:${req.params.id}`)
   res.json(platform)
 }
