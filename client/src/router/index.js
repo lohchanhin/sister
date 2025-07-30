@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useUploadStore } from '../stores/upload'
+import { useProgressStore } from '../stores/progress'
 
 import Login from '../views/Login.vue'
 import DashboardLayout from '../layouts/DashboardLayout.vue'
@@ -58,6 +59,12 @@ router.beforeEach(async (to) => {
     const leave = window.confirm('仍有上傳任務進行中，確定要離開嗎？')
     if (!leave) return false
     uploadStore.cancelAll()
+  }
+  const progressStore = useProgressStore()
+  if (progressStore.hasActiveDownloads) {
+    const leave = window.confirm('仍有下載任務進行中，離開會停止下載，確定要離開嗎？')
+    if (!leave) return false
+    progressStore.clearActiveDownloads()
   }
   const store = useAuthStore()
   if (to.meta.public) return true // 公開頁面
