@@ -1,5 +1,5 @@
 import Asset from "../models/asset.model.js"
-import Product from "../models/product.model"
+const Product = Asset
 import path from "node:path"
 import fs from "node:fs/promises"
 import { createWriteStream } from "node:fs"
