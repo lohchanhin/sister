@@ -34,6 +34,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import { fetchTags, createTag, updateTag, deleteTag } from '../services/tags'
@@ -49,6 +50,7 @@ import InputText from 'primevue/inputtext'
 
 const toast = useToast()
 const confirm = useConfirm()
+const router = useRouter()
 const authStore = useAuthStore()
 
 if (!authStore.hasPermission('tag:manage')) {
