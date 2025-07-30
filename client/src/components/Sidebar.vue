@@ -131,7 +131,6 @@ const mainMenuItems = [
   { path: '/dashboard', label: '儀表板', icon: 'pi pi-home', badge: null },
   { path: '/assets', label: '素材庫', icon: 'pi pi-images', badge: null },
   { path: '/products', label: '成品區', icon: 'pi pi-box', badge: '3' },
-  { path: '/tasks', label: '任務管理', icon: 'pi pi-check-square', badge: null },
   { path: '/ad-data', label: '廣告數據', icon: 'pi pi-chart-line', badge: null }
 ]
 
