@@ -4,6 +4,7 @@ import path from 'node:path'
 import { uploadFile } from '../utils/gcs.js'
 import { decodeFilename } from '../utils/decodeFilename.js'
 import fs from 'node:fs/promises'
+import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
 
 const sanitizeNumber = val =>
   parseFloat(String(val).replace(/[^\d.]/g, '')) || 0
@@ -39,6 +40,7 @@ export const createAdDaily = async (req, res) => {
     payload,
     { new: true, upsert: true, setDefaultsOnInsert: true }
   )
+  await clearCacheByPrefix('adDaily:')
   res.status(201).json(rec)
 }
 
@@ -47,7 +49,12 @@ export const getAdDaily = async (req, res) => {
   if (req.query.start && req.query.end) {
     query.date = { $gte: new Date(req.query.start), $lte: new Date(req.query.end) }
   }
+  const cacheKey = `adDaily:${req.params.clientId}:${req.params.platformId}:${JSON.stringify(query)}`
+  const cached = await getCache(cacheKey)
+  if (cached) return res.json(cached)
+
   const list = await AdDaily.find(query).sort({ date: 1 })
+  await setCache(cacheKey, list)
   res.json(list)
 }
 
@@ -59,6 +66,10 @@ export const getWeeklyData = async (req, res) => {
   if (req.query.start && req.query.end) {
     match.date = { $gte: new Date(req.query.start), $lte: new Date(req.query.end) }
   }
+  const cacheKey = `adDailyWeekly:${req.params.clientId}:${req.params.platformId}:${JSON.stringify(match)}`
+  const cached = await getCache(cacheKey)
+  if (cached) return res.json(cached)
+
   const data = await AdDaily.aggregate([
     { $match: match },
     {
@@ -82,6 +93,7 @@ export const getWeeklyData = async (req, res) => {
     impressions: d.impressions,
     clicks: d.clicks
   }))
+  await setCache(cacheKey, result)
   res.json(result)
 }
 
@@ -123,6 +135,7 @@ export const bulkCreateAdDaily = async (req, res) => {
     if (err.insertedDocs) docs = err.insertedDocs
     else throw err
   }
+  await clearCacheByPrefix('adDaily:')
   res.status(201).json(docs)
 }
 
@@ -191,6 +204,7 @@ export const importAdDaily = async (req, res) => {
     if (err.insertedDocs) docs = err.insertedDocs
     else throw err
   }
+  await clearCacheByPrefix('adDaily:')
   res.status(201).json({ docs, filePath })
 }
 
@@ -210,10 +224,12 @@ export const updateAdDaily = async (req, res) => {
     { new: true }
   )
   if (!rec) return res.status(404).json({ message: '紀錄不存在' })
+  await clearCacheByPrefix('adDaily:')
   res.json(rec)
 }
 
 export const deleteAdDaily = async (req, res) => {
   await AdDaily.findByIdAndDelete(req.params.id)
+  await clearCacheByPrefix('adDaily:')
   res.json({ message: '紀錄已刪除' })
 }

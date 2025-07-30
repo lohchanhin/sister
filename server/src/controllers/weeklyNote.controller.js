@@ -3,6 +3,7 @@ import path from 'node:path'
 import { uploadFile, getSignedUrl } from '../utils/gcs.js'
 import { decodeFilename } from '../utils/decodeFilename.js'
 import fs from 'node:fs/promises'
+import { getCache, setCache, delCache, clearCacheByPrefix } from '../utils/cache.js'
 
 const uploadImages = async files => {
   if (!files?.length) return []
@@ -34,16 +35,22 @@ export const createWeeklyNote = async (req, res) => {
     text: req.body.text || '',
     images: await uploadImages(req.files)
   })
+  await clearCacheByPrefix('weeklyNotes:')
   res.status(201).json(note)
 }
 
 export const getWeeklyNote = async (req, res) => {
+  const cacheKey = `weeklyNote:${req.params.clientId}:${req.params.platformId}:${req.params.week}`
+  const cached = await getCache(cacheKey)
+  if (cached) return res.json(cached)
+
   const note = await WeeklyNote.findOne({
     clientId: req.params.clientId,
     platformId: req.params.platformId,
     week: req.params.week
   })
   // if (!note) return res.status(404).json({ message: '備註不存在' })
+  await setCache(cacheKey, note)
   res.json(note)
 }
 
@@ -71,14 +78,20 @@ export const updateWeeklyNote = async (req, res) => {
     { new: true }
   )
   if (!note) return res.status(404).json({ message: '備註不存在' })
+  await clearCacheByPrefix('weeklyNotes:')
+  await delCache(`weeklyNote:${req.params.clientId}:${req.params.platformId}:${req.params.week}`)
   res.json(note)
 }
 
 export const getWeeklyNotes = async (req, res) => {
+  const cacheKey = `weeklyNotes:${req.params.clientId}:${req.params.platformId}`
+  const cached = await getCache(cacheKey)
+  if (cached) return res.json(cached)
   const notes = await WeeklyNote.find({
     clientId: req.params.clientId,
     platformId: req.params.platformId
   })
+  await setCache(cacheKey, notes)
   res.json(notes)
 }
 
