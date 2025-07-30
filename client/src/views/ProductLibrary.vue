@@ -31,6 +31,7 @@
         <Checkbox v-model="selectAll" :binary="true" class="mr-2" />
         <Button label="批次設定" icon="pi pi-users" class="p-button-secondary mr-2" @click="openBatchDialog" :disabled="!selectedItems.length" />
         <Button label="批次下載" icon="pi pi-download" class="p-button-secondary mr-2" @click="downloadSelected" :disabled="!selectedProducts.length" />
+        <Button label="移動至..." icon="pi pi-folder-open" class="p-button-secondary mr-2" @click="openMoveDialog" :disabled="!selectedItems.length" />
         <Button label="批次刪除" icon="pi pi-trash" class="p-button-danger" @click="confirmDeleteSelected" :disabled="!selectedItems.length" />
       </div>
       <div class="right">
@@ -142,6 +143,14 @@
       </template>
     </Dialog>
 
+    <Dialog v-model:visible="moveDialog" header="移動至" :style="{ width: '300px' }" :modal="true">
+      <Dropdown v-model="targetFolder" :options="folderOptions" optionLabel="label" optionValue="value" placeholder="選擇資料夾" class="w-full" />
+      <template #footer>
+        <Button label="取消" icon="pi pi-times" @click="moveDialog = false" class="p-button-text" />
+        <Button label="確定" icon="pi pi-check" @click="applyMove" autofocus />
+      </template>
+    </Dialog>
+
     <Dialog v-model:visible="previewVisible" :header="previewItem?.name" :style="{ width: '60vw' }" :modal="true">
       <div class="flex justify-content-center">
         <img v-if="isImage(previewItem)" :src="previewItem.url" class="w-full h-auto" style="max-height: 70vh; object-fit: contain;" />
@@ -159,8 +168,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, reviewFolder, fetchFolderStages, updateFolderStage } from '../services/folders'
-import { fetchProducts, updateProduct, deleteProduct, updateProductsViewers, getProductUrl, batchDownloadProducts, deleteProducts, reviewProduct, fetchProductStages, updateProductStage, startBatchDownload as startProductBatchDownload, getBatchDownloadProgress as getProductBatchDownloadProgress } from '../services/products'
+import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, reviewFolder, fetchFolderStages, updateFolderStage, moveFolders } from '../services/folders'
+import { fetchProducts, updateProduct, deleteProduct, updateProductsViewers, getProductUrl, batchDownloadProducts, deleteProducts, reviewProduct, fetchProductStages, updateProductStage, startBatchDownload as startProductBatchDownload, getBatchDownloadProgress as getProductBatchDownloadProgress, moveProducts } from '../services/products'
 import { useUploadStore } from '../stores/upload'
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
@@ -179,6 +188,7 @@ import Textarea from 'primevue/textarea'
 import Tag from 'primevue/tag'
 import SplitButton from 'primevue/splitbutton'
 import Toast from 'primevue/toast'
+import Dropdown from 'primevue/dropdown'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -206,6 +216,9 @@ const batchUsers = ref([])
 const previewVisible = ref(false)
 const previewItem = ref(null)
 const reviewStages = ref([])
+const moveDialog = ref(false)
+const targetFolder = ref(null)
+const folderOptions = ref([])
 
 const combinedItems = computed(() => {
   const safeFolders = Array.isArray(folders.value) ? folders.value : [];
@@ -453,6 +466,29 @@ function openBatchDialog() {
   batchDialog.value = true;
 }
 
+async function openMoveDialog() {
+  try {
+    const all = await fetchFolders(null, [], 'edited', true);
+    folderOptions.value = all.map(f => ({ value: f._id, label: buildPath(f, all) }));
+    targetFolder.value = null;
+    moveDialog.value = true;
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Error', detail: '無法取得資料夾列表', life: 3000 });
+  }
+}
+
+function buildPath(folder, list) {
+  let name = folder.name;
+  let current = folder;
+  while (current.parentId) {
+    const parent = list.find(f => f._id === current.parentId);
+    if (!parent) break;
+    name = parent.name + '/' + name;
+    current = parent;
+  }
+  return name;
+}
+
 async function applyBatch() {
   const productIds = selectedItems.value.filter(id => id.startsWith('product-')).map(id => id.replace('product-', ''));
   const folderIds = selectedItems.value.filter(id => id.startsWith('folder-')).map(id => id.replace('folder-', ''));
@@ -464,6 +500,21 @@ async function applyBatch() {
     selectedItems.value = [];
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Batch update failed', life: 3000 });
+  }
+}
+
+async function applyMove() {
+  const productIds = selectedItems.value.filter(id => id.startsWith('product-')).map(id => id.replace('product-', ''))
+  const folderIds = selectedItems.value.filter(id => id.startsWith('folder-')).map(id => id.replace('folder-', ''))
+  try {
+    if (productIds.length) await moveProducts(productIds, targetFolder.value)
+    if (folderIds.length) await moveFolders(folderIds, targetFolder.value)
+    toast.add({ severity: 'success', summary: '成功', detail: '已移動', life: 3000 })
+    moveDialog.value = false
+    selectedItems.value = []
+    loadData(currentFolder.value?._id)
+  } catch (error) {
+    toast.add({ severity: 'error', summary: '錯誤', detail: '移動失敗', life: 3000 })
   }
 }
 

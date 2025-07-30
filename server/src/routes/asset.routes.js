@@ -7,14 +7,15 @@ import {
     uploadFile,
     getAssets,
     addComment,
-    updateAsset,
-    deleteAsset,
-    getRecentAssets,
-    reviewAsset,
-    updateAssetsViewers,
-    getAssetSignedUrl,
-    presign,
-    createAsset,
+  updateAsset,
+  deleteAsset,
+  getRecentAssets,
+  reviewAsset,
+  updateAssetsViewers,
+  moveAssets,
+  getAssetSignedUrl,
+  presign,
+  createAsset,
     batchDownload,
     getBatchDownloadProgress,
     deleteAssets
@@ -59,6 +60,12 @@ router.put(
   protect,
   requirePerm(PERMISSIONS.ASSET_UPDATE),
   updateAssetsViewers
+)
+router.put(
+  '/move',
+  protect,
+  requirePerm(PERMISSIONS.ASSET_UPDATE),
+  moveAssets
 )
 router.put(
   '/:id',

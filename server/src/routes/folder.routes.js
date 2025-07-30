@@ -9,6 +9,7 @@ import {
   updateFolder,
   deleteFolder,
   updateFoldersViewers,
+  moveFolders,
   reviewFolder,
   downloadFolder,
   getDownloadProgress
@@ -40,6 +41,12 @@ router.put(
   protect,
   requirePerm(PERMISSIONS.FOLDER_MANAGE),
   updateFoldersViewers
+)
+router.put(
+  '/move',
+  protect,
+  requirePerm(PERMISSIONS.FOLDER_MANAGE),
+  moveFolders
 )
 router.put(
   '/:id/review',
