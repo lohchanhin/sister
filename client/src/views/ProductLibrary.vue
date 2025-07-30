@@ -288,7 +288,7 @@ async function loadData(folderId = null) {
   try {
     const [folderData, productData, currentFolderData] = await Promise.all([
       fetchFolders(folderId, filterTags.value, 'edited'),
-      folderId ? fetchProducts(folderId, filterTags.value) : Promise.resolve([]),
+      fetchProducts(folderId, filterTags.value),
       folderId ? getFolder(folderId) : Promise.resolve(null)
     ])
     folders.value = folderData
