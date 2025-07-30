@@ -131,9 +131,8 @@ const mainMenuItems = [
   { path: '/dashboard', label: '儀表板', icon: 'pi pi-home', badge: null },
   { path: '/assets', label: '素材庫', icon: 'pi pi-images', badge: null },
   { path: '/products', label: '成品區', icon: 'pi pi-box', badge: '3' },
-  { path: '/tasks', label: '任務管理', icon: 'pi pi-check-square', badge: null },
-  // 將廣告數據選項導向 ad-clients
-  { path: '/ad-clients', label: '廣告數據', icon: 'pi pi-chart-line', badge: null }
+
+  { path: '/ad-data', label: '廣告數據', icon: 'pi pi-chart-line', badge: null }
 ]
 
 const adminMenuItems = computed(() => {
@@ -144,7 +143,10 @@ const adminMenuItems = computed(() => {
     { path: '/tags', label: '標籤管理', icon: 'pi pi-tags' }
   ]
   
-  if (authStore.hasPermission('ADMIN')) {
+  if (
+    authStore.hasPermission('user:manage') ||
+    authStore.hasPermission('role:manage')
+  ) {
     items.push(
       { path: '/employees', label: '員工管理', icon: 'pi pi-user-edit' },
       { path: '/roles', label: '角色設定', icon: 'pi pi-shield' },
