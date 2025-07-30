@@ -38,6 +38,7 @@ import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import { fetchTags, createTag, updateTag, deleteTag } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
+import { useRouter } from 'vue-router' // Import router
 
 // PrimeVue Components
 import Card from 'primevue/card'
@@ -50,10 +51,7 @@ import InputText from 'primevue/inputtext'
 const toast = useToast()
 const confirm = useConfirm()
 const authStore = useAuthStore()
-
-if (!authStore.hasPermission('tag:manage')) {
-  router.replace('/')
-}
+const router = useRouter() // Declare router
 
 const loading = ref(true)
 const tags = ref([])
@@ -123,5 +121,13 @@ const confirmDeleteTag = (tag) => {
   });
 }
 
-onMounted(loadTags)
+onMounted(async () => {
+  const authStoreInstance = useAuthStore()
+  const routerInstance = useRouter()
+  if (!authStoreInstance.hasPermission('tag:manage')) {
+    routerInstance.replace('/')
+  } else {
+    await loadTags()
+  }
+})
 </script>

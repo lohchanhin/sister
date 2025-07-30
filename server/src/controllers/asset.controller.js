@@ -9,10 +9,12 @@ import bucket, { uploadFile as gcsUploadFile, getSignedUrl } from "../utils/gcs.
 import fs from "node:fs/promises"
 import { createWriteStream } from "node:fs"
 import archiver from "archiver"
-import { getAncestorFolderIds, getRootFolder } from "../utils/folderTree.js"
+import { getAncestorFolderIds, getRootFolder, getDescendantFolderIds } from "../utils/folderTree.js"
 import { includeManagers } from "../utils/includeManagers.js"
 import { getCache, setCache, clearCacheByPrefix, delCache } from "../utils/cache.js"
 import { clearDashboardCache } from "./dashboard.controller.js"
+import ReviewStage from "../models/reviewStage.model.js"
+import ReviewRecord from "../models/reviewRecord.model.js"
 
 const parseTags = (t) => {
   if (!t) return []
@@ -88,48 +90,70 @@ export const uploadFile = async (req, res) => {
 
 /* ---------- GET /api/assets ---------- */
 export const getAssets = async (req, res) => {
-  try {
-    const { folderId, type, tags } = req.query
-    const query = { uploader: { $in: req.user.managedUsers }, type: type || "raw" }
-
-    if (folderId) {
-      query.folder = folderId
-    } else {
-      query.folder = null
-    }
-
-    if (tags) {
-      const tagArray = tags.split(",")
-      query.tags = { $in: tagArray }
-    }
-
-    const assets = await Asset.find(query)
-      .populate("uploader", "username")
-      .populate("updatedBy", "username")
-      .populate("tags", "name")
-      .sort({ createdAt: -1 })
-
-    res.json(assets)
-  } catch (error) {
-    res.status(500).json({ message: error.message })
+  const cacheKey = `assets:${req.user._id}:${JSON.stringify(req.query)}`
+  const cached = await getCache(cacheKey)
+  if (cached) {
+    return res.json(cached)
   }
-}
+  const deep = req.query.deep === "true"
+  const query = {}
+  const folderId = req.query.folderId ? req.query.folderId : null
 
-/* ---------- GET /api/assets/:id ---------- */
-export const getAsset = async (req, res) => {
-  try {
-    const asset = await Asset.findById(req.params.id)
-      .populate("uploader", "username")
-      .populate("updatedBy", "username")
-      .populate("tags", "name")
-      .populate("viewers", "username")
-    if (!asset) {
-      return res.status(404).json({ message: "Asset not found" })
-    }
-    res.json(asset)
-  } catch (error) {
-    res.status(500).json({ message: error.message })
+  if (deep) {
+    const childIds = await getDescendantFolderIds(folderId)
+    query.folderId = { $in: [folderId, ...childIds] }
+  } else {
+    query.folderId = folderId
   }
+
+  if (req.query.type) query.type = req.query.type
+
+  if (req.query.reviewStatus) query.reviewStatus = req.query.reviewStatus
+
+  if (req.query.tags) {
+    const tags = Array.isArray(req.query.tags) ? req.query.tags : req.query.tags.split(",")
+    query.tags = { $all: tags }
+  }
+
+  const assets = await Asset.find(query).populate("uploadedBy", "username name").populate("updatedBy", "username")
+
+  const filtered = assets.filter((a) => !a.allowedUsers?.length || a.allowedUsers.some((id) => id.equals(req.user._id)))
+
+  if (req.query.progress === "true") {
+    const total = await ReviewStage.countDocuments()
+    const ids = filtered.map((a) => a._id)
+    const records = await ReviewRecord.aggregate([
+      { $match: { assetId: { $in: ids }, completed: true } },
+      { $group: { _id: "$assetId", done: { $sum: 1 } } },
+    ])
+    const map = {}
+    records.forEach((r) => {
+      map[r._id.toString()] = r.done
+    })
+    const data = filtered.map((a) => ({
+      ...a.toObject(),
+      fileName: a.filename,
+      fileType: a.type,
+      uploaderName: a.uploadedBy?.name || a.uploadedBy?.username,
+      progress: { done: map[a._id.toString()] || 0, total },
+    }))
+    await setCache(cacheKey, data)
+    return res.json(data)
+  }
+
+  const data = filtered.map((a) => ({
+    ...a.toObject(),
+    fileName: a.filename,
+    fileType: a.type,
+    uploaderName: a.uploadedBy?.name || a.uploadedBy?.username,
+    updatedBy: a.updatedBy
+      ? {
+          username: a.updatedBy?.username,
+        }
+      : null,
+  }))
+  await setCache(cacheKey, data)
+  res.json(data)
 }
 
 /* ---------- POST /api/assets/:id/comment ---------- */
@@ -183,8 +207,8 @@ export const updateAsset = async (req, res) => {
   if (finalChecked !== undefined) asset.finalChecked = finalChecked
   if (fbSynced !== undefined) asset.fbSynced = fbSynced
   if (fbResponsible !== undefined) asset.fbResponsible = fbResponsible
-  // filename 不可修改，故不處理
 
+  asset.updatedBy = req.user._id
   await asset.save()
   if (asset.folderId) {
     await Folder.updateOne({ _id: asset.folderId }, { $set: { updatedAt: new Date() } })
@@ -230,7 +254,11 @@ export const deleteAsset = async (req, res) => {
 export const getRecentAssets = async (req, res) => {
   const limit = Number(req.query.limit) || 5
   const query = {}
-  const assets = await Asset.find(query).sort({ createdAt: -1 }).limit(limit).populate("uploadedBy", "username name")
+  const assets = await Asset.find(query)
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .populate("uploadedBy", "username name")
+    .populate("updatedBy", "username")
 
   const filtered = assets.filter((a) => !a.allowedUsers?.length || a.allowedUsers.some((id) => id.equals(req.user._id)))
 
@@ -240,6 +268,11 @@ export const getRecentAssets = async (req, res) => {
       fileName: a.filename,
       fileType: a.type,
       uploaderName: a.uploadedBy?.name || a.uploadedBy?.username,
+      updatedBy: a.updatedBy
+        ? {
+            username: a.updatedBy?.username,
+          }
+        : null,
     })),
   )
 }

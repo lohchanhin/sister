@@ -1,5 +1,4 @@
 import Asset from "../models/asset.model.js"
-const Product = Asset
 import path from "node:path"
 import fs from "node:fs/promises"
 import { createWriteStream } from "node:fs"
@@ -10,46 +9,35 @@ import * as cache from "../utils/cache.js"
 export const getProducts = async (req, res) => {
   try {
     const { folderId, tags } = req.query
-    const query = { viewers: req.user._id }
+    const query = { type: "edited" }
 
     if (folderId) {
-      query.folder = folderId
-    } else {
-      query.folder = null
+      query.folderId = folderId
     }
 
     if (tags) {
       const tagArray = tags.split(",")
-      query.tags = { $in: tagArray }
+      query.tags = { $all: tagArray }
     }
 
-    const products = await Product.find(query)
-      .populate("uploader", "username")
+    const products = await Asset.find(query)
+      .populate("uploadedBy", "username name")
       .populate("updatedBy", "username")
-      .populate("tags", "name")
-      .populate("reviewStages.responsible", "username")
-      .populate("reviewStages.records.user", "username")
       .sort({ createdAt: -1 })
 
-    res.json(products)
-  } catch (error) {
-    res.status(500).json({ message: error.message })
-  }
-}
+    const data = products.map((a) => ({
+      ...a.toObject(),
+      fileName: a.filename,
+      fileType: a.type,
+      uploaderName: a.uploadedBy?.name || a.uploadedBy?.username,
+      updatedBy: a.updatedBy
+        ? {
+            username: a.updatedBy?.username,
+          }
+        : null,
+    }))
 
-export const getProductById = async (req, res) => {
-  try {
-    const product = await Product.findById(req.params.id)
-      .populate("uploader", "username")
-      .populate("updatedBy", "username")
-      .populate("tags", "name")
-      .populate("reviewStages.responsible", "username")
-      .populate("reviewStages.records.user", "username")
-      .populate("viewers", "username")
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" })
-    }
-    res.json(product)
+    res.json(data)
   } catch (error) {
     res.status(500).json({ message: error.message })
   }
