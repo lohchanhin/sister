@@ -126,5 +126,3 @@ POST /api/clients/:clientId/platforms/:platformId/ad-daily { date, spent, ... }
 POST /api/clients/:clientId/platforms/:platformId/ad-daily/import (multipart/form-data)
 \`\`\`
 目前不需額外的環境變數即可使用。
-
-\`\`\`

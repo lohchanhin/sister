@@ -44,7 +44,7 @@
     </div>
     <div class="field">
       <label>選單</label>
-      <PickList v-model="menusForPickList" listStyle="height:200px" dataKey="value">
+       <PickList v-model="menusForPickList" listStyle="height:200px" dataKey="value">
         <template #sourceheader>可選</template>
         <template #targetheader>已選</template>
         <template #item="slotProps">
@@ -67,7 +67,6 @@ import { fetchRoles, createRole, updateRole, deleteRole, fetchPermissions, fetch
 import { PERMISSION_NAMES } from '../permissionNames'
 import { MENU_NAMES } from '../menuNames'
 import { useAuthStore } from '../stores/auth'
-import { useRouter } from 'vue-router' // Import router
 
 // PrimeVue Components
 import Card from 'primevue/card'
@@ -82,7 +81,10 @@ import Tag from 'primevue/tag'
 const toast = useToast()
 const confirm = useConfirm()
 const authStore = useAuthStore()
-const router = useRouter() // Declare router
+
+if (!authStore.hasPermission('role:manage')) {
+  router.replace('/')
+}
 
 const loading = ref(true)
 const roles = ref([])
@@ -180,7 +182,7 @@ const submit = async () => {
   }
 }
 
-const confirmDeleteRole = async (role) => {
+const confirmDeleteRole = (role) => {
   confirm.require({
     message: `確定要刪除「${role.name}」嗎？`,
     header: '刪除確認',
@@ -199,9 +201,6 @@ const confirmDeleteRole = async (role) => {
 }
 
 onMounted(async () => {
-  if (!authStore.hasPermission('role:manage')) {
-    router.replace('/')
-  }
   await Promise.all([loadPermissions(), loadMenus()])
   loadRoles()
 })

@@ -46,7 +46,7 @@
     <!-- Main Content Grid -->
     <div class="content-grid">
       <!-- Recent Products -->
-      <div class="content-section">
+      <div class="content-section full-width">
         <Card class="modern-card">
           <template #title>
             <div class="card-header">
@@ -71,35 +71,93 @@
                 emptyMessage="尚無成品"
                 class="modern-table"
               >
-                <Column field="createdAt" header="上傳時間">
+                <Column field="createdAt" header="上傳時間" style="min-width: 150px">
                   <template #body="{ data }">
                     <div class="date-cell">{{ new Date(data.createdAt).toLocaleString() }}</div>
                   </template>
                 </Column>
-                <Column field="title" header="檔名" />
-                <Column field="fileType" header="類型">
+                <Column field="title" header="檔名" style="min-width: 200px">
                   <template #body="{ data }">
-                    <Tag :value="data.fileType" />
+                    <div class="title-cell">{{ data.title || data.fileName }}</div>
                   </template>
                 </Column>
-                <Column field="uploaderName" header="上傳者" />
+                <Column field="editor" header="剪輯師" style="min-width: 120px" />
+                <Column field="editCompletedAt" header="完成日期" style="min-width: 120px">
+                  <template #body="{ data }">
+                    <div v-if="data.editCompletedAt" class="date-cell">
+                      {{ new Date(data.editCompletedAt).toLocaleDateString() }}
+                    </div>
+                    <span v-else class="text-muted">-</span>
+                  </template>
+                </Column>
+                <Column field="xhsStatus" header="發布狀態" style="min-width: 100px">
+                  <template #body="{ data }">
+                    <Tag 
+                      :value="data.xhsStatus === 'published' ? '已發布' : '未發布'" 
+                      :severity="data.xhsStatus === 'published' ? 'success' : 'warning'"
+                    />
+                  </template>
+                </Column>
+                <Column field="progress" header="進度" style="min-width: 150px">
+                  <template #body="{ data }">
+                    <div class="progress-cell">
+                      <ProgressBar :value="(data.progress.done / data.progress.total) * 100" class="mb-1" />
+                      <div class="progress-text">
+                        {{ data.progress.done }} / {{ data.progress.total }}
+                        <span v-if="data.pendingStage" class="pending-stage">- {{ data.pendingStage }}</span>
+                      </div>
+                    </div>
+                  </template>
+                </Column>
+                <Column header="操作" style="min-width: 100px">
+                  <template #body="{ data }">
+                    <div class="action-buttons">
+                      <Button 
+                        icon="pi pi-pencil" 
+                        class="p-button-text p-button-sm" 
+                        @click="openEdit(data)"
+                        v-tooltip="'編輯'"
+                      />
+                      <Button 
+                        icon="pi pi-cog" 
+                        class="p-button-text p-button-sm" 
+                        @click="openStages(data)"
+                        v-tooltip="'設定階段'"
+                      />
+                    </div>
+                  </template>
+                </Column>
               </DataTable>
             </div>
             
+            <!-- Mobile Cards -->
             <div v-else class="mobile-cards">
-              <div v-for="a in recentProducts" :key="a._id" class="mobile-card">
+              <div v-for="p in recentProducts" :key="p._id" class="mobile-card">
                 <div class="mobile-card-header">
-                  <h4>{{ a.fileName }}</h4>
-                  <Tag :value="a.fileType" />
+                  <h4>{{ p.title || p.fileName }}</h4>
+                  <div class="mobile-card-actions">
+                    <Button icon="pi pi-pencil" class="p-button-text p-button-sm" @click="openEdit(p)" />
+                    <Button icon="pi pi-cog" class="p-button-text p-button-sm" @click="openStages(p)" />
+                  </div>
                 </div>
                 <div class="mobile-card-content">
                   <div class="mobile-card-row">
                     <span class="label">上傳時間:</span>
-                    <span>{{ new Date(a.createdAt).toLocaleString() }}</span>
+                    <span>{{ new Date(p.createdAt).toLocaleString() }}</span>
                   </div>
                   <div class="mobile-card-row">
-                    <span class="label">上傳者:</span>
-                    <span>{{ a.uploaderName }}</span>
+                    <span class="label">進度:</span>
+                    <div class="progress-mobile">
+                      <ProgressBar :value="(p.progress.done / p.progress.total) * 100" class="mb-1" />
+                      <span>{{ p.progress.done }} / {{ p.progress.total }}</span>
+                    </div>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="label">狀態:</span>
+                    <Tag 
+                      :value="p.xhsStatus === 'published' ? '已發布' : '未發布'" 
+                      :severity="p.xhsStatus === 'published' ? 'success' : 'warning'"
+                    />
                   </div>
                 </div>
               </div>
@@ -172,7 +230,7 @@
       </div>
 
       <!-- Recent Reviews -->
-      <div class="content-section full-width">
+      <div class="content-section">
         <Card class="modern-card">
           <template #title>
             <div class="card-header">
@@ -525,7 +583,7 @@ onUnmounted(() => {
 /* Content Grid */
 .content-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 1.5rem;
 }
 
@@ -752,6 +810,11 @@ onUnmounted(() => {
   
   .stat-value {
     font-size: 1.5rem;
+  }
+  
+  .content-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 }
 

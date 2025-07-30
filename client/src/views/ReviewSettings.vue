@@ -13,9 +13,9 @@
         <Column field="name" header="名稱" :sortable="true"></Column>
         <Column field="responsible.username" header="負責人" :sortable="true"></Column>
         <Column header="操作" :exportable="false" style="min-width:8rem">
-          <template #body="slotProps">
-            <Button icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" @click="openEdit(slotProps.data)" />
-            <Button icon="pi pi-trash" class="p-button-rounded p-button-warning" @click="confirmDeleteStage(slotProps.data)" />
+          <template #body="{ data }">
+            <Button icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" @click="openEdit(data)" />
+            <Button icon="pi pi-trash" class="p-button-rounded p-button-warning" @click="confirmDeleteStage(data)" />
           </template>
         </Column>
       </DataTable>
@@ -49,7 +49,6 @@ import { useConfirm } from 'primevue/useconfirm'
 import { fetchReviewStages, createReviewStage, updateReviewStage, deleteReviewStage } from '../services/reviewStages'
 import { fetchUsers } from '../services/user'
 import { useAuthStore } from '../stores/auth'
-import { useRouter } from 'vue-router' // Import router
 
 // PrimeVue Components
 import Card from 'primevue/card'
@@ -64,7 +63,10 @@ import Dropdown from 'primevue/dropdown'
 const toast = useToast()
 const confirm = useConfirm()
 const authStore = useAuthStore()
-const router = useRouter() // Declare router
+
+if (!authStore.hasPermission('review:manage')) {
+  router.replace('/')
+}
 
 const loading = ref(true)
 const stages = ref([])
@@ -145,13 +147,6 @@ const confirmDeleteStage = (stage) => {
 }
 
 onMounted(() => {
-  const loadAuthPermission = () => {
-    if (!authStore.hasPermission('review:manage')) {
-      router.replace('/')
-    }
-  }
-
-  loadAuthPermission()
   loadStages()
   loadUsers()
 })
