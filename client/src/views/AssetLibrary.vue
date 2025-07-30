@@ -131,7 +131,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import { fetchFolders, createFolder, updateFolder, getFolder, deleteFolder, updateFoldersViewers, startBatchDownload as startFolderBatchDownload, getDownloadProgress as getFolderDownloadProgress } from '../services/folders'
-import { fetchAssets, uploadAssetAuto, updateAsset, deleteAsset, updateAssetsViewers, getAssetUrl, startBatchDownload as startAssetBatchDownload, getBatchDownloadProgress as getAssetBatchDownloadProgress } from '../services/assets'
+import { fetchAssets, updateAsset, deleteAsset, updateAssetsViewers, getAssetUrl, startBatchDownload as startAssetBatchDownload, getBatchDownloadProgress as getAssetBatchDownloadProgress } from '../services/assets'
+import { useUploadStore } from '../stores/upload'
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
 import { useAuthStore } from '../stores/auth'
@@ -155,6 +156,7 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const progressStore = useProgressStore()
+const uploadStore = useUploadStore()
 
 const loading = ref(false)
 const folders = ref([])
@@ -249,29 +251,12 @@ async function createNewFolder() {
 }
 
 const uploadRequest = async (event) => {
-  const files = Array.isArray(event.files) ? event.files : [event.files];
-  const uploadPromises = files.map(file => {
-    const taskId = `upload-${file.name}-${Date.now()}`;
-    progressStore.addTask({ id: taskId, name: file.name, status: 'uploading', progress: 0 });
-
-    const progressCb = (progressEvent) => {
-      let percent = 0;
-      if (progressEvent && typeof progressEvent.percent === 'number') {
-        percent = Math.round(progressEvent.percent);
-      } else if (progressEvent && progressEvent.total) {
-        percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
-      }
-      progressStore.updateTaskProgress(taskId, percent);
-    };
-
-    return uploadAssetAuto(file, currentFolder.value?._id, 'raw', progressCb)
-      .then(() => progressStore.updateTaskStatus(taskId, 'success'))
-      .catch(() => progressStore.updateTaskStatus(taskId, 'error', '上傳失敗'));
-  });
-
-  await Promise.all(uploadPromises);
-  loadData(currentFolder.value?._id);
-};
+  const files = Array.isArray(event.files) ? event.files : [event.files]
+  files.forEach(file => {
+    uploadStore.addUploadTask(file, { folderId: currentFolder.value?._id, extraData: { type: 'raw' } })
+  })
+  loadData(currentFolder.value?._id)
+}
 
 async function pollProgress(progressId, name, type) {
   const getProgress = type === 'folder' ? getFolderDownloadProgress : getAssetBatchDownloadProgress;
