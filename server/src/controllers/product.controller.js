@@ -5,7 +5,7 @@ import fs from "node:fs/promises"
 import { createWriteStream } from "node:fs"
 import archiver from "archiver"
 import gcsUtil from "../utils/gcs.js"
-import cache from "../utils/cache.js"
+import * as cache from "../utils/cache.js"
 
 export const getProducts = async (req, res) => {
   try {
