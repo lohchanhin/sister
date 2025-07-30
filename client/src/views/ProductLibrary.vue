@@ -93,7 +93,7 @@
             class="p-button-sm p-button-secondary"
           ></SplitButton>
           <Button v-else icon="pi pi-info-circle" class="p-button-rounded p-button-secondary" @click.stop="showDetailFor(item)"></Button>
-          <Button icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadSingleItem(item)"></Button>
+          <Button v-if="item.type !== 'folder'" icon="pi pi-download" class="p-button-rounded p-button-help" @click="downloadSingleItem(item)"></Button>
         </div>
       </div>
     </div>
