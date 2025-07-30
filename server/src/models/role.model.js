@@ -1,4 +1,3 @@
-
 import mongoose from 'mongoose'
 import { PERMISSIONS } from '../config/permissions.js'
 import { MENUS } from '../config/menus.js'

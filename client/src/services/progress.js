@@ -25,4 +25,3 @@ export const createRecord = data =>
 
 export const updateRecord = (id, data) =>
   api.put(`/progress/records/${id}`, data).then(res => res.data)
-

@@ -1,108 +1,314 @@
 <template>
-  <div class="grid dashboard-grid">
-
-    <!-- Asset Stats -->
-    <div class="col-12">
-      <Card>
-        <template #title>素材統計</template>
-        <template #content>
-          <div class="grid text-center">
-            <div class="col">
-              <div>素材總數</div>
-              <div class="text-2xl font-bold mt-1">{{ assetStats.rawTotal || 0 }}</div>
-            </div>
-            <div class="col">
-              <div>成品總數</div>
-              <div class="text-2xl font-bold mt-1">{{ assetStats.editedTotal || 0 }}</div>
-            </div>
-            <div class="col">
-              <div>待審</div>
-              <div class="text-2xl font-bold mt-1">{{ assetStats.pending || 0 }}</div>
-            </div>
-            <div class="col">
-              <div>通過</div>
-              <div class="text-2xl font-bold mt-1">{{ assetStats.approved || 0 }}</div>
-            </div>
-          </div>
-        </template>
-      </Card>
+  <div class="dashboard">
+    <!-- Stats Overview -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="pi pi-video"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ assetStats.rawTotal || 0 }}</div>
+          <div class="stat-label">素材總數</div>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon success">
+          <i class="pi pi-box"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ assetStats.editedTotal || 0 }}</div>
+          <div class="stat-label">成品總數</div>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon warning">
+          <i class="pi pi-clock"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ assetStats.pending || 0 }}</div>
+          <div class="stat-label">待審核</div>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon info">
+          <i class="pi pi-check-circle"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ assetStats.approved || 0 }}</div>
+          <div class="stat-label">已通過</div>
+        </div>
+      </div>
     </div>
 
-    <!-- Recent Products -->
-    <div class="col-12">
-      <Card>
-        <template #title>近期成品進度</template>
-        <template #content>
-          <DataTable v-if="!isMobile" :value="recentProducts" :rows="5" responsiveLayout="scroll" emptyMessage="尚無成品">
-            <Column field="createdAt" header="上傳時間">
-              <template #body="{ data }">{{ new Date(data.createdAt).toLocaleString() }}</template>
-            </Column>
-            <Column field="title" header="檔名">
-              <template #body="{ data }">{{ data.title || data.fileName }}</template>
-            </Column>
-            <Column field="editor" header="剪輯師" />
-            <Column field="editCompletedAt" header="完成剪輯日期">
-              <template #body="{ data }">{{ data.editCompletedAt ? new Date(data.editCompletedAt).toLocaleDateString() :
-                '' }}</template>
-            </Column>
-            <Column field="xhsStatus" header="xhs發布狀態">
-              <template #body="{ data }">{{ data.xhsStatus === 'published' ? '已發布' : '未發布' }}</template>
-            </Column>
-            <Column field="scheduledPublishAt" header="發佈日期">
-              <template #body="{ data }">{{ data.scheduledPublishAt ? new
-                Date(data.scheduledPublishAt).toLocaleDateString() : '' }}</template>
-            </Column>
-            <Column field="finalChecked" header="最終檢查">
-              <template #body="{ data }">
-                <Checkbox :modelValue="data.finalChecked" binary disabled />
-              </template>
-            </Column>
-            <Column field="fbSynced" header="同步FB">
-              <template #body="{ data }">
-                <Checkbox :modelValue="data.fbSynced" binary disabled />
-              </template>
-            </Column>
-            <Column field="fbResponsible" header="FB負責人" />
-            <Column field="progress" header="進度">
-              <template #body="{ data }">
-                <div class="flex flex-column gap-1">
-                  <ProgressBar :value="(data.progress.done / data.progress.total) * 100" />
-                  <div class="text-sm">
-                    {{ data.progress.done }} / {{ data.progress.total }}
-                    <span v-if="data.pendingStage">- {{ data.pendingStage }}</span>
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+      <!-- Recent Products -->
+      <div class="content-section full-width">
+        <Card class="modern-card">
+          <template #title>
+            <div class="card-header">
+              <div class="card-title">
+                <i class="pi pi-box mr-2"></i>
+                近期成品進度
+              </div>
+              <Button 
+                label="查看全部" 
+                icon="pi pi-external-link"
+                class="p-button-text p-button-sm" 
+                @click="$router.push('/products')" 
+              />
+            </div>
+          </template>
+          <template #content>
+            <div v-if="!isMobile" class="table-container">
+              <DataTable 
+                :value="recentProducts" 
+                :rows="5" 
+                responsiveLayout="scroll" 
+                emptyMessage="尚無成品"
+                class="modern-table"
+              >
+                <Column field="createdAt" header="上傳時間" style="min-width: 150px">
+                  <template #body="{ data }">
+                    <div class="date-cell">{{ new Date(data.createdAt).toLocaleString() }}</div>
+                  </template>
+                </Column>
+                <Column field="title" header="檔名" style="min-width: 200px">
+                  <template #body="{ data }">
+                    <div class="title-cell">{{ data.title || data.fileName }}</div>
+                  </template>
+                </Column>
+                <Column field="editor" header="剪輯師" style="min-width: 120px" />
+                <Column field="editCompletedAt" header="完成日期" style="min-width: 120px">
+                  <template #body="{ data }">
+                    <div v-if="data.editCompletedAt" class="date-cell">
+                      {{ new Date(data.editCompletedAt).toLocaleDateString() }}
+                    </div>
+                    <span v-else class="text-muted">-</span>
+                  </template>
+                </Column>
+                <Column field="xhsStatus" header="發布狀態" style="min-width: 100px">
+                  <template #body="{ data }">
+                    <Tag 
+                      :value="data.xhsStatus === 'published' ? '已發布' : '未發布'" 
+                      :severity="data.xhsStatus === 'published' ? 'success' : 'warning'"
+                    />
+                  </template>
+                </Column>
+                <Column field="progress" header="進度" style="min-width: 150px">
+                  <template #body="{ data }">
+                    <div class="progress-cell">
+                      <ProgressBar :value="(data.progress.done / data.progress.total) * 100" class="mb-1" />
+                      <div class="progress-text">
+                        {{ data.progress.done }} / {{ data.progress.total }}
+                        <span v-if="data.pendingStage" class="pending-stage">- {{ data.pendingStage }}</span>
+                      </div>
+                    </div>
+                  </template>
+                </Column>
+                <Column header="操作" style="min-width: 100px">
+                  <template #body="{ data }">
+                    <div class="action-buttons">
+                      <Button 
+                        icon="pi pi-pencil" 
+                        class="p-button-text p-button-sm" 
+                        @click="openEdit(data)"
+                        v-tooltip="'編輯'"
+                      />
+                      <Button 
+                        icon="pi pi-cog" 
+                        class="p-button-text p-button-sm" 
+                        @click="openStages(data)"
+                        v-tooltip="'設定階段'"
+                      />
+                    </div>
+                  </template>
+                </Column>
+              </DataTable>
+            </div>
+            
+            <!-- Mobile Cards -->
+            <div v-else class="mobile-cards">
+              <div v-for="p in recentProducts" :key="p._id" class="mobile-card">
+                <div class="mobile-card-header">
+                  <h4>{{ p.title || p.fileName }}</h4>
+                  <div class="mobile-card-actions">
+                    <Button icon="pi pi-pencil" class="p-button-text p-button-sm" @click="openEdit(p)" />
+                    <Button icon="pi pi-cog" class="p-button-text p-button-sm" @click="openStages(p)" />
                   </div>
                 </div>
-              </template>
-            </Column>
-            <Column header="設定">
-              <template #body="{ data }">
-                <Button icon="pi pi-pencil" class="p-button-text mr-2" @click="openEdit(data)" />
-                <Button icon="pi pi-cog" class="p-button-text" @click="openStages(data)" />
-              </template>
-            </Column>
-          </DataTable>
-          <div v-else class="mobile-card-list">
-            <Card v-for="p in recentProducts" :key="p._id" class="mobile-card">
-              <template #title>{{ p.title || p.fileName }}</template>
-              <template #content>
-                <div class="text-sm mb-2">上傳時間: {{ new Date(p.createdAt).toLocaleString() }}</div>
-                <div class="text-sm mb-2">進度 {{ p.progress.done }} / {{ p.progress.total }}</div>
-                <div class="text-sm mb-2">{{ p.xhsStatus === 'published' ? '已發布' : '未發布' }}</div>
-                <div class="flex justify-content-end">
-                  <Button icon="pi pi-pencil" class="p-button-text mr-2" @click="openEdit(p)" />
-                  <Button icon="pi pi-cog" class="p-button-text" @click="openStages(p)" />
+                <div class="mobile-card-content">
+                  <div class="mobile-card-row">
+                    <span class="label">上傳時間:</span>
+                    <span>{{ new Date(p.createdAt).toLocaleString() }}</span>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="label">進度:</span>
+                    <div class="progress-mobile">
+                      <ProgressBar :value="(p.progress.done / p.progress.total) * 100" class="mb-1" />
+                      <span>{{ p.progress.done }} / {{ p.progress.total }}</span>
+                    </div>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="label">狀態:</span>
+                    <Tag 
+                      :value="p.xhsStatus === 'published' ? '已發布' : '未發布'" 
+                      :severity="p.xhsStatus === 'published' ? 'success' : 'warning'"
+                    />
+                  </div>
                 </div>
-              </template>
-            </Card>
-          </div>
-        </template>
-      </Card>
+              </div>
+            </div>
+          </template>
+        </Card>
+      </div>
+
+      <!-- Recent Assets -->
+      <div class="content-section">
+        <Card class="modern-card">
+          <template #title>
+            <div class="card-header">
+              <div class="card-title">
+                <i class="pi pi-video mr-2"></i>
+                最近素材上傳
+              </div>
+              <Button 
+                label="查看全部" 
+                icon="pi pi-external-link"
+                class="p-button-text p-button-sm" 
+                @click="$router.push('/assets')" 
+              />
+            </div>
+          </template>
+          <template #content>
+            <div v-if="!isMobile" class="table-container">
+              <DataTable 
+                :value="recentAssets" 
+                :rows="5" 
+                responsiveLayout="scroll" 
+                emptyMessage="尚無素材上傳"
+                class="modern-table"
+              >
+                <Column field="createdAt" header="上傳時間">
+                  <template #body="{ data }">
+                    <div class="date-cell">{{ new Date(data.createdAt).toLocaleString() }}</div>
+                  </template>
+                </Column>
+                <Column field="fileName" header="檔名" />
+                <Column field="fileType" header="類型">
+                  <template #body="{ data }">
+                    <Tag :value="data.fileType" />
+                  </template>
+                </Column>
+                <Column field="uploaderName" header="上傳者" />
+              </DataTable>
+            </div>
+            
+            <div v-else class="mobile-cards">
+              <div v-for="a in recentAssets" :key="a._id" class="mobile-card">
+                <div class="mobile-card-header">
+                  <h4>{{ a.fileName }}</h4>
+                  <Tag :value="a.fileType" />
+                </div>
+                <div class="mobile-card-content">
+                  <div class="mobile-card-row">
+                    <span class="label">上傳時間:</span>
+                    <span>{{ new Date(a.createdAt).toLocaleString() }}</span>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="label">上傳者:</span>
+                    <span>{{ a.uploaderName }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </Card>
+      </div>
+
+      <!-- Recent Reviews -->
+      <div class="content-section">
+        <Card class="modern-card">
+          <template #title>
+            <div class="card-header">
+              <div class="card-title">
+                <i class="pi pi-check-square mr-2"></i>
+                最近審查結果
+              </div>
+            </div>
+          </template>
+          <template #content>
+            <div v-if="!isMobile" class="table-container">
+              <DataTable 
+                :value="recentReviews" 
+                :rows="5" 
+                responsiveLayout="scroll" 
+                emptyMessage="尚無審查紀錄"
+                class="modern-table"
+              >
+                <Column field="updatedAt" header="時間">
+                  <template #body="{ data }">
+                    <div class="date-cell">{{ new Date(data.updatedAt).toLocaleString() }}</div>
+                  </template>
+                </Column>
+                <Column field="assetFile" header="素材" />
+                <Column field="stage" header="階段" />
+                <Column field="completed" header="狀態">
+                  <template #body="{ data }">
+                    <Tag 
+                      :severity="data.completed ? 'success' : 'warning'" 
+                      :value="data.completed ? '完成' : '未完成'" 
+                    />
+                  </template>
+                </Column>
+                <Column field="updatedBy" header="審核者" />
+              </DataTable>
+            </div>
+            
+            <div v-else class="mobile-cards">
+              <div v-for="r in recentReviews" :key="r._id" class="mobile-card">
+                <div class="mobile-card-header">
+                  <h4>{{ r.assetFile }}</h4>
+                  <Tag 
+                    :severity="r.completed ? 'success' : 'warning'" 
+                    :value="r.completed ? '完成' : '未完成'" 
+                  />
+                </div>
+                <div class="mobile-card-content">
+                  <div class="mobile-card-row">
+                    <span class="label">時間:</span>
+                    <span>{{ new Date(r.updatedAt).toLocaleString() }}</span>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="label">階段:</span>
+                    <span>{{ r.stage }}</span>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="label">審核者:</span>
+                    <span>{{ r.updatedBy }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </Card>
+      </div>
     </div>
-    <Dialog v-model:visible="stageDialogVisible" header="審查關卡" :modal="true">
-      <div v-for="stage in stageList" :key="stage._id" class="flex align-items-center mb-2">
-        <Checkbox :inputId="stage._id" :modelValue="stage.checked" :binary="true" @change="onStageChange(stage, $event)"
-          class="mr-2" />
-        <label :for="stage._id">{{ stage.name }}</label>
+
+    <!-- Dialogs remain the same -->
+    <Dialog v-model:visible="stageDialogVisible" header="審查關卡" :modal="true" class="modern-dialog">
+      <div v-for="stage in stageList" :key="stage._id" class="stage-item">
+        <Checkbox 
+          :inputId="stage._id" 
+          :modelValue="stage.checked" 
+          :binary="true" 
+          @change="onStageChange(stage, $event)"
+          class="mr-2" 
+        />
+        <label :for="stage._id" class="stage-label">{{ stage.name }}</label>
       </div>
       <template #footer>
         <Button label="取消" class="p-button-text" @click="closeStageDialog" />
@@ -110,7 +316,7 @@
       </template>
     </Dialog>
 
-    <Dialog v-model:visible="editDialogVisible" header="編輯成品資料" :modal="true" style="width: 400px">
+    <Dialog v-model:visible="editDialogVisible" header="編輯成品資料" :modal="true" class="modern-dialog edit-dialog">
       <div class="p-fluid">
         <div class="field">
           <label for="edit-title">檔名</label>
@@ -122,26 +328,23 @@
         </div>
         <div class="field">
           <label for="edit-completed">完成剪輯日期</label>
-          <DatePicker id="edit-completed" v-model="editItem.editCompletedAt" inputId="edit-completed"
-            style="width:100%" />
+          <DatePicker id="edit-completed" v-model="editItem.editCompletedAt" inputId="edit-completed" style="width:100%" />
         </div>
         <div class="field">
           <label for="edit-xhs">xhs 發布狀態</label>
-          <Dropdown id="edit-xhs" v-model="editItem.xhsStatus" :options="xhsOptions" optionLabel="label"
-            optionValue="value" />
+          <Dropdown id="edit-xhs" v-model="editItem.xhsStatus" :options="xhsOptions" optionLabel="label" optionValue="value" />
         </div>
         <div class="field">
           <label for="edit-publish">發佈日期</label>
-          <DatePicker id="edit-publish" v-model="editItem.scheduledPublishAt" inputId="edit-publish"
-            style="width:100%" />
+          <DatePicker id="edit-publish" v-model="editItem.scheduledPublishAt" inputId="edit-publish" style="width:100%" />
         </div>
-        <div class="field">
-          <label class="mr-2">最終檢查</label>
-          <Checkbox v-model="editItem.finalChecked" binary />
+        <div class="field checkbox-field">
+          <Checkbox v-model="editItem.finalChecked" binary inputId="final-check" />
+          <label for="final-check">最終檢查</label>
         </div>
-        <div class="field">
-          <label class="mr-2">同步 Facebook</label>
-          <Checkbox v-model="editItem.fbSynced" binary />
+        <div class="field checkbox-field">
+          <Checkbox v-model="editItem.fbSynced" binary inputId="fb-sync" />
+          <label for="fb-sync">同步 Facebook</label>
         </div>
         <div class="field">
           <label for="edit-fb">FB 負責人</label>
@@ -153,75 +356,6 @@
         <Button label="儲存" icon="pi pi-check" @click="saveEdit" />
       </template>
     </Dialog>
-
-    <!-- Recent Assets & Reviews -->
-    <div class="col-12 md:col-6">
-      <Card>
-        <template #title>
-          <div class="flex justify-content-between align-items-center">
-            <span>最近素材上傳</span>
-            <Button label="查看全部" class="p-button-link" @click="$router.push('/assets')" />
-          </div>
-        </template>
-        <template #content>
-          <DataTable v-if="!isMobile" :value="recentAssets" :rows="5" responsiveLayout="scroll" emptyMessage="尚無素材上傳">
-            <Column field="createdAt" header="上傳時間">
-              <template #body="{ data }">{{ new Date(data.createdAt).toLocaleString() }}</template>
-            </Column>
-            <Column field="fileName" header="檔名"></Column>
-            <Column field="fileType" header="類型">
-              <template #body="{ data }">
-                <Tag :value="data.fileType" />
-              </template>
-            </Column>
-            <Column field="uploaderName" header="上傳者"></Column>
-          </DataTable>
-          <div v-else class="mobile-card-list">
-            <Card v-for="a in recentAssets" :key="a._id" class="mobile-card">
-              <template #title>{{ a.fileName }}</template>
-              <template #content>
-                <div class="text-sm mb-2">{{ new Date(a.createdAt).toLocaleString() }}</div>
-                <div class="text-sm mb-2"><Tag :value="a.fileType" /></div>
-                <div class="text-sm mb-2">{{ a.uploaderName }}</div>
-              </template>
-            </Card>
-          </div>
-        </template>
-      </Card>
-    </div>
-    <div class="col-12 md:col-6">
-      <Card>
-        <template #title>最近審查結果</template>
-        <template #content>
-          <DataTable v-if="!isMobile" :value="recentReviews" :rows="5" responsiveLayout="scroll" emptyMessage="尚無審查紀錄">
-            <Column field="updatedAt" header="時間">
-              <template #body="{ data }">{{ new Date(data.updatedAt).toLocaleString() }}</template>
-            </Column>
-            <Column field="assetFile" header="素材"></Column>
-            <Column field="stage" header="階段"></Column>
-            <Column field="completed" header="狀態">
-              <template #body="{ data }">
-                <Tag :severity="data.completed ? 'success' : 'warning'" :value="data.completed ? '完成' : '未完成'" />
-              </template>
-            </Column>
-            <Column field="updatedBy" header="審核者"></Column>
-          </DataTable>
-          <div v-else class="mobile-card-list">
-            <Card v-for="r in recentReviews" :key="r._id" class="mobile-card">
-              <template #title>{{ r.assetFile }}</template>
-              <template #content>
-                <div class="text-sm mb-2">{{ new Date(r.updatedAt).toLocaleString() }}</div>
-                <div class="text-sm mb-2">{{ r.stage }}</div>
-                <div class="text-sm mb-2">
-                  <Tag :severity="r.completed ? 'success' : 'warning'" :value="r.completed ? '完成' : '未完成'" />
-                </div>
-                <div class="text-sm">{{ r.updatedBy }}</div>
-              </template>
-            </Card>
-          </div>
-        </template>
-      </Card>
-    </div>
   </div>
 </template>
 
@@ -371,18 +505,337 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-@media screen and (max-width: 991px) {
-  .dashboard-grid {
-    display: flex;
-    flex-direction: column;
-  }
-  .mobile-card-list {
-    display: flex;
-    flex-direction: column;
+.dashboard {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-color);
+  color: var(--primary-color-text);
+  font-size: 1.25rem;
+}
+
+.stat-icon.success {
+  background: var(--green-500);
+  color: white;
+}
+
+.stat-icon.warning {
+  background: var(--orange-500);
+  color: white;
+}
+
+.stat-icon.info {
+  background: var(--blue-500);
+  color: white;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-color);
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+  font-weight: 500;
+}
+
+/* Content Grid */
+.content-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+}
+
+.content-section.full-width {
+  grid-column: 1 / -1;
+}
+
+.modern-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--surface-border);
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+/* Table Styles */
+.table-container {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.modern-table {
+  border: none;
+}
+
+:deep(.modern-table .p-datatable-header) {
+  background: var(--surface-a);
+  border: none;
+  padding: 1rem;
+}
+
+:deep(.modern-table .p-datatable-thead > tr > th) {
+  background: var(--surface-a);
+  border: none;
+  border-bottom: 1px solid var(--surface-border);
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+:deep(.modern-table .p-datatable-tbody > tr > td) {
+  border: none;
+  border-bottom: 1px solid var(--surface-border);
+  padding: 1rem;
+}
+
+:deep(.modern-table .p-datatable-tbody > tr:hover) {
+  background: var(--surface-hover);
+}
+
+.date-cell {
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+}
+
+.title-cell {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.progress-cell {
+  min-width: 150px;
+}
+
+.progress-text {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+  text-align: center;
+}
+
+.pending-stage {
+  color: var(--orange-500);
+  font-weight: 500;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.text-muted {
+  color: var(--text-color-secondary);
+}
+
+/* Mobile Cards */
+.mobile-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mobile-card {
+  background: var(--surface-a);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.mobile-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.mobile-card-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  flex: 1;
+  margin-right: 1rem;
+}
+
+.mobile-card-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.mobile-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mobile-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.mobile-card-row .label {
+  font-weight: 500;
+  color: var(--text-color-secondary);
+  min-width: 80px;
+}
+
+.progress-mobile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  min-width: 120px;
+}
+
+/* Dialog Styles */
+.modern-dialog {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+:deep(.modern-dialog .p-dialog-header) {
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--surface-border);
+}
+
+:deep(.modern-dialog .p-dialog-content) {
+  background: var(--surface-card);
+}
+
+:deep(.modern-dialog .p-dialog-footer) {
+  background: var(--surface-card);
+  border-top: 1px solid var(--surface-border);
+}
+
+.stage-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.stage-item:last-child {
+  border-bottom: none;
+}
+
+.stage-label {
+  font-weight: 500;
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+.edit-dialog {
+  width: 90vw;
+  max-width: 500px;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkbox-field label {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
   }
-  .mobile-card-list .p-card {
-    font-size: 0.9rem;
+  
+  .stat-card {
+    padding: 1rem;
+  }
+  
+  .stat-value {
+    font-size: 1.5rem;
+  }
+  
+  .content-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .mobile-card-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  
+  .mobile-card-row .label {
+    min-width: auto;
+  }
+  
+  .progress-mobile {
+    align-items: flex-start;
+    width: 100%;
   }
 }
 </style>

@@ -3,10 +3,10 @@
 > VERTEX SOLUTION 內部行銷系統 – Node.js + Express + MongoDB
 
 ## 安裝
-```bash
+\`\`\`bash
 npm install
 npm start                 # 啟動伺服器
-```
+\`\`\`
 
 伺服器啟動前請在根目錄複製 `.env.example` 為 `.env`，並填入 MongoDB、JWT 及 GCS 設定。
 
@@ -57,20 +57,20 @@ npm start                 # 啟動伺服器
 2. **啟動 MongoDB**（本機或 Atlas）。
 3. 執行 `npm start`，若看到 `✅ MongoDB 已連線` 與 `🚀 Server running` 即成功。
 4. 使用 Postman 或 cURL 測試：
-   ```bash
+   \`\`\`bash
    # 登入
    curl -X POST http://localhost:3000/api/auth/login \
      -H "Content-Type: application/json" \
    -d '{"username":"admin","password":"mypwd"}'
-   ```
+   \`\`\`
 5. **安裝相依套件**：若尚未安裝，請先執行
-   ```bash
+   \`\`\`bash
    npm install
-   ```
+   \`\`\`
 6. 執行自動化測試：
-   ```bash
+   \`\`\`bash
    npm test
-   ```
+   \`\`\`
    透過 Jest 與 Supertest 模擬登入，確認回傳資料包含 `token` 與 `user.role`。
 
 ## 成品審核 API
@@ -85,29 +85,29 @@ npm start                 # 啟動伺服器
 ### 成品審查進度
 取得某成品的所有審查關卡與完成狀態：
 
-```
+\`\`\`
 GET /api/assets/:id/stages
-```
+\`\`\`
 
 關卡需依序完成，必須完成上一關後才能更新下一關。
 
 更新某關卡的完成狀態（僅負責人可更新關卡狀態）：
 
-```
+\`\`\`
 PUT /api/assets/:id/stages/:stageId { completed: true | false }
-```
+\`\`\`
 
 ## 批次設定可查看者
 一次更新多個素材或資料夾的 `allowedUsers`：
 
-```bash
+\`\`\`bash
 PUT /api/assets/viewers  { ids: [id], allowedUsers: [userId] }
 PUT /api/folders/viewers { ids: [id], allowedUsers: [userId] }
-```
+\`\`\`
 
 ## 客戶與廣告資料 API
 下列為常見操作範例：
-```bash
+\`\`\`bash
 # 取得使用者列表
 GET /api/user
 
@@ -116,13 +116,13 @@ POST /api/user { username, password }
 
 # 取得廣告成效摘要
 GET /api/analytics
-```
+\`\`\`
 新增廣告每日資料可呼叫：
-```bash
+\`\`\`bash
 POST /api/clients/:clientId/platforms/:platformId/ad-daily { date, spent, ... }
-```
+\`\`\`
 批次匯入：
-```bash
+\`\`\`bash
 POST /api/clients/:clientId/platforms/:platformId/ad-daily/import (multipart/form-data)
-```
+\`\`\`
 目前不需額外的環境變數即可使用。

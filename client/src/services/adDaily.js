@@ -53,4 +53,3 @@ export const deleteDaily = (clientId, platformId, id) =>
   api
     .delete(`/clients/${clientId}/platforms/${platformId}/ad-daily/${id}`)
     .then(r => r.data)
-

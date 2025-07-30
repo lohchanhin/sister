@@ -1,21 +1,55 @@
+<template>
+  <Button
+    :icon="isDark ? 'pi pi-sun' : 'pi pi-moon'"
+    class="p-button-text p-button-rounded theme-toggle"
+    @click="toggleTheme"
+    v-tooltip.bottom="isDark ? '切換到淺色主題' : '切換到深色主題'"
+  />
+</template>
+
 <script setup>
-import { computed, toRefs } from 'vue'
-import { useThemeStore } from '../stores/theme'
+import { ref, onMounted } from 'vue'
+import Button from 'primevue/button'
 
-const props = defineProps({
-  collapsed: Boolean
+const isDark = ref(false)
+
+const toggleTheme = () => {
+  isDark.value = !isDark.value
+  const theme = isDark.value ? 'dark' : 'light'
+  
+  // Update theme
+  const themeLink = document.getElementById('theme-link')
+  if (themeLink) {
+    themeLink.href = `/themes/lara-${theme}-blue/theme.css`
+  }
+  
+  // Save preference
+  localStorage.setItem('theme', theme)
+  
+  // Update body class for custom styling
+  document.body.classList.toggle('dark-theme', isDark.value)
+}
+
+onMounted(() => {
+  // Load saved theme
+  const savedTheme = localStorage.getItem('theme') || 'light'
+  isDark.value = savedTheme === 'dark'
+  
+  if (isDark.value) {
+    document.body.classList.add('dark-theme')
+  }
 })
-
-const { collapsed } = toRefs(props)
-const theme = useThemeStore()
-
-const label = computed(() => (theme.dark ? '' : ''))
-const icon = computed(() => (theme.dark ? '🌞' : '🌙'))
 </script>
 
-<template>
-  <button @click="theme.toggle()" class="w-full py-2 mt-4 rounded bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center">
-    <span>{{ icon }}</span>
-    <span v-if="!collapsed" class="ml-2">{{ label }}</span>
-  </button>
-</template>
+<style scoped>
+.theme-toggle {
+  width: 2.5rem;
+  height: 2.5rem;
+  transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+  background: var(--surface-hover);
+  transform: scale(1.05);
+}
+</style>

@@ -10,4 +10,3 @@ export const includeManagers = async (ids = []) => {
   const final = Array.from(new Set([...ids.map(id => id.toString()), ...managerIds]))
   return final
 }
-

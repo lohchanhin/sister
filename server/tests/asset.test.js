@@ -163,4 +163,3 @@ describe('Create asset record', () => {
     expect(exist).not.toBeNull()
   })
 })
-

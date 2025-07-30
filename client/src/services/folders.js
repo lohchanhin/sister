@@ -67,4 +67,3 @@ export const startBatchDownload = (id, deep = false) => {
 export const getDownloadProgress = (id) => {
     return api.get(`/folders/${id}/download/progress`).then(res => res.data)
 }
-
