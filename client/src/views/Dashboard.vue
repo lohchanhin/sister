@@ -230,7 +230,7 @@
       </div>
 
       <!-- Recent Reviews -->
-      <div class="content-section">
+      <div class="content-section review-fill">
         <Card class="modern-card">
           <template #title>
             <div class="card-header">
@@ -838,4 +838,27 @@ onUnmounted(() => {
     width: 100%;
   }
 }
+
+/* 讓最近審查結果在桌機把剩餘欄位吃掉 */
+@media screen and (min-width: 992px) {
+  .review-fill {
+    grid-column: span 2;   /* 視窗夠寬時，一次佔 2 個欄 */
+  }
+}
+
+/* 小螢幕維持單欄即可（可省略，因為 <992px 不會讀到上面的 span 2） */
+@media screen and (max-width: 991px) {
+  .review-fill {
+    grid-column: span 1;
+  }
+}
+
+/* （建議）讓 Grid 自動把空洞補起來 */
+.content-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+  grid-auto-flow: dense;   /* 新增這行 */
+}
+
 </style>
