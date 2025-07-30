@@ -22,7 +22,7 @@
       <Menu :model="navItems" class="w-full">
         <template #item="{ item, props }">
           <router-link v-if="item.route" v-slot="{ href, navigate }" :to="item.route" custom>
-            <a :href="href" v-bind="props.action" @click="navigate; closeSidebar()">
+            <a :href="href" v-bind="props.action" @click="navigate($event); closeSidebar()">
               <span :class="item.icon" />
               <span class="ml-2">{{ item.label }}</span>
             </a>
