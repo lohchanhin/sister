@@ -142,7 +142,10 @@ const adminMenuItems = computed(() => {
     { path: '/tags', label: '標籤管理', icon: 'pi pi-tags' }
   ]
   
-  if (authStore.hasPermission('ADMIN')) {
+  if (
+    authStore.hasPermission('user:manage') ||
+    authStore.hasPermission('role:manage')
+  ) {
     items.push(
       { path: '/employees', label: '員工管理', icon: 'pi pi-user-edit' },
       { path: '/roles', label: '角色設定', icon: 'pi pi-shield' },
