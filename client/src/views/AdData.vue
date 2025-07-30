@@ -108,11 +108,11 @@
     <Dialog v-model:visible="dialogVisible" :header="editing ? '編輯每日記錄' : '新增每日記錄'" modal
       style="max-width:480px;width:100%">
 
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-4 w-full">
         <!-- 日期欄 -->
         <div class="flex gap-2">
           <label for="date" class="w-16 shrink-0 pt-2 text-right">日期</label>
-          <DatePicker v-model="recordForm.date" inputId="date" class="flex-1" />
+          <DatePicker v-model="recordForm.date" inputId="date" class="flex-1 min-w-0"  />
         </div>
 
         <!-- 動態欄位 -->
@@ -145,9 +145,6 @@
         <Button label="確定" @click="handleConfirm" />
       </template>
     </Dialog>
-
-
-
 
     <!-- ─────────── Dialog：操作說明 ─────────── -->
     <Dialog v-model:visible="showHelp" header="操作說明" modal style="width: 380px">
