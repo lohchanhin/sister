@@ -14,7 +14,8 @@
         <div class="flex justify-between items-center mb-4">
           <!-- 左：匯入 / 格式說明 -->
           <div class="flex items-center gap-2">
-            <FileUpload mode="basic" :auto="true" :customUpload="true" @uploader="importFile" chooseLabel="匯入 CSV / Excel" accept=".xlsx,.csv" />
+            <FileUpload mode="basic" :auto="true" :customUpload="true" @uploader="importFile"
+              chooseLabel="匯入 CSV / Excel" accept=".xlsx,.csv" />
             <Button label="Excel 格式說明" size="small" outlined @click="excelDialog = true" />
           </div>
 
@@ -80,8 +81,8 @@
           <!-- 圖片欄 -->
           <Column header="圖片" width="120">
             <template #body="{ data }">
-              <Button v-if="data.hasImage" link severity="primary" size="small"
-                @click="previewImages(data.images)" label="查看圖片" />
+              <Button v-if="data.hasImage" link severity="primary" size="small" @click="previewImages(data.images)"
+                label="查看圖片" />
             </template>
           </Column>
 
@@ -102,36 +103,45 @@
       </TabPanel>
     </TabView>
 
+
     <!-- ─────────── Dialog：新增/編輯每日 ─────────── -->
-    <Dialog v-model:visible="dialogVisible" :header="editing ? '編輯每日記錄' : '新增每日記錄'" modal style="width: 460px">
+    <Dialog v-model:visible="dialogVisible" :header="editing ? '編輯每日記錄' : '新增每日記錄'" modal style="width: 520px">
       <div class="flex flex-col gap-4">
-        <div class="flex flex-col gap-2">
-            <label for="date">日期</label>
-            <DatePicker v-model="recordForm.date" inputId="date" style="width:100%" />
+        <!-- 日期欄 -->
+        <div class="flex items-center gap-4">
+          <label for="date" class="w-20 shrink-0 text-right">日期</label>
+          <DatePicker v-model="recordForm.date" inputId="date" class="flex-1" />
         </div>
-        <!-- 動態欄位輸入 -->
-        <div v-for="field in customColumns" :key="field.name" class="flex flex-col gap-2">
-            <label :for="field.name">{{ field.name }}</label>
-            <div class="flex items-center gap-2 w-full">
-                <DatePicker v-if="field.type === 'date'" v-model="recordForm.extraData[field.name]" :inputId="field.name" style="flex:1" />
-                <InputText v-else v-model="recordForm.extraData[field.name]" :inputId="field.name" style="flex:1" />
-                <!-- 固定色票下拉 -->
-                <Dropdown v-model="recordForm.colors[field.name]" :options="colorOptions" optionLabel="label" optionValue="value" placeholder="顏色" style="width: 100px" showClear>
-                    <template #option="slotProps">
-                        <div class="flex items-center">
-                            <span class="inline-block w-3 h-3 mr-2 align-middle rounded-sm" :style="{ backgroundColor: slotProps.option.value }" />
-                            <div>{{ slotProps.option.label }}</div>
-                        </div>
-                    </template>
-                </Dropdown>
-            </div>
+
+        <!-- 動態欄位 -->
+        <div v-for="field in customColumns" :key="field.name" class="flex items-center gap-4">
+          <label :for="field.name" class="w-20 shrink-0 text-right">{{ field.name }}</label>
+          <div class="flex items-center gap-2 flex-1">
+            <DatePicker v-if="field.type === 'date'" v-model="recordForm.extraData[field.name]" :inputId="field.name"
+              class="flex-1" />
+            <InputText v-else v-model="recordForm.extraData[field.name]" :inputId="field.name" class="flex-1" />
+            <!-- 固定色票下拉 -->
+            <Dropdown v-model="recordForm.colors[field.name]" :options="colorOptions" optionLabel="label"
+              optionValue="value" placeholder="顏色" style="width: 100px" showClear>
+              <template #option="slotProps">
+                <div class="flex items-center">
+                  <span class="inline-block w-3 h-3 mr-2 align-middle rounded-sm"
+                    :style="{ backgroundColor: slotProps.option.value }" />
+                  <div>{{ slotProps.option.label }}</div>
+                </div>
+              </template>
+            </Dropdown>
+          </div>
         </div>
       </div>
+
+      <!-- Footer -->
       <template #footer>
         <Button label="取消" severity="secondary" @click="dialogVisible = false" />
         <Button label="確定" @click="handleConfirm" />
       </template>
     </Dialog>
+
 
     <!-- ─────────── Dialog：操作說明 ─────────── -->
     <Dialog v-model:visible="showHelp" header="操作說明" modal style="width: 380px">
@@ -164,9 +174,10 @@
       <p class="text-sm text-gray-500 mb-2">週別：{{ formatWeekRange(noteForm.week) }}</p>
       <Textarea v-model="noteForm.text" rows="4" placeholder="輸入文字筆記" style="width: 100%" />
       <!-- 上傳圖片（僅本地暫存） -->
-      <FileUpload multiple :auto="false" :customUpload="true" @uploader="noteForm.images = $event.files" :showUploadButton="false" :showCancelButton="false" >
+      <FileUpload multiple :auto="false" :customUpload="true" @uploader="noteForm.images = $event.files"
+        :showUploadButton="false" :showCancelButton="false">
         <template #empty>
-            <i class="pi pi-plus"></i>
+          <i class="pi pi-plus"></i>
         </template>
       </FileUpload>
       <template #footer>
@@ -179,7 +190,7 @@
     <Dialog v-model:visible="imgPreviewDialog" header="圖片預覽" modal style="width: 600px">
       <Carousel :value="imgList" :numVisible="1" :numScroll="1">
         <template #item="slotProps">
-            <img :src="slotProps.data" class="w-full h-full object-contain" />
+          <img :src="slotProps.data" class="w-full h-full object-contain" />
         </template>
       </Carousel>
       <template #footer>
