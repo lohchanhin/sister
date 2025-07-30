@@ -583,7 +583,7 @@ onUnmounted(() => {
 /* Content Grid */
 .content-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.5rem;
 }
 
@@ -798,6 +798,12 @@ onUnmounted(() => {
 }
 
 /* Responsive Design */
+@media screen and (max-width: 991px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media screen and (max-width: 768px) {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -810,11 +816,6 @@ onUnmounted(() => {
   
   .stat-value {
     font-size: 1.5rem;
-  }
-  
-  .content-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
   }
 }
 

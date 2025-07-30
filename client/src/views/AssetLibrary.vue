@@ -45,6 +45,7 @@
               placeholder="新資料夾名稱" 
               @keyup.enter="createNewFolder"
               class="folder-input"
+              ref="folderNameInputRef"
             />
             <Button 
               icon="pi pi-plus" 
@@ -93,7 +94,7 @@
     </div>
 
     <!-- Selection Bar -->
-    <div class="selection-bar" v-if="selectedItems.length || combinedItems.length">
+    <div class="selection-bar" v-if="combinedItems.length">
       <div class="selection-content">
         <div class="selection-left">
           <Checkbox 
@@ -181,7 +182,7 @@
                 <Button 
                   icon="pi pi-ellipsis-v" 
                   class="item-menu-btn"
-                  @click="showDetailFor(item)"
+                  @click.stop="showDetailFor(item)"
                   v-tooltip.left="'詳細資訊'"
                 />
               </div>
@@ -192,14 +193,17 @@
                 <div class="item-info">
                   <h4 class="item-title">{{ item.name }}</h4>
                   <div class="item-meta">
-                    <span class="meta-date">{{ formatDate(item.createdAt) }}</span>
-                    <span class="meta-creator">{{ item.creatorName || item.uploaderName }}</span>
+                    <span class="meta-date">建於: {{ formatDate(item.createdAt) }}</span>
+                    <span class="meta-creator">由: {{ item.creator?.username || item.uploader?.username }}</span>
+                    <span class="meta-update" v-if="item.updatedBy && item.updatedAt !== item.createdAt">
+                      更新: {{ formatDate(item.updatedAt) }} 由 {{ item.updatedBy.username }}
+                    </span>
                   </div>
                   <div class="item-tags" v-if="item.tags?.length">
                     <Tag 
                       v-for="tag in item.tags.slice(0, 2)" 
-                      :key="tag" 
-                      :value="tag" 
+                      :key="tag.name" 
+                      :value="tag.name" 
                       class="item-tag"
                     />
                     <span v-if="item.tags.length > 2" class="tag-more">+{{ item.tags.length - 2 }}</span>
@@ -245,8 +249,8 @@
                   <div class="item-tags" v-if="item.tags?.length">
                     <Tag 
                       v-for="tag in item.tags" 
-                      :key="tag" 
-                      :value="tag" 
+                      :key="tag.name" 
+                      :value="tag.name" 
                       class="item-tag"
                     />
                   </div>
@@ -254,12 +258,12 @@
                 <p class="item-description" v-if="item.description">{{ item.description }}</p>
                 <div class="item-metadata">
                   <span class="metadata-item">
-                    <i class="pi pi-calendar"></i>
-                    {{ formatDate(item.createdAt) }}
+                    <i class="pi pi-calendar-plus"></i>
+                    建立於 {{ formatDate(item.createdAt) }} 由 {{ item.creator?.username || item.uploader?.username }}
                   </span>
-                  <span class="metadata-item">
-                    <i class="pi pi-user"></i>
-                    {{ item.creatorName || item.uploaderName }}
+                  <span class="metadata-item" v-if="item.updatedBy && item.updatedAt !== item.createdAt">
+                    <i class="pi pi-calendar-times"></i>
+                    更新於 {{ formatDate(item.updatedAt) }} 由 {{ item.updatedBy.username }}
                   </span>
                 </div>
               </div>
@@ -267,14 +271,14 @@
                 <Button 
                   icon="pi pi-info-circle" 
                   class="action-btn secondary"
-                  @click="showDetailFor(item)"
+                  @click.stop="showDetailFor(item)"
                   v-tooltip.left="'詳細資訊'"
                 />
                 <Button 
                   v-if="item.type !== 'folder'" 
                   icon="pi pi-download" 
                   class="action-btn primary"
-                  @click="downloadSingleItem(item)"
+                  @click.stop="downloadSingleItem(item)"
                   v-tooltip.left="'下載'"
                 />
               </div>
@@ -378,7 +382,6 @@ import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
 import { useProgressStore } from '../stores/progress'
 
-import Toolbar from 'primevue/toolbar'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import FileUpload from 'primevue/fileupload'
@@ -408,6 +411,7 @@ const users = ref([])
 const viewMode = ref('grid')
 const selectedItems = ref([])
 const fileUploadRef = ref(null)
+const folderNameInputRef = ref(null)
 
 const detail = ref({})
 const showDetail = ref(false)
@@ -456,7 +460,7 @@ const triggerUpload = () => {
 }
 
 const focusFolderInput = () => {
-  document.querySelector('.folder-input')?.focus()
+  folderNameInputRef.value?.$el.focus()
 }
 
 async function loadData(folderId = null) {
@@ -602,16 +606,24 @@ function handleItemClick(item) {
 }
 
 function showDetailFor(item) {
-  detail.value = { ...item };
+  detail.value = { 
+    ...item,
+    tags: item.tags?.map(t => t.name) || []
+  };
   showDetail.value = true;
 }
 
 async function saveDetail() {
   try {
+    const payload = {
+      name: detail.value.name,
+      description: detail.value.description,
+      tags: detail.value.tags
+    };
     if (detail.value.type === 'folder') {
-      await updateFolder(detail.value._id, { name: detail.value.name, description: detail.value.description, tags: detail.value.tags });
+      await updateFolder(detail.value._id, payload);
     } else {
-      await updateAsset(detail.value._id, { title: detail.value.name, description: detail.value.description, tags: detail.value.tags });
+      await updateAsset(detail.value._id, { ...payload, title: detail.value.name });
     }
     toast.add({ severity: 'success', summary: 'Success', detail: 'Saved', life: 3000 });
     showDetail.value = false;
@@ -688,7 +700,7 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 
 /* Header Section */
 .library-header {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  background: var(--surface-section);
   border-bottom: 1px solid var(--surface-border);
   padding: 2rem 0;
   margin-bottom: 2rem;
@@ -712,10 +724,7 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
   margin: 0 0 0.5rem 0;
   font-size: 2.5rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text-color);
   letter-spacing: -0.025em;
 }
 
@@ -790,22 +799,22 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 }
 
 .folder-input:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-color-light);
 }
 
 .create-btn {
   width: 3rem;
   height: 3rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--primary-color);
   border: none;
-  color: white;
+  color: var(--primary-color-text);
   border-radius: 12px;
 }
 
 .create-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 16px var(--primary-color-shadow);
 }
 
 .toolbar-right {
@@ -838,9 +847,9 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 }
 
 .view-btn.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  background: var(--primary-color);
+  color: var(--primary-color-text);
+  box-shadow: 0 2px 8px var(--primary-color-shadow);
 }
 
 .view-btn:hover:not(.active) {
@@ -857,6 +866,8 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 2rem;
+  background: transparent;
+  border: none;
 }
 
 /* Selection Bar */
@@ -952,8 +963,9 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
   transition: all 0.3s ease;
 }
 
-.item-selected {
+.item-selected .item-card {
   transform: scale(0.98);
+  box-shadow: 0 0 0 2px var(--primary-color);
 }
 
 .item-card {
@@ -971,7 +983,7 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 .item-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-  border-color: rgba(102, 126, 234, 0.3);
+  border-color: var(--primary-color-light);
 }
 
 .card-header {
@@ -1017,7 +1029,7 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 
 .preview-icon {
   font-size: 3rem;
-  color: #667eea;
+  color: var(--primary-color);
 }
 
 .item-info {
@@ -1052,9 +1064,9 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 
 .item-tag {
   font-size: 0.75rem;
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
-  border: 1px solid rgba(102, 126, 234, 0.2);
+  background: var(--primary-color-light);
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color-border);
 }
 
 .tag-more {
@@ -1076,15 +1088,15 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 .download-btn {
   width: 2.5rem;
   height: 2.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--primary-color);
   border: none;
-  color: white;
+  color: var(--primary-color-text);
   border-radius: 8px;
 }
 
 .download-btn:hover {
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px var(--primary-color-shadow);
 }
 
 /* List View */
@@ -1105,7 +1117,12 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 
 .list-item:hover {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  border-color: rgba(102, 126, 234, 0.3);
+  border-color: var(--primary-color-light);
+}
+
+.list-item.item-selected {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 1px var(--primary-color);
 }
 
 .list-item-content {
@@ -1124,7 +1141,7 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
   flex-shrink: 0;
   width: 3rem;
   height: 3rem;
-  background: rgba(102, 126, 234, 0.1);
+  background: var(--primary-color-light);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -1133,7 +1150,7 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 
 .item-icon {
   font-size: 1.5rem;
-  color: #667eea;
+  color: var(--primary-color);
 }
 
 .item-details {
@@ -1192,14 +1209,14 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 }
 
 .action-btn.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  background: var(--primary-color);
+  color: var(--primary-color-text);
+  box-shadow: 0 2px 8px var(--primary-color-shadow);
 }
 
 .action-btn.primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 16px var(--primary-color-shadow);
 }
 
 .action-btn.secondary {
@@ -1215,7 +1232,7 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 }
 
 .action-btn.danger {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: var(--red-500);
   color: white;
   box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }
@@ -1269,8 +1286,8 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 }
 
 .field-input:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-color-light);
 }
 
 .dialog-actions {
@@ -1305,118 +1322,6 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 .placeholder-icon {
   font-size: 3rem;
   margin-bottom: 1rem;
-}
-
-/* Dark Theme Overrides */
-:global(.dark-theme) .library-header {
-  background: linear-gradient(135deg, rgba(139, 156, 247, 0.1) 0%, rgba(167, 139, 250, 0.1) 100%);
-  border-bottom-color: var(--surface-border);
-}
-
-:global(.dark-theme) .title-text {
-  background: linear-gradient(135deg, #8b9cf7 0%, #a78bfa 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-:global(.dark-theme) .title-subtitle {
-  color: var(--text-color-secondary);
-}
-
-:global(.dark-theme) .toolbar-content,
-:global(.dark-theme) .selection-content,
-:global(.dark-theme) .item-card,
-:global(.dark-theme) .list-item {
-  background: var(--surface-card);
-  border-color: var(--surface-border);
-}
-
-:global(.dark-theme) .folder-input,
-:global(.dark-theme) .field-input {
-  background: var(--surface-ground);
-  border-color: var(--surface-border);
-  color: var(--text-color);
-}
-
-:global(.dark-theme) .nav-btn {
-  background: var(--surface-a);
-  border-color: var(--surface-border);
-  color: var(--text-color);
-}
-
-:global(.dark-theme) .nav-btn:hover:not(:disabled) {
-  background: var(--surface-hover);
-}
-
-:global(.dark-theme) .view-controls {
-  background: var(--surface-a);
-}
-
-:global(.dark-theme) .view-btn:hover:not(.active) {
-  background: var(--surface-hover);
-  color: var(--text-color);
-}
-
-:global(.dark-theme) .card-header,
-:global(.dark-theme) .card-footer {
-  background: var(--surface-a);
-  border-color: var(--surface-border);
-}
-
-:global(.dark-theme) .item-icon-wrapper {
-  background: rgba(139, 156, 247, 0.1);
-}
-
-:global(.dark-theme) .item-icon {
-  color: #8b9cf7;
-}
-
-:global(.dark-theme) .preview-icon {
-  color: #8b9cf7;
-}
-
-:global(.dark-theme) .item-tag {
-  background: rgba(139, 156, 247, 0.1);
-  color: #8b9cf7;
-  border-color: rgba(139, 156, 247, 0.2);
-}
-
-:global(.dark-theme) .tag-more {
-  background: var(--surface-a);
-  color: var(--text-color-secondary);
-}
-
-:global(.dark-theme) .action-btn.secondary {
-  background: var(--surface-a);
-  color: var(--text-color);
-  border-color: var(--surface-border);
-}
-
-:global(.dark-theme) .action-btn.secondary:hover {
-  background: var(--surface-hover);
-}
-
-:global(.dark-theme) .preview-content {
-  background: var(--surface-a);
-}
-
-:global(.dark-theme) .empty-icon,
-:global(.dark-theme) .placeholder-icon {
-  color: var(--text-color-secondary);
-}
-
-:global(.dark-theme) .empty-title,
-:global(.dark-theme) .item-title,
-:global(.dark-theme) .selection-text,
-:global(.dark-theme) .field-label {
-  color: var(--text-color);
-}
-
-:global(.dark-theme) .empty-description,
-:global(.dark-theme) .item-description,
-:global(.dark-theme) .metadata-item {
-  color: var(--text-color-secondary);
 }
 
 /* Responsive Design */
