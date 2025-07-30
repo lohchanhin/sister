@@ -4,8 +4,12 @@ import { ref, computed } from 'vue';
 export const useProgressStore = defineStore('progress', () => {
   const tasks = ref({});
 
-  const activeTasks = computed(() => 
+  const activeTasks = computed(() =>
     Object.values(tasks.value).sort((a, b) => b.startTime - a.startTime)
+  );
+
+  const hasActiveDownloads = computed(() =>
+    Object.values(tasks.value).some(task => task.status === 'compressing')
   );
 
   function addTask({ id, name, status = 'processing', progress = 0 }) {
@@ -42,12 +46,22 @@ export const useProgressStore = defineStore('progress', () => {
     delete tasks.value[id];
   }
 
+  function clearActiveDownloads() {
+    Object.keys(tasks.value).forEach(id => {
+      if (tasks.value[id].status === 'compressing') {
+        delete tasks.value[id];
+      }
+    });
+  }
+
   return {
     tasks,
     activeTasks,
+    hasActiveDownloads,
     addTask,
     updateTaskProgress,
     updateTaskStatus,
     removeTask,
+    clearActiveDownloads,
   };
 });
