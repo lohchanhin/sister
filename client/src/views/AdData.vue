@@ -108,7 +108,7 @@
     <Dialog v-model:visible="dialogVisible" :header="editing ? '編輯每日記錄' : '新增每日記錄'" modal
       style="max-width:480px;width:100%">
 
-      <div class="flex flex-col gap-4 w-full">
+      <div class="flex-col gap-4 w-full">
         <!-- 日期欄 -->
         <div class="flex gap-2">
           <label for="date" class="w-16 shrink-0 pt-2 text-right">日期</label>
