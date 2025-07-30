@@ -464,7 +464,7 @@ async function loadData(folderId = null) {
   try {
     const [folderData, assetData, currentFolderData] = await Promise.all([
       fetchFolders(folderId, filterTags.value, 'raw'),
-      folderId ? fetchAssets(folderId, 'raw', filterTags.value) : Promise.resolve([]),
+      fetchAssets(folderId, 'raw', filterTags.value),
       folderId ? getFolder(folderId) : Promise.resolve(null)
     ])
     folders.value = folderData
