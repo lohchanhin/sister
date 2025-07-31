@@ -11,7 +11,7 @@
     <aside 
       class="sidebar" 
       :class="{ 
-        'sidebar-collapsed': isCollapsed, 
+        'sidebar-collapsed': !isMobile && isCollapsed,   // ✨ 只限桌面
         'sidebar-mobile-visible': isMobile && mobileVisible 
       }"
     >
