@@ -478,15 +478,57 @@ onUnmounted(() => {
 @media screen and (max-width: 991px) {
   .sidebar {
     transform: translateX(-100%);
+    background: white; /* 手機版強制白色背景 */
+    color: #1e293b; /* 手機版強制深色文字 */
   }
   
   .sidebar-collapsed {
     width: 280px;
     transform: translateX(-100%);
+    background: white; /* 手機版強制白色背景 */
   }
   
   .collapse-btn {
     display: none;
+  }
+
+  /* 手機版文字顏色覆蓋 */
+  .sidebar .nav-link {
+    color: #1e293b !important;
+  }
+
+  .sidebar .nav-section-title {
+    color: #64748b !important;
+  }
+
+  .sidebar .brand-text h2 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .sidebar .brand-subtitle {
+    color: #64748b !important;
+  }
+
+  .sidebar .user-name {
+    color: #1e293b !important;
+  }
+
+  .sidebar .user-role {
+    color: #64748b !important;
+  }
+
+  .sidebar .logout-btn {
+    border-color: #e2e8f0;
+    color: #64748b;
+  }
+
+  .sidebar .logout-btn:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #dc2626;
   }
 }
 
