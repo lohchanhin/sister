@@ -1,3 +1,4 @@
+import { t } from '../i18n/messages.js'
 import Tag from '../models/tag.model.js'
 import { getCache, setCache, delCache, clearCacheByPrefix } from '../utils/cache.js'
 
@@ -21,14 +22,14 @@ export const getTag = async (req, res) => {
   const cached = await getCache(cacheKey)
   if (cached) return res.json(cached)
   const tag = await Tag.findById(req.params.id)
-  if (!tag) return res.status(404).json({ message: '標籤不存在' })
+  if (!tag) return res.status(404).json({ message: t('TAG_NOT_FOUND') })
   await setCache(cacheKey, tag)
   res.json(tag)
 }
 
 export const updateTag = async (req, res) => {
   const tag = await Tag.findByIdAndUpdate(req.params.id, req.body, { new: true })
-  if (!tag) return res.status(404).json({ message: '標籤不存在' })
+  if (!tag) return res.status(404).json({ message: t('TAG_NOT_FOUND') })
   await clearCacheByPrefix('tags:')
   await delCache(`tag:${req.params.id}`)
   res.json(tag)
@@ -38,5 +39,5 @@ export const deleteTag = async (req, res) => {
   await Tag.findByIdAndDelete(req.params.id)
   await clearCacheByPrefix('tags:')
   await delCache(`tag:${req.params.id}`)
-  res.json({ message: '標籤已刪除' })
+  res.json({ message: t('TAG_DELETED') })
 }

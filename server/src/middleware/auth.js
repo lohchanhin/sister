@@ -1,3 +1,4 @@
+import { t } from '../i18n/messages.js'
 /**
  * 驗證 JWT，並把登入者寫入 req.user
  */
@@ -15,7 +16,7 @@ export const protect = async (req, res, next) => {
 
   /* 沒帶 Bearer Token */
   if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ message: '未登入或 Token 錯誤' });
+    return res.status(401).json({ message: t('NOT_LOGGED_IN') });
   }
 
   try {
@@ -26,12 +27,12 @@ export const protect = async (req, res, next) => {
       .select('-password')
       .populate('roleId');
     if (!user) {
-      return res.status(404).json({ message: '使用者不存在' });
+      return res.status(404).json({ message: t('USER_NOT_FOUND') });
     }
 
     req.user = user;
     next();
   } catch (err) {
-    return res.status(401).json({ message: 'Token 無效' });
+    return res.status(401).json({ message: t('TOKEN_INVALID') });
   }
 };

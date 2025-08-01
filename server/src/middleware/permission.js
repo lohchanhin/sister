@@ -1,3 +1,4 @@
+import { t } from '../i18n/messages.js'
 import Role from '../models/role.model.js'
 
 export const requirePerm = (...perms) => async (req, res, next) => {
@@ -10,7 +11,7 @@ export const requirePerm = (...perms) => async (req, res, next) => {
 
   const allowed = role && perms.every(p => role.permissions.includes(p))
   if (!allowed) {
-    return res.status(403).json({ message: '權限不足' })
+    return res.status(403).json({ message: t('PERMISSION_DENIED') })
   }
   next()
 }

@@ -1,3 +1,4 @@
+import { t } from '../i18n/messages.js'
 import mongoose from 'mongoose'
 import AdDaily from '../models/adDaily.model.js'
 import path from 'node:path'
@@ -99,7 +100,7 @@ export const getWeeklyData = async (req, res) => {
 
 export const bulkCreateAdDaily = async (req, res) => {
   if (!Array.isArray(req.body)) {
-    return res.status(400).json({ message: '資料格式錯誤' })
+    return res.status(400).json({ message: t('DATA_FORMAT_ERROR') })
   }
 
   const known = ['date', 'spent', 'enquiries', 'reach', 'impressions', 'clicks', 'extraData', 'colors']
@@ -141,7 +142,7 @@ export const bulkCreateAdDaily = async (req, res) => {
 
 export const importAdDaily = async (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ message: '未上傳檔案' })
+    return res.status(400).json({ message: t('FILE_NOT_UPLOADED') })
   }
 
   const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
@@ -223,7 +224,7 @@ export const updateAdDaily = async (req, res) => {
     },
     { new: true }
   )
-  if (!rec) return res.status(404).json({ message: '紀錄不存在' })
+  if (!rec) return res.status(404).json({ message: t('RECORD_NOT_FOUND') })
   await clearCacheByPrefix('adDaily:')
   res.json(rec)
 }
@@ -231,5 +232,5 @@ export const updateAdDaily = async (req, res) => {
 export const deleteAdDaily = async (req, res) => {
   await AdDaily.findByIdAndDelete(req.params.id)
   await clearCacheByPrefix('adDaily:')
-  res.json({ message: '紀錄已刪除' })
+  res.json({ message: t('RECORD_DELETED') })
 }

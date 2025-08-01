@@ -1,3 +1,4 @@
+import { t } from '../i18n/messages.js'
 /**
  * Asset Controller  (完整)
  */
@@ -31,7 +32,7 @@ const parseTags = (t) => {
 /* ---------- POST /api/assets/upload ---------- */
 export const uploadFile = async (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ message: '未上傳檔案' })
+    return res.status(400).json({ message: t('FILE_NOT_UPLOADED') })
   }
 
   // 產生唯一檔名
@@ -156,7 +157,7 @@ export const getAssets = async (req, res) => {
 /* ---------- POST /api/assets/:id/comment ---------- */
 export const addComment = async (req, res) => {
   const asset = await Asset.findById(req.params.id)
-  if (!asset) return res.status(404).json({ message: '找不到素材' })
+  if (!asset) return res.status(404).json({ message: t('ASSET_NOT_FOUND') })
 
   asset.comments.push({ userId: req.user._id, message: req.body.message })
   await asset.save()
@@ -188,7 +189,7 @@ export const updateAsset = async (req, res) => {
   } = req.body
 
   const asset = await Asset.findById(req.params.id)
-  if (!asset) return res.status(404).json({ message: '找不到素材' })
+  if (!asset) return res.status(404).json({ message: t('ASSET_NOT_FOUND') })
 
   if (title) asset.title = title
   if (description) asset.description = description
@@ -221,10 +222,10 @@ export const updateAsset = async (req, res) => {
 export const reviewAsset = async (req, res) => {
   const { reviewStatus } = req.body
   if (!['pending', 'approved', 'rejected'].includes(reviewStatus)) {
-    return res.status(400).json({ message: '狀態錯誤' })
+    return res.status(400).json({ message: t('STATUS_ERROR') })
   }
   const asset = await Asset.findById(req.params.id)
-  if (!asset) return res.status(404).json({ message: '找不到素材' })
+  if (!asset) return res.status(404).json({ message: t('ASSET_NOT_FOUND') })
   asset.reviewStatus = reviewStatus
   await asset.save()
   await clearCacheByPrefix('assets:')
@@ -243,7 +244,7 @@ export const deleteAsset = async (req, res) => {
   }
   await clearCacheByPrefix('assets:')
   await clearDashboardCache()
-  res.json({ message: '素材已刪除' })
+  res.json({ message: t('ASSET_DELETED') })
 }
 
 /* ---------- 依 limit 取得最新素材 ---------- */
@@ -271,7 +272,7 @@ export const getRecentAssets = async (req, res) => {
 
 export const getAssetSignedUrl = async (req, res) => {
   const asset = await Asset.findById(req.params.id)
-  if (!asset) return res.status(404).json({ message: '找不到素材' })
+  if (!asset) return res.status(404).json({ message: t('ASSET_NOT_FOUND') })
 
   const options = {}
   if (req.query.download === '1') {
@@ -287,7 +288,7 @@ export const getAssetSignedUrl = async (req, res) => {
 export const updateAssetsViewers = async (req, res) => {
   const { ids, allowedUsers } = req.body
   if (!Array.isArray(ids) || !Array.isArray(allowedUsers)) {
-    return res.status(400).json({ message: '參數錯誤' })
+    return res.status(400).json({ message: t('PARAMS_ERROR') })
   }
 
   const users = await includeManagers(allowedUsers)
@@ -303,14 +304,14 @@ export const updateAssetsViewers = async (req, res) => {
   }
   await clearCacheByPrefix('assets:')
   await clearDashboardCache()
-  res.json({ message: '已更新' })
+  res.json({ message: t('UPDATED') })
 }
 
 /* ---------- POST /api/assets ---------- */
 export const createAsset = async (req, res) => {
   const { filename, path: filePath } = req.body
   if (!filename || !filePath) {
-    return res.status(400).json({ message: '缺少檔名或路徑' })
+    return res.status(400).json({ message: t('MISSING_FILENAME_OR_PATH') })
   }
 
   let baseUsers = []
@@ -356,7 +357,7 @@ export const createAsset = async (req, res) => {
 export const presign = async (req, res) => {
   const { filename, contentType } = req.body
   if (!filename) {
-    return res.status(400).json({ message: '缺少檔名' })
+    return res.status(400).json({ message: t('MISSING_FILENAME') })
   }
 
   const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
@@ -376,7 +377,7 @@ export const presign = async (req, res) => {
 export const batchDownload = async (req, res) => {
   const { ids } = req.body
   if (!Array.isArray(ids) || !ids.length) {
-    return res.status(400).json({ message: '參數錯誤' })
+    return res.status(400).json({ message: t('PARAMS_ERROR') })
   }
 
   const progressId = Date.now().toString(36) + Math.random().toString(36).slice(2)
@@ -389,7 +390,7 @@ export const batchDownload = async (req, res) => {
     try {
       const assets = await Asset.find({ _id: { $in: ids } })
       if (!assets.length) {
-        await setCache(cacheKey, { percent: 100, url: null, error: '找不到素材' }, 600)
+        await setCache(cacheKey, { percent: 100, url: null, error: t('ASSET_NOT_FOUND') }, 600)
         return
       }
 
@@ -462,13 +463,13 @@ export const getBatchDownloadProgress = async (req, res) => {
 export const moveAssets = async (req, res) => {
   const { ids, folderId } = req.body
   if (!Array.isArray(ids)) {
-    return res.status(400).json({ message: '參數錯誤' })
+    return res.status(400).json({ message: t('PARAMS_ERROR') })
   }
 
   let allowedUsers = null
   if (folderId) {
     const target = await Folder.findById(folderId)
-    if (!target) return res.status(404).json({ message: '目標資料夾不存在' })
+    if (!target) return res.status(404).json({ message: t('TARGET_FOLDER_NOT_FOUND') })
     const root = await getRootFolder(folderId)
     allowedUsers = root?.allowedUsers || []
   }
@@ -490,13 +491,13 @@ export const moveAssets = async (req, res) => {
 
   await clearCacheByPrefix('assets:')
   await clearDashboardCache()
-  res.json({ message: '已移動' })
+  res.json({ message: t('MOVED') })
 }
 
 export const deleteAssets = async (req, res) => {
   const { ids } = req.body
   if (!Array.isArray(ids) || !ids.length) {
-    return res.status(400).json({ message: '參數錯誤' })
+    return res.status(400).json({ message: t('PARAMS_ERROR') })
   }
 
   const assets = await Asset.find({ _id: { $in: ids } })
@@ -513,5 +514,5 @@ export const deleteAssets = async (req, res) => {
 
   await clearCacheByPrefix('assets:')
   await clearDashboardCache()
-  res.json({ message: '已刪除' })
+  res.json({ message: t('DELETED') })
 }
