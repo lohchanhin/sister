@@ -1,20 +1,13 @@
 <template>
   <div class="sidebar-wrapper">
     <!-- Mobile Overlay -->
-    <div 
-      v-if="isMobile && mobileVisible" 
-      class="mobile-overlay"
-      @click="$emit('update:mobileVisible', false)"
-    ></div>
-    
+    <div v-if="isMobile && mobileVisible" class="mobile-overlay" @click="$emit('update:mobileVisible', false)"></div>
+
     <!-- Sidebar -->
-    <aside 
-      class="sidebar" 
-      :class="{ 
-        'sidebar-collapsed': isCollapsed, 
-        'sidebar-mobile-visible': isMobile && mobileVisible 
-      }"
-    >
+    <aside class="sidebar" :class="{
+      'sidebar-collapsed': !isMobile && isCollapsed,   // ✨ 只限桌面
+      'sidebar-mobile-visible': isMobile && mobileVisible
+    }">
       <!-- Brand Section -->
       <div class="sidebar-brand">
         <div class="brand-content" :class="{ 'brand-collapsed': isCollapsed }">
@@ -26,12 +19,8 @@
             <span class="brand-subtitle">管理系統</span>
           </div>
         </div>
-        <Button
-          v-if="!isMobile"
-          :icon="isCollapsed ? 'pi pi-angle-right' : 'pi pi-angle-left'"
-          class="collapse-btn"
-          @click="toggleCollapse"
-        />
+        <Button v-if="!isMobile" :icon="isCollapsed ? 'pi pi-angle-right' : 'pi pi-angle-left'" class="collapse-btn"
+          @click="toggleCollapse" />
       </div>
 
       <!-- Navigation -->
@@ -40,12 +29,8 @@
           <div v-if="!isCollapsed" class="nav-section-title">主要功能</div>
           <ul class="nav-list">
             <li v-for="item in mainMenuItems" :key="item.path" class="nav-item">
-              <router-link 
-                :to="item.path" 
-                class="nav-link"
-                :class="{ 'nav-link-active': isActiveRoute(item.path) }"
-                @click="handleNavClick"
-              >
+              <router-link :to="item.path" class="nav-link" :class="{ 'nav-link-active': isActiveRoute(item.path) }"
+                @click="handleNavClick">
                 <div class="nav-link-content">
                   <i :class="item.icon" class="nav-icon"></i>
                   <span v-if="!isCollapsed" class="nav-text">{{ item.label }}</span>
@@ -60,12 +45,8 @@
           <div v-if="!isCollapsed" class="nav-section-title">管理功能</div>
           <ul class="nav-list">
             <li v-for="item in adminMenuItems" :key="item.path" class="nav-item">
-              <router-link 
-                :to="item.path" 
-                class="nav-link"
-                :class="{ 'nav-link-active': isActiveRoute(item.path) }"
-                @click="handleNavClick"
-              >
+              <router-link :to="item.path" class="nav-link" :class="{ 'nav-link-active': isActiveRoute(item.path) }"
+                @click="handleNavClick">
                 <div class="nav-link-content">
                   <i :class="item.icon" class="nav-icon"></i>
                   <span v-if="!isCollapsed" class="nav-text">{{ item.label }}</span>
@@ -80,24 +61,15 @@
       <div class="sidebar-user">
         <div class="user-content" :class="{ 'user-collapsed': isCollapsed }">
           <div class="user-avatar">
-            <Avatar 
-              :label="authStore.user?.name?.charAt(0) || 'U'" 
-              size="normal"
-              shape="circle"
-            />
+            <Avatar :label="authStore.user?.name?.charAt(0) || 'U'" size="normal" shape="circle" />
             <div class="user-status"></div>
           </div>
           <div v-if="!isCollapsed" class="user-info">
             <div class="user-name">{{ authStore.user?.name || '用戶' }}</div>
             <div class="user-role">{{ authStore.user?.role || '一般用戶' }}</div>
           </div>
-          <Button
-            v-if="!isCollapsed"
-            icon="pi pi-sign-out"
-            class="logout-btn"
-            @click="handleLogout"
-            v-tooltip.top="'登出'"
-          />
+          <Button v-if="!isCollapsed" icon="pi pi-sign-out" class="logout-btn" @click="handleLogout"
+            v-tooltip.top="'登出'" />
         </div>
       </div>
     </aside>
@@ -141,7 +113,7 @@ const adminMenuItems = computed(() => {
     { path: '/ad-clients', label: '廣告數據', icon: 'pi pi-users' },
     { path: '/tags', label: '標籤管理', icon: 'pi pi-tags' }
   ]
-  
+
   if (
     authStore.hasPermission('user:manage') ||
     authStore.hasPermission('role:manage')
@@ -152,7 +124,7 @@ const adminMenuItems = computed(() => {
       { path: '/review-settings', label: '審查設定', icon: 'pi pi-cog' }
     )
   }
-  
+
   return items
 })
 
@@ -478,16 +450,22 @@ onUnmounted(() => {
 @media screen and (max-width: 991px) {
   .sidebar {
     transform: translateX(-100%);
-    background: white; /* 手機版強制白色背景 */
-    color: #1e293b; /* 手機版強制深色文字 */
+    background: white;
+    /* 手機版強制白色背景 */
+    color: #1e293b;
+    /* 手機版強制深色文字 */
   }
-  
+
+  /* ✨ 當有可見 class 時拉回來（必須寫在 .sidebar 後面以覆蓋） */
+  .sidebar.sidebar-mobile-visible {
+    transform: translateX(0) !important;
+  }
+
   .sidebar-collapsed {
     width: 280px;
-    transform: translateX(-100%);
-    background: white; /* 手機版強制白色背景 */
+    /* 手機寬度時不再套 transform，保持寬度即可 */
   }
-  
+
   .collapse-btn {
     display: none;
   }
