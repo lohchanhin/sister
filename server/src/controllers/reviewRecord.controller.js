@@ -1,3 +1,4 @@
+import { t } from '../i18n/messages.js'
 import ReviewStage from '../models/reviewStage.model.js'
 import ReviewRecord from '../models/reviewRecord.model.js'
 import Asset from '../models/asset.model.js'
@@ -35,10 +36,10 @@ export const updateStageStatus = async (req, res) => {
   const skipPrevCheck = req.body.skipPrevCheck === true || req.query.skipPrevCheck === '1'
 
   const stage = await ReviewStage.findById(stageId).populate('responsible')
-  if (!stage) return res.status(404).json({ message: '階段不存在' })
+  if (!stage) return res.status(404).json({ message: t('REVIEW_STAGE_NOT_FOUND') })
 
   if (!fromDashboard && String(stage.responsible._id) !== String(req.user._id)) {
-    return res.status(403).json({ message: '無權審核此階段' })
+    return res.status(403).json({ message: t('REVIEW_STAGE_NOT_ALLOWED') })
   }
 
   // 檢查前置審核是否完成
@@ -52,7 +53,7 @@ export const updateStageStatus = async (req, res) => {
         completed: true
       })
       if (doneCount < prevStages.length) {
-        return res.status(400).json({ message: '前置審核未完成' })
+        return res.status(400).json({ message: t('PRE_REVIEW_UNFINISHED') })
       }
     }
   }

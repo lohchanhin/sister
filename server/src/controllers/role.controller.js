@@ -1,3 +1,4 @@
+import { t } from '../i18n/messages.js'
 import Role from '../models/role.model.js'
 import { getCache, setCache, delCache, clearCacheByPrefix } from '../utils/cache.js'
 
@@ -25,7 +26,7 @@ export const getRole = async (req, res) => {
   const cached = await getCache(cacheKey)
   if (cached) return res.json(cached)
   const role = await Role.findById(req.params.id)
-  if (!role) return res.status(404).json({ message: '\u89d2\u8272\u4e0d\u5b58\u5728' })
+  if (!role) return res.status(404).json({ message: t('ROLE_NOT_FOUND') })
   await setCache(cacheKey, role)
   res.json(role)
 }
@@ -40,7 +41,7 @@ export const updateRole = async (req, res) => {
     },
     { new: true }
   )
-  if (!role) return res.status(404).json({ message: '\u89d2\u8272\u4e0d\u5b58\u5728' })
+  if (!role) return res.status(404).json({ message: t('ROLE_NOT_FOUND') })
   await clearCacheByPrefix('roles:')
   await delCache(`role:${req.params.id}`)
   res.json(role)
@@ -50,5 +51,5 @@ export const deleteRole = async (req, res) => {
   await Role.findByIdAndDelete(req.params.id)
   await clearCacheByPrefix('roles:')
   await delCache(`role:${req.params.id}`)
-  res.json({ message: '\u89d2\u8272\u5df2\u522a\u9664' })
+  res.json({ message: t('ROLE_DELETED') })
 }

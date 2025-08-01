@@ -1,3 +1,4 @@
+import { t } from '../i18n/messages.js'
 import Platform from '../models/platform.model.js'
 import AdDaily from '../models/adDaily.model.js'
 import WeeklyNote from '../models/weeklyNote.model.js'
@@ -17,7 +18,7 @@ export const createPlatform = async (req, res) => {
     res.status(201).json(platform)
   } catch (err) {
     if (err.code === 11000) {
-      return res.status(409).json({ message: '平台名稱重複' })
+      return res.status(409).json({ message: t('PLATFORM_NAME_DUPLICATE') })
     }
     throw err
   }
@@ -37,7 +38,7 @@ export const getPlatform = async (req, res) => {
   const cached = await getCache(cacheKey)
   if (cached) return res.json(cached)
   const p = await Platform.findOne({ _id: req.params.id, clientId: req.params.clientId })
-  if (!p) return res.status(404).json({ message: '平台不存在' })
+  if (!p) return res.status(404).json({ message: t('PLATFORM_NOT_FOUND') })
   await setCache(cacheKey, p)
   res.json(p)
 }
@@ -50,13 +51,13 @@ export const updatePlatform = async (req, res) => {
       { name, platformType, fields, mode },
       { new: true }
     )
-    if (!p) return res.status(404).json({ message: '平台不存在' })
+    if (!p) return res.status(404).json({ message: t('PLATFORM_NOT_FOUND') })
     await clearCacheByPrefix('platforms:')
     await delCache(`platform:${req.params.id}`)
     res.json(p)
   } catch (err) {
     if (err.code === 11000) {
-      return res.status(409).json({ message: '平台名稱重複' })
+      return res.status(409).json({ message: t('PLATFORM_NAME_DUPLICATE') })
     }
     throw err
   }
@@ -66,16 +67,16 @@ export const deletePlatform = async (req, res) => {
   await Platform.findOneAndDelete({ _id: req.params.id, clientId: req.params.clientId })
   await clearCacheByPrefix('platforms:')
   await delCache(`platform:${req.params.id}`)
-  res.json({ message: '平台已刪除' })
+  res.json({ message: t('PLATFORM_DELETED') })
 }
 
 export const transferPlatform = async (req, res) => {
   const { clientId } = req.body
   if (!clientId) {
-    return res.status(400).json({ message: '缺少 clientId' })
+    return res.status(400).json({ message: t('MISSING_CLIENT_ID') })
   }
   const platform = await Platform.findById(req.params.id)
-  if (!platform) return res.status(404).json({ message: '平台不存在' })
+  if (!platform) return res.status(404).json({ message: t('PLATFORM_NOT_FOUND') })
   platform.clientId = clientId
   await platform.save()
   await AdDaily.updateMany({ platformId: req.params.id }, { clientId })

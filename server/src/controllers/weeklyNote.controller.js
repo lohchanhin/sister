@@ -1,3 +1,4 @@
+import { t } from '../i18n/messages.js'
 import WeeklyNote from '../models/weeklyNote.model.js'
 import path from 'node:path'
 import { uploadFile, getSignedUrl } from '../utils/gcs.js'
@@ -77,7 +78,7 @@ export const updateWeeklyNote = async (req, res) => {
     update,
     { new: true }
   )
-  if (!note) return res.status(404).json({ message: '備註不存在' })
+  if (!note) return res.status(404).json({ message: t('NOTE_NOT_FOUND') })
   await clearCacheByPrefix('weeklyNotes:')
   await delCache(`weeklyNote:${req.params.clientId}:${req.params.platformId}:${req.params.week}`)
   res.json(note)
@@ -97,7 +98,7 @@ export const getWeeklyNotes = async (req, res) => {
 
 export const getWeeklyImageUrl = async (req, res) => {
   const filePath = req.query.path
-  if (!filePath) return res.status(400).json({ message: '缺少 path 參數' })
+  if (!filePath) return res.status(400).json({ message: t('PATH_MISSING') })
   const url = await getSignedUrl(filePath)
   res.json({ url })
 }

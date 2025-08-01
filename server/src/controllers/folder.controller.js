@@ -1,3 +1,4 @@
+import { t } from '../i18n/messages.js'
 import Folder from '../models/folder.model.js'
 import Asset from '../models/asset.model.js'
 import ReviewStage from '../models/reviewStage.model.js'
@@ -27,7 +28,7 @@ export const createFolder = async (req, res) => {
   if (req.body.parentId) {
     const exists = await Folder.findById(req.body.parentId)
     if (!exists) {
-      return res.status(400).json({ message: '父層資料夾不存在' })
+      return res.status(400).json({ message: t('PARENT_FOLDER_NOT_FOUND') })
     }
     const root = await getRootFolder(req.body.parentId)
     baseUsers = root?.allowedUsers || []
@@ -112,7 +113,7 @@ export const getFolders = async (req, res) => {
 
 export const getFolder = async (req, res) => {
   let folder = await Folder.findById(req.params.id).populate('createdBy', 'username name')
-  if (!folder) return res.status(404).json({ message: '找不到資料夾' })
+  if (!folder) return res.status(404).json({ message: t('FOLDER_NOT_FOUND') })
 
   // Recursively populate parent folders
   let current = folder;
@@ -143,10 +144,10 @@ export const getFolder = async (req, res) => {
 export const reviewFolder = async (req, res) => {
   const { reviewStatus } = req.body
   if (!['pending', 'approved', 'rejected'].includes(reviewStatus)) {
-    return res.status(400).json({ message: '狀態錯誤' })
+    return res.status(400).json({ message: t('STATUS_ERROR') })
   }
   const folder = await Folder.findById(req.params.id)
-  if (!folder) return res.status(404).json({ message: '資料夾不存在' })
+  if (!folder) return res.status(404).json({ message: t('FOLDER_NOT_FOUND') })
   folder.reviewStatus = reviewStatus
 
   const total = await ReviewStage.countDocuments()
@@ -172,7 +173,7 @@ export const updateFolder = async (req, res) => {
     req.body.allowedUsers = await includeManagers(req.body.allowedUsers)
   }
   const folder = await Folder.findByIdAndUpdate(req.params.id, req.body, { new: true })
-  if (!folder) return res.status(404).json({ message: '資料夾不存在' })
+  if (!folder) return res.status(404).json({ message: t('FOLDER_NOT_FOUND') })
   if (!folder.parentId && req.body.allowedUsers) {
     const descendants = await getDescendantFolderIds(folder._id)
     if (descendants.length) {
@@ -202,17 +203,17 @@ export const deleteFolder = async (req, res) => {
   await clearCacheByPrefix('folders:')
   await clearCacheByPrefix('assets:')
   await clearCacheByPrefix('folderTree:')
-  res.json({ message: '資料夾已刪除' })
+  res.json({ message: t('FOLDER_DELETED') })
 }
 
 export const moveFolders = async (req, res) => {
   const { ids, parentId } = req.body
   if (!Array.isArray(ids)) {
-    return res.status(400).json({ message: '參數錯誤' })
+    return res.status(400).json({ message: t('PARAMS_ERROR') })
   }
   if (parentId) {
     const exists = await Folder.findById(parentId)
-    if (!exists) return res.status(404).json({ message: '目標資料夾不存在' })
+    if (!exists) return res.status(404).json({ message: t('TARGET_FOLDER_NOT_FOUND') })
   }
 
   await Folder.updateMany(
@@ -229,13 +230,13 @@ export const moveFolders = async (req, res) => {
 
   await clearCacheByPrefix('folders:')
   await clearCacheByPrefix('folderTree:')
-  res.json({ message: '已移動' })
+  res.json({ message: t('MOVED') })
 }
 
 export const updateFoldersViewers = async (req, res) => {
   const { ids, allowedUsers } = req.body
   if (!Array.isArray(ids) || !Array.isArray(allowedUsers)) {
-    return res.status(400).json({ message: '參數錯誤' })
+    return res.status(400).json({ message: t('PARAMS_ERROR') })
   }
   const users = await includeManagers(allowedUsers)
   await Folder.updateMany({ _id: { $in: ids } }, { allowedUsers: users })
@@ -257,7 +258,7 @@ export const updateFoldersViewers = async (req, res) => {
   }
   await clearCacheByPrefix('folders:')
   await clearCacheByPrefix('folderTree:')
-  res.json({ message: '已更新' })
+  res.json({ message: t('UPDATED') })
 }
 
 export const downloadFolder = async (req, res) => {

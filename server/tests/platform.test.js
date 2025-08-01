@@ -6,6 +6,7 @@ import authRoutes from '../src/routes/auth.routes.js'
 import clientRoutes from '../src/routes/client.routes.js'
 import platformRoutes from '../src/routes/platform.routes.js'
 import platformTransferRoutes from '../src/routes/platformTransfer.routes.js'
+import { t } from '../src/i18n/messages.js'
 import User from '../src/models/user.model.js'
 import Role from '../src/models/role.model.js'
 import dotenv from 'dotenv'
@@ -128,7 +129,7 @@ describe('Platform API', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Dup', platformType: 'Meta' })
       .expect(409)
-    expect(res.body.message).toBe('平台名稱重複')
+    expect(res.body.message).toBe(t('PLATFORM_NAME_DUPLICATE'))
   })
 
   it('transfer platform to another client', async () => {
