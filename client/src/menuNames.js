@@ -1,12 +1,12 @@
 export const MENU_NAMES = {
-  dashboard: '首頁',
-  progress: '進度追踪',
-  assets: '素材庫',
-  products: '成品區',
-  employees: '人員管理',
-  roles: '角色設定',
-  tags: '標籤管理',
-  'review-stages': '審查關卡',
-  'ad-data': '廣告數據',
-  account: '帳號資訊'
+  dashboard: '首页',
+  progress: '进度追踪',
+  assets: '素材库',
+  products: '成品区',
+  employees: '人员管理',
+  roles: '角色设定',
+  tags: '标签管理',
+  'review-stages': '审查关卡',
+  'ad-data': '广告数据',
+  account: '帐号资讯'
 }

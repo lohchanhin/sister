@@ -23,7 +23,7 @@
           </div>
           <div v-if="!isCollapsed" class="brand-text">
             <h2>Golden Goose Media</h2>
-            <span class="brand-subtitle">管理系統</span>
+            <span class="brand-subtitle">管理系统</span>
           </div>
         </div>
         <Button
@@ -88,8 +88,8 @@
             <div class="user-status"></div>
           </div>
           <div v-if="!isCollapsed" class="user-info">
-            <div class="user-name">{{ authStore.user?.name || '用戶' }}</div>
-            <div class="user-role">{{ authStore.user?.role || '一般用戶' }}</div>
+            <div class="user-name">{{ authStore.user?.name || '用户' }}</div>
+            <div class="user-role">{{ authStore.user?.role || '一般用户' }}</div>
           </div>
           <Button
             v-if="!isCollapsed"
@@ -128,18 +128,18 @@ const isCollapsed = ref(false)
 const isMobile = ref(window.innerWidth <= 991)
 
 const mainMenuItems = [
-  { path: '/dashboard', label: '儀表板', icon: 'pi pi-home', badge: null },
-  { path: '/assets', label: '素材庫', icon: 'pi pi-images', badge: null },
-  { path: '/products', label: '成品區', icon: 'pi pi-box', badge: '3' },
+  { path: '/dashboard', label: '仪表板', icon: 'pi pi-home', badge: null },
+  { path: '/assets', label: '素材库', icon: 'pi pi-images', badge: null },
+  { path: '/products', label: '成品区', icon: 'pi pi-box', badge: '3' },
 
-  // { path: '/ad-data', label: '廣告數據', icon: 'pi pi-chart-line', badge: null }
+  // { path: '/ad-data', label: '广告数据', icon: 'pi pi-chart-line', badge: null }
 ]
 
 const adminMenuItems = computed(() => {
   const items = [
     // 由於沒有獨立路由，統一導向 ad-clients
-    { path: '/ad-clients', label: '廣告數據', icon: 'pi pi-users' },
-    { path: '/tags', label: '標籤管理', icon: 'pi pi-tags' }
+    { path: '/ad-clients', label: '广告数据', icon: 'pi pi-users' },
+    { path: '/tags', label: '标签管理', icon: 'pi pi-tags' }
   ]
   
   if (
@@ -147,9 +147,9 @@ const adminMenuItems = computed(() => {
     authStore.hasPermission('role:manage')
   ) {
     items.push(
-      { path: '/employees', label: '員工管理', icon: 'pi pi-user-edit' },
-      { path: '/roles', label: '角色設定', icon: 'pi pi-shield' },
-      { path: '/review-settings', label: '審查設定', icon: 'pi pi-cog' }
+      { path: '/employees', label: '员工管理', icon: 'pi pi-user-edit' },
+      { path: '/roles', label: '角色设定', icon: 'pi pi-shield' },
+      { path: '/review-settings', label: '审查设定', icon: 'pi pi-cog' }
     )
   }
   

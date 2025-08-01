@@ -3,14 +3,14 @@
   <Card>
     <template #title>
       <div class="flex justify-content-between align-items-center">
-        <h1 class="text-2xl font-bold">角色權限管理</h1>
+        <h1 class="text-2xl font-bold">角色权限管理</h1>
         <Button label="新增角色" icon="pi pi-plus" @click="openCreate" />
       </div>
     </template>
     <template #content>
       <DataTable :value="roles" :loading="loading" responsiveLayout="scroll">
-        <Column field="name" header="角色名稱" :sortable="true"></Column>
-        <Column field="permissions" header="權限">
+        <Column field="name" header="角色名称" :sortable="true"></Column>
+        <Column field="permissions" header="权限">
           <template #body="{ data }">
             <div class="flex flex-wrap gap-1">
               <Tag v-for="perm in data.permissions" :key="perm" :value="getPermissionLabel(perm)" />
@@ -27,26 +27,26 @@
     </template>
   </Card>
 
-  <Dialog v-model:visible="dialog" :header="editing ? '編輯角色' : '新增角色'" :modal="true" class="p-fluid w-full md:w-40rem">
+  <Dialog v-model:visible="dialog" :header="editing ? '编辑角色' : '新增角色'" :modal="true" class="p-fluid w-full md:w-40rem">
     <div class="field">
-      <label for="name">角色名稱</label>
+      <label for="name">角色名称</label>
       <InputText id="name" v-model.trim="form.name" required="true" autofocus />
     </div>
     <div class="field">
-      <label>權限</label>
+      <label>权限</label>
       <PickList v-model="permissionsForPickList" listStyle="height:200px" dataKey="value">
-        <template #sourceheader>可選</template>
-        <template #targetheader>已選</template>
+        <template #sourceheader>可选</template>
+        <template #targetheader>已选</template>
         <template #item="slotProps">
           <span>{{ slotProps.item.label }}</span>
         </template>
       </PickList>
     </div>
     <div class="field">
-      <label>選單</label>
+      <label>菜单</label>
        <PickList v-model="menusForPickList" listStyle="height:200px" dataKey="value">
-        <template #sourceheader>可選</template>
-        <template #targetheader>已選</template>
+        <template #sourceheader>可选</template>
+        <template #targetheader>已选</template>
         <template #item="slotProps">
           <span>{{ slotProps.item.label }}</span>
         </template>

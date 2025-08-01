@@ -3,8 +3,8 @@
   <Card>
     <template #title>
       <div class="flex justify-content-between align-items-center">
-        <h1 class="text-2xl font-bold">標籤管理</h1>
-        <Button label="新增標籤" icon="pi pi-plus" @click="openCreate" />
+        <h1 class="text-2xl font-bold">标签管理</h1>
+        <Button label="新增标签" icon="pi pi-plus" @click="openCreate" />
       </div>
     </template>
     <template #content>
@@ -20,9 +20,9 @@
     </template>
   </Card>
 
-  <Dialog v-model:visible="dialog" :header="editing ? '編輯標籤' : '新增標籤'" :modal="true" class="p-fluid w-full md:w-20rem">
+  <Dialog v-model:visible="dialog" :header="editing ? '编辑标签' : '新增标签'" :modal="true" class="p-fluid w-full md:w-20rem">
     <div class="field">
-      <label for="name">標籤名稱</label>
+      <label for="name">标签名称</label>
       <InputText id="name" v-model.trim="form.name" required="true" autofocus />
     </div>
     <template #footer>
@@ -109,8 +109,8 @@ const submit = async () => {
 
 const confirmDeleteTag = (tag) => {
   confirm.require({
-    message: `確定要刪除「${tag.name}」嗎？`,
-    header: '刪除確認',
+    message: `确定要删除「${tag.name}」吗？`,
+    header: '删除确认',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
     accept: async () => {

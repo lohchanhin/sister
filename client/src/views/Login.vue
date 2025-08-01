@@ -2,14 +2,14 @@
   <div class="login-page">
     <Card class="login-card">
       <template #title>
-        <div class="text-center text-2xl font-bold">系統登入</div>
+        <div class="text-center text-2xl font-bold">系统登录</div>
       </template>
       <template #content>
         <form @submit.prevent="onSubmit" class="p-fluid">
           <div class="field">
             <span class="p-input-icon-left">
               <i class="pi pi-user" />
-              <InputText id="username" v-model="username" placeholder="使用者名稱" />
+              <InputText id="username" v-model="username" placeholder="使用者名称" />
             </span>
           </div>
           <div class="field">
@@ -18,13 +18,13 @@
               <Password
                 id="password"
                 v-model="password"
-                placeholder="密碼"
+                placeholder="密码"
                 :feedback="false"
                 toggleMask
               />
             </span>
           </div>
-          <Button type="submit" label="登入" class="w-full mt-4" />
+          <Button type="submit" label="登录" class="w-full mt-4" />
         </form>
       </template>
     </Card>
@@ -51,7 +51,7 @@ const onSubmit = async () => {
     await store.login(username.value, password.value)
     router.push(route.query.redirect || '/')
   } catch (e) {
-    // 可以在這裡觸發 PrimeVue 的 Toast 來顯示錯誤
+    // 可以在这里触发 PrimeVue 的 Toast 来显示错误
     console.error('Login failed:', e)
   }
 }
