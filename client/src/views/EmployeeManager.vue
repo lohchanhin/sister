@@ -3,13 +3,13 @@
   <Card>
     <template #title>
       <div class="flex justify-content-between align-items-center">
-        <h1 class="text-2xl font-bold">員工帳號管理</h1>
-        <Button label="新增帳號" icon="pi pi-plus" @click="openCreate" />
+        <h1 class="text-2xl font-bold">员工帐号管理</h1>
+        <Button label="新增帐号" icon="pi pi-plus" @click="openCreate" />
       </div>
     </template>
     <template #content>
       <DataTable :value="users" :loading="loading" responsiveLayout="scroll">
-        <Column field="username" header="登入帳號" :sortable="true"></Column>
+        <Column field="username" header="登录帐号" :sortable="true"></Column>
         <Column field="name" header="姓名" :sortable="true"></Column>
         <Column field="email" header="Email" :sortable="true"></Column>
         <Column field="role" header="角色" :sortable="true">
@@ -27,9 +27,9 @@
     </template>
   </Card>
 
-  <Dialog v-model:visible="dialog" :header="editing ? '編輯帳號' : '新增帳號'" :modal="true" class="p-fluid w-full md:w-30rem">
+  <Dialog v-model:visible="dialog" :header="editing ? '编辑帐号' : '新增帐号'" :modal="true" class="p-fluid w-full md:w-30rem">
     <div class="field">
-      <label for="username">登入帳號</label>
+      <label for="username">登录帐号</label>
       <InputText id="username" v-model.trim="form.username" required="true" autofocus />
     </div>
     <div class="field">
@@ -46,7 +46,7 @@
     </div>
     <div class="field">
       <label for="password">密碼</label>
-      <Password id="password" v-model="form.password" :placeholder="editing ? '留空則不變' : ''" :feedback="false" toggleMask />
+      <Password id="password" v-model="form.password" :placeholder="editing ? '留空则不变' : ''" :feedback="false" toggleMask />
     </div>
     <template #footer>
       <Button label="取消" icon="pi pi-times" class="p-button-text" @click="dialog = false"/>
@@ -150,8 +150,8 @@ const submit = async () => {
 
 const confirmDeleteUser = (user) => {
   confirm.require({
-    message: `確定要刪除「${user.name}」嗎？`,
-    header: '刪除確認',
+    message: `确定要删除「${user.name}」吗？`,
+    header: '删除确认',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
     accept: async () => {
