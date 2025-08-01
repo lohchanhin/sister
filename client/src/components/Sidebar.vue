@@ -138,7 +138,7 @@ const mainMenuItems = [
 const adminMenuItems = computed(() => {
   const items = [
     // 由於沒有獨立路由，統一導向 ad-clients
-    { path: '/ad-clients', label: '客戶管理', icon: 'pi pi-users' },
+    { path: '/ad-clients', label: '廣告數據', icon: 'pi pi-users' },
     { path: '/tags', label: '標籤管理', icon: 'pi pi-tags' }
   ]
   

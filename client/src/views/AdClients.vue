@@ -3,7 +3,7 @@
   <Card>
     <template #title>
       <div class="flex justify-content-between align-items-center">
-        <h1 class="text-2xl font-bold">客戶管理</h1>
+        <h1 class="text-2xl font-bold">廣告數據</h1>
         <Button label="新增客戶" icon="pi pi-plus" @click="openCreate" />
       </div>
     </template>
