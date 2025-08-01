@@ -22,7 +22,7 @@
             <i class="pi pi-heart-fill"></i>
           </div>
           <div v-if="!isCollapsed" class="brand-text">
-            <h2>Sister</h2>
+            <h2>Golden Goose Media</h2>
             <span class="brand-subtitle">管理系統</span>
           </div>
         </div>

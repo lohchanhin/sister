@@ -10,7 +10,7 @@
       <div class="mobile-header-title">
         <div class="mobile-brand">
           <i class="pi pi-heart-fill mobile-brand-icon"></i>
-          <h2 class="mobile-brand-text">Sister</h2>
+          <h2 class="mobile-brand-text">Golden Goose Media</h2>
         </div>
       </div>
       <div class="mobile-header-actions">
