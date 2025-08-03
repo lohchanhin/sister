@@ -175,6 +175,30 @@ describe('Client and AdDaily', () => {
     expect(res.body[1].extraData).toEqual({ metric: 2 })
   })
 
+  it('sort adDaily by spent desc', async () => {
+    const records = [
+      { date: new Date('2024-06-01').toISOString(), spent: 5 },
+      { date: new Date('2024-06-02').toISOString(), spent: 20 },
+      { date: new Date('2024-06-03').toISOString(), spent: 10 }
+    ]
+    for (const r of records) {
+      await request(app)
+        .post(`/api/clients/${clientId}/platforms/${platformId}/ad-daily`)
+        .set('Authorization', `Bearer ${token}`)
+        .send(r)
+        .expect(201)
+    }
+
+    const res = await request(app)
+      .get(
+        `/api/clients/${clientId}/platforms/${platformId}/ad-daily?start=2024-06-01&end=2024-06-03&sort=spent&order=desc`
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    const spent = res.body.map(r => r.spent)
+    expect(spent).toEqual([20, 10, 5])
+  })
+
   it('update and delete adDaily', async () => {
     const create = await request(app)
       .post(`/api/clients/${clientId}/platforms/${platformId}/ad-daily`)

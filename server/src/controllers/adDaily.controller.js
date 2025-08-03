@@ -50,11 +50,16 @@ export const getAdDaily = async (req, res) => {
   if (req.query.start && req.query.end) {
     query.date = { $gte: new Date(req.query.start), $lte: new Date(req.query.end) }
   }
-  const cacheKey = `adDaily:${req.params.clientId}:${req.params.platformId}:${JSON.stringify(query)}`
+  const sortFields = ['date', 'spent', 'enquiries', 'reach', 'impressions', 'clicks']
+  let sortObj = { date: 1 }
+  if (req.query.sort && sortFields.includes(req.query.sort)) {
+    sortObj = { [req.query.sort]: req.query.order === 'desc' ? -1 : 1 }
+  }
+  const cacheKey = `adDaily:${req.params.clientId}:${req.params.platformId}:${JSON.stringify(query)}:${JSON.stringify(sortObj)}`
   const cached = await getCache(cacheKey)
   if (cached) return res.json(cached)
 
-  const list = await AdDaily.find(query).sort({ date: 1 })
+  const list = await AdDaily.find(query).sort(sortObj)
   await setCache(cacheKey, list)
   res.json(list)
 }
