@@ -499,45 +499,6 @@ onUnmounted(() => {
   }
 }
 
-/* Dark theme */
-:global(.dark-theme) .layout-wrapper {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-}
-
-:global(.dark-theme) .mobile-header {
-  background: rgba(15, 23, 42, 0.95);
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-:global(.dark-theme) .desktop-header {
-  background: rgba(15, 23, 42, 0.8);
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-:global(.dark-theme) .page-title {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-:global(.dark-theme) .user-profile-dropdown {
-  background: rgba(15, 23, 42, 0.8);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-:global(.dark-theme) .user-profile-dropdown:hover {
-  background: rgba(15, 23, 42, 0.95);
-}
-
-:global(.dark-theme) .user-name {
-  color: #f8fafc;
-}
-
-:global(.dark-theme) .breadcrumb-item {
-  color: #94a3b8;
-}
-
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
   .content-container,
