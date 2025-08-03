@@ -50,7 +50,6 @@ export const getSummary = async (req, res) => {
   /* -------- 最近成品及進度 -------- */
   const productDocs = await Asset.find({ type: 'edited' })
     .sort({ createdAt: -1 })
-    .limit(7)
     .populate('uploadedBy', 'username name')
     .lean()
 
