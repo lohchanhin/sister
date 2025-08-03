@@ -10,7 +10,7 @@
       <div class="mobile-header-title">
         <div class="mobile-brand">
           <i class="pi pi-heart-fill mobile-brand-icon"></i>
-          <h2 class="mobile-brand-text">Sister</h2>
+          <h2 class="mobile-brand-text">Golden Goose Media</h2>
         </div>
       </div>
       <div class="mobile-header-actions">
@@ -129,13 +129,17 @@ const showQuickActions = ref(false)
 
 const getPageTitle = () => {
   const path = route.path.substring(1)
-  return MENU_NAMES[path] || '儀表板'
+  const menuKey = route.meta.menu || path
+  return MENU_NAMES[menuKey] || '儀表板'
 }
 
 const getBreadcrumb = () => {
   const path = route.path.substring(1)
   const segments = path.split('/')
-  return segments.length > 1 ? `${MENU_NAMES[segments[0]]} / ${segments[1]}` : MENU_NAMES[path] || '首頁'
+  const menuKey = route.meta.menu || segments[0]
+  return segments.length > 1
+    ? `${MENU_NAMES[menuKey]} / ${segments.slice(1).join('/')}`
+    : MENU_NAMES[menuKey] || '首頁'
 }
 
 const onToggleCollapse = (collapsed) => {

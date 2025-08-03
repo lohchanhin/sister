@@ -1,3 +1,4 @@
+import { t } from '../i18n/messages.js'
 import Asset from '../models/asset.model.js';
 import { getAssets } from './asset.controller.js';
 import path from 'node:path';
@@ -15,7 +16,7 @@ export const getProducts = async (req, res) => {
 export const batchDownload = async (req, res) => {
   const { ids } = req.body;
   if (!Array.isArray(ids) || !ids.length) {
-    return res.status(400).json({ message: '參數錯誤' });
+    return res.status(400).json({ message: t('PARAMS_ERROR') });
   }
 
   const progressId = Date.now().toString(36) + Math.random().toString(36).slice(2);

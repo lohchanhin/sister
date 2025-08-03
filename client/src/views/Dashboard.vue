@@ -52,7 +52,7 @@
             <div class="card-header">
               <div class="card-title">
                 <i class="pi pi-box mr-2"></i>
-                近期成品進度
+                成品進度
               </div>
               <Button 
                 label="查看全部" 
@@ -64,10 +64,9 @@
           </template>
           <template #content>
             <div v-if="!isMobile" class="table-container">
-              <DataTable 
-                :value="recentProducts" 
-                :rows="5" 
-                responsiveLayout="scroll" 
+              <DataTable
+                :value="recentProducts"
+                responsiveLayout="scroll"
                 emptyMessage="尚無成品"
                 class="modern-table"
               >
@@ -423,7 +422,7 @@ async function fetchDashboard() {
   const { data } = await api.get('/dashboard/summary')
   recentAssets.value = structuredClone(data.recentAssets)
   recentReviews.value = structuredClone(data.recentReviews)
-  recentProducts.value = structuredClone(data.recentProducts)
+  recentProducts.value = structuredClone(data.recentProducts) // 取得完整成品列表
   assetStats.value = { ...data.assetStats }
   refreshKey.value++                         // 觸發 DataTable 重繪
 }

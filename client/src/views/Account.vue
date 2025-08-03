@@ -2,12 +2,12 @@
 <template>
   <Card class="w-full md:w-30rem">
     <template #title>
-      <h1 class="text-2xl font-bold">帳號資訊</h1>
+      <h1 class="text-2xl font-bold">帐号资讯</h1>
     </template>
     <template #content>
       <form @submit.prevent="onSubmit" class="p-fluid">
         <div class="field">
-          <label for="username">登入帳號</label>
+          <label for="username">登录帐号</label>
           <InputText id="username" v-model.trim="username" />
         </div>
         <div class="field">
@@ -20,7 +20,7 @@
         </div>
         <div class="field">
           <label for="password">新密碼</label>
-          <Password id="password" v-model="password" placeholder="留空則不變更" :feedback="false" toggleMask />
+          <Password id="password" v-model="password" placeholder="留空则不变更" :feedback="false" toggleMask />
         </div>
         <Button type="submit" label="更新資料" class="w-full mt-4" />
       </form>

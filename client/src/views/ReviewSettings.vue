@@ -3,15 +3,15 @@
   <Card>
     <template #title>
       <div class="flex justify-content-between align-items-center">
-        <h1 class="text-2xl font-bold">審查關卡設定</h1>
-        <Button label="新增關卡" icon="pi pi-plus" @click="openCreate" />
+        <h1 class="text-2xl font-bold">审查关卡设定</h1>
+        <Button label="新增关卡" icon="pi pi-plus" @click="openCreate" />
       </div>
     </template>
     <template #content>
       <DataTable :value="stages" :loading="loading" responsiveLayout="scroll">
-        <Column field="order" header="順序" :sortable="true" style="width: 80px"></Column>
+        <Column field="order" header="顺序" :sortable="true" style="width: 80px"></Column>
         <Column field="name" header="名稱" :sortable="true"></Column>
-        <Column field="responsible.username" header="負責人" :sortable="true"></Column>
+        <Column field="responsible.username" header="负责人" :sortable="true"></Column>
         <Column header="操作" :exportable="false" style="min-width:8rem">
           <template #body="{ data }">
             <Button icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" @click="openEdit(data)" />
@@ -22,18 +22,18 @@
     </template>
   </Card>
 
-  <Dialog v-model:visible="dialog" :header="editing ? '編輯關卡' : '新增關卡'" :modal="true" class="p-fluid w-full md:w-25rem">
+  <Dialog v-model:visible="dialog" :header="editing ? '编辑关卡' : '新增关卡'" :modal="true" class="p-fluid w-full md:w-25rem">
     <div class="field">
-      <label for="name">名稱</label>
+      <label for="name">名称</label>
       <InputText id="name" v-model.trim="form.name" required="true" autofocus />
     </div>
     <div class="field">
-      <label for="order">順序</label>
+      <label for="order">顺序</label>
       <InputNumber id="order" v-model="form.order" :min="1" />
     </div>
     <div class="field">
-      <label for="responsible">負責人</label>
-      <Dropdown id="responsible" v-model="form.responsible" :options="users" optionLabel="username" optionValue="_id" placeholder="選擇負責人" />
+      <label for="responsible">负责人</label>
+      <Dropdown id="responsible" v-model="form.responsible" :options="users" optionLabel="username" optionValue="_id" placeholder="选择负责人" />
     </div>
     <template #footer>
       <Button label="取消" icon="pi pi-times" class="p-button-text" @click="dialog = false"/>
@@ -132,8 +132,8 @@ const submit = async () => {
 
 const confirmDeleteStage = (stage) => {
   confirm.require({
-    message: `確定要刪除「${stage.name}」嗎？`,
-    header: '刪除確認',
+    message: `确定要删除「${stage.name}」吗？`,
+    header: '删除确认',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
     accept: async () => {

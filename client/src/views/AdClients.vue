@@ -3,13 +3,13 @@
   <Card>
     <template #title>
       <div class="flex justify-content-between align-items-center">
-        <h1 class="text-2xl font-bold">客戶管理</h1>
-        <Button label="新增客戶" icon="pi pi-plus" @click="openCreate" />
+        <h1 class="text-2xl font-bold">广告数据</h1>
+        <Button label="新增客户" icon="pi pi-plus" @click="openCreate" />
       </div>
     </template>
     <template #content>
       <DataTable :value="clients" :loading="loading" responsiveLayout="scroll">
-        <Column field="name" header="客戶名稱" :sortable="true"></Column>
+        <Column field="name" header="客户名称" :sortable="true"></Column>
         <Column header="操作" :exportable="false" style="min-width:12rem">
           <template #body="{ data }">
             <Button label="平台" icon="pi pi-sitemap" class="p-button-text p-button-info" @click="managePlatforms(data)" />
@@ -21,9 +21,9 @@
     </template>
   </Card>
 
-  <Dialog v-model:visible="dialog" :header="editing ? '編輯客戶' : '新增客戶'" :modal="true" class="p-fluid w-full md:w-20rem">
+  <Dialog v-model:visible="dialog" :header="editing ? '编辑客户' : '新增客户'" :modal="true" class="p-fluid w-full md:w-20rem">
     <div class="field">
-      <label for="name">客戶名稱</label>
+      <label for="name">客户名称</label>
       <InputText id="name" v-model.trim="form.name" required="true" autofocus />
     </div>
     <template #footer>
@@ -108,8 +108,8 @@ const managePlatforms = (client) => {
 
 const confirmDeleteClient = (client) => {
   confirm.require({
-    message: `確定要刪除「${client.name}」嗎？`,
-    header: '刪除確認',
+    message: `确定要删除「${client.name}」吗？`,
+    header: '删除确认',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
     accept: async () => {
