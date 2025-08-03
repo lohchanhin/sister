@@ -7,6 +7,8 @@
     <Button @click="router.back()" label="返回上層" />
     <h1 class="text-2xl font-bold">广告数据</h1>
 
+    <ProgressSpinner v-if="loading" />
+
     <TabView v-model:activeIndex="activeTabIndex">
       <!-- ──────────────────── 每日記錄 ──────────────────── -->
       <TabPanel header="每日記錄">
@@ -28,7 +30,7 @@
         </div>
 
         <!-- 每日表格 -->
-        <DataTable :value="dailyData" stripedRows style="width:100%" emptyMessage="尚無資料">
+        <DataTable :value="dailyData" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料">
           <Column field="date" header="日期" width="140">
             <template #body="{ data }">
               {{ dateFmt(data) }}
@@ -66,7 +68,7 @@
         </div>
 
         <!-- 週表格 -->
-        <DataTable :value="weeklyAgg" stripedRows style="width:100%" emptyMessage="尚無資料">
+        <DataTable :value="weeklyAgg" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料">
           <!-- 第一欄 -->
           <Column header="日期" width="200">
             <template #body="{ data }">
@@ -75,7 +77,7 @@
           </Column>
           <!-- 動態欄位總計 -->
           <Column v-for="field in numericColumns" :key="field" :header="field" width="100">
-            <template #body="{ data }">{{ data[field] }}</template>
+            <template #body="{ data }">{{ formatNumber(data[field]) }}</template>
           </Column>
 
           <!-- 圖片欄 -->
@@ -237,6 +239,7 @@ import Textarea from 'primevue/textarea';
 import Carousel from 'primevue/carousel';
 import Toast from 'primevue/toast';
 import ConfirmDialog from 'primevue/confirmdialog';
+import ProgressSpinner from 'primevue/progressspinner';
 
 /**** ------------------ API 服務（依專案實作，可替換為 axios 呼叫） ------------------ ****/
 import {
@@ -261,6 +264,8 @@ const { clientId, platformId } = useRoute().params
 const router = useRouter()
 const toast = useToast()
 const confirm = useConfirm()
+
+const loading = ref(false)
 
 const activeTab = ref('daily')
 const tabMap = { daily: 0, weekly: 1 }
@@ -334,8 +339,17 @@ const weeklyAgg = computed(() => {
       map[w].images = note?.images || []
     }
   })
+  // 四捨五入至小數點兩位
+  const arr = Object.values(map)
+  arr.forEach(week => {
+    customColumns.value.forEach(f => {
+      if (f.type === 'number' && typeof week[f.name] === 'number') {
+        week[f.name] = Number(week[f.name].toFixed(2))
+      }
+    })
+  })
   // 轉陣列並按週期排序
-  return Object.values(map).sort((a, b) => a.week.localeCompare(b.week))
+  return arr.sort((a, b) => a.week.localeCompare(b.week))
 })
 
 /**** 折線圖狀態 ****/
@@ -378,6 +392,12 @@ const formatWeekRange = (w) => {
   const start = base.startOf('isoWeek').format('YYYY/MM/DD')
   const end = base.endOf('isoWeek').format('YYYY/MM/DD')
   return `${start} - ${end}`
+}
+
+/* 數值 formatter，保留兩位小數 */
+const formatNumber = val => {
+  const num = Number(val || 0)
+  return num.toFixed(2)
 }
 
 
@@ -477,6 +497,7 @@ watch(activeTab, tab => {
 
 /**** --------------------------------------------------- 生命週期 --------------------------------------------------- ****/
 onMounted(async () => {
+  loading.value = true
   await loadPlatform()
   // 初始化 recordForm.extraData
   customColumns.value.forEach(f => {
@@ -485,6 +506,7 @@ onMounted(async () => {
   })
   await loadDaily()
   await loadWeeklyNotes()
+  loading.value = false
 })
 
 /**** --------------------------------------------------- CRUD：每日 --------------------------------------------------- ****/
