@@ -29,14 +29,22 @@
           </div>
         </div>
 
+        <!-- 排序 -->
+        <div class="flex items-center gap-2 mb-2">
+          <Dropdown v-model="sortField" :options="sortOptions" optionLabel="label" optionValue="value"
+            placeholder="排序欄位" class="w-40" showClear />
+          <Button size="small" @click="toggleOrder" :label="sortOrder === 1 ? '升序' : '降序'" />
+        </div>
+
         <!-- 每日表格 -->
-        <DataTable :value="dailyData" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料">
-          <Column field="date" header="日期" width="140">
+        <DataTable :value="dailyData" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料"
+          :sortField="sortField" :sortOrder="sortOrder">
+          <Column field="date" header="日期" width="140" sortable>
             <template #body="{ data }">
               {{ dateFmt(data) }}
             </template>
           </Column>
-          <Column v-for="field in customColumns" :key="field.name" :header="field.name">
+          <Column v-for="field in customColumns" :key="field.name" :field="'extraData.' + field.name" :header="field.name" sortable>
             <template #body="{ data }">
               <span v-if="field.type === 'date'" :style="{ backgroundColor: data.colors?.[field.name] }">
                 {{ formatExtraDate(data.extraData?.[field.name]) }}
@@ -292,6 +300,17 @@ const numericColumns = computed(() =>
   customColumns.value.filter(f => f.type === 'number').map(f => f.name)
 )
 
+/**** 排序狀態 ****/
+const sortField = ref('')
+const sortOrder = ref(1)
+const sortOptions = computed(() => [
+  { label: '日期', value: 'date' },
+  ...customColumns.value.map(f => ({ label: f.name, value: f.name }))
+])
+const toggleOrder = () => {
+  sortOrder.value = sortOrder.value === 1 ? -1 : 1
+}
+
 /**** 每日資料 ****/
 const dailyData = ref([])         // [{ date:'2025-06-16', extraData:{ 花費:100, 詢問:5 } }]
 const recordForm = ref({ date: '', extraData: {}, colors: {} })
@@ -448,7 +467,12 @@ const loadPlatform = async () => {
 }
 
 const loadDaily = async () => {
-  const list = await fetchDaily(clientId, platformId)
+  const params = {}
+  if (sortField.value) {
+    params.sort = sortField.value
+    params.order = sortOrder.value === 1 ? 'asc' : 'desc'
+  }
+  const list = await fetchDaily(clientId, platformId, params)
   dailyData.value = list
 }
 
@@ -459,6 +483,10 @@ const loadWeeklyNotes = async () => {
     return acc
   }, {})
 }
+
+watch([sortField, sortOrder], () => {
+  loadDaily()
+})
 
 /**** --------------------------------------------------- 折線圖繪製 --------------------------------------------------- ****/
 const drawChart = () => {
