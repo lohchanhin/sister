@@ -14,10 +14,9 @@
         </div>
       </div>
       <div class="mobile-header-actions">
-        <ThemeToggle />
         <div class="mobile-user-avatar">
-          <Avatar 
-            :label="store.user?.name?.charAt(0) || 'U'" 
+          <Avatar
+            :label="store.user?.name?.charAt(0) || 'U'"
             size="small"
             shape="circle"
           />
@@ -54,13 +53,12 @@
                 badge="3"
                 badgeClass="p-badge-danger"
               />
-              <ThemeToggle />
               <div class="user-profile-dropdown">
                 <div class="user-info">
-                  <Avatar 
-                    :label="store.user?.name?.charAt(0) || 'U'" 
-                    class="user-avatar" 
-                    shape="circle" 
+                  <Avatar
+                    :label="store.user?.name?.charAt(0) || 'U'"
+                    class="user-avatar"
+                    shape="circle"
                     size="normal"
                   />
                   <div class="user-details">
@@ -114,7 +112,6 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import Sidebar from '../components/Sidebar.vue'
 import ProgressTracker from '../components/ProgressTracker.vue'
-import ThemeToggle from '../components/ThemeToggle.vue'
 import Button from 'primevue/button'
 import Avatar from 'primevue/avatar'
 import { MENU_NAMES } from '../menuNames'
@@ -497,45 +494,6 @@ onUnmounted(() => {
     width: 3.5rem;
     height: 3.5rem;
   }
-}
-
-/* Dark theme */
-:global(.dark-theme) .layout-wrapper {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-}
-
-:global(.dark-theme) .mobile-header {
-  background: rgba(15, 23, 42, 0.95);
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-:global(.dark-theme) .desktop-header {
-  background: rgba(15, 23, 42, 0.8);
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-:global(.dark-theme) .page-title {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-:global(.dark-theme) .user-profile-dropdown {
-  background: rgba(15, 23, 42, 0.8);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-:global(.dark-theme) .user-profile-dropdown:hover {
-  background: rgba(15, 23, 42, 0.95);
-}
-
-:global(.dark-theme) .user-name {
-  color: #f8fafc;
-}
-
-:global(.dark-theme) .breadcrumb-item {
-  color: #94a3b8;
 }
 
 /* Accessibility */
