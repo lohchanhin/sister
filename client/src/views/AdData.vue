@@ -7,6 +7,8 @@
     <Button @click="router.back()" label="返回上層" />
     <h1 class="text-2xl font-bold">广告数据</h1>
 
+    <ProgressSpinner v-if="loading" />
+
     <TabView v-model:activeIndex="activeTabIndex">
       <!-- ──────────────────── 每日記錄 ──────────────────── -->
       <TabPanel header="每日記錄">
@@ -28,7 +30,7 @@
         </div>
 
         <!-- 每日表格 -->
-        <DataTable :value="dailyData" stripedRows style="width:100%" emptyMessage="尚無資料">
+        <DataTable :value="dailyData" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料">
           <Column field="date" header="日期" width="140">
             <template #body="{ data }">
               {{ dateFmt(data) }}
@@ -66,7 +68,7 @@
         </div>
 
         <!-- 週表格 -->
-        <DataTable :value="weeklyAgg" stripedRows style="width:100%" emptyMessage="尚無資料">
+        <DataTable :value="weeklyAgg" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料">
           <!-- 第一欄 -->
           <Column header="日期" width="200">
             <template #body="{ data }">
@@ -237,6 +239,7 @@ import Textarea from 'primevue/textarea';
 import Carousel from 'primevue/carousel';
 import Toast from 'primevue/toast';
 import ConfirmDialog from 'primevue/confirmdialog';
+import ProgressSpinner from 'primevue/progressspinner';
 
 /**** ------------------ API 服務（依專案實作，可替換為 axios 呼叫） ------------------ ****/
 import {
@@ -261,6 +264,8 @@ const { clientId, platformId } = useRoute().params
 const router = useRouter()
 const toast = useToast()
 const confirm = useConfirm()
+
+const loading = ref(false)
 
 const activeTab = ref('daily')
 const tabMap = { daily: 0, weekly: 1 }
@@ -492,6 +497,7 @@ watch(activeTab, tab => {
 
 /**** --------------------------------------------------- 生命週期 --------------------------------------------------- ****/
 onMounted(async () => {
+  loading.value = true
   await loadPlatform()
   // 初始化 recordForm.extraData
   customColumns.value.forEach(f => {
@@ -500,6 +506,7 @@ onMounted(async () => {
   })
   await loadDaily()
   await loadWeeklyNotes()
+  loading.value = false
 })
 
 /**** --------------------------------------------------- CRUD：每日 --------------------------------------------------- ****/
