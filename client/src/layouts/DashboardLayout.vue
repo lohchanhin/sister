@@ -14,10 +14,9 @@
         </div>
       </div>
       <div class="mobile-header-actions">
-        <ThemeToggle />
         <div class="mobile-user-avatar">
-          <Avatar 
-            :label="store.user?.name?.charAt(0) || 'U'" 
+          <Avatar
+            :label="store.user?.name?.charAt(0) || 'U'"
             size="small"
             shape="circle"
           />
@@ -54,13 +53,12 @@
                 badge="3"
                 badgeClass="p-badge-danger"
               />
-              <ThemeToggle />
               <div class="user-profile-dropdown">
                 <div class="user-info">
-                  <Avatar 
-                    :label="store.user?.name?.charAt(0) || 'U'" 
-                    class="user-avatar" 
-                    shape="circle" 
+                  <Avatar
+                    :label="store.user?.name?.charAt(0) || 'U'"
+                    class="user-avatar"
+                    shape="circle"
                     size="normal"
                   />
                   <div class="user-details">
@@ -114,7 +112,6 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import Sidebar from '../components/Sidebar.vue'
 import ProgressTracker from '../components/ProgressTracker.vue'
-import ThemeToggle from '../components/ThemeToggle.vue'
 import Button from 'primevue/button'
 import Avatar from 'primevue/avatar'
 import { MENU_NAMES } from '../menuNames'
