@@ -5,7 +5,7 @@
     <ConfirmDialog />
     <!-- ===== 返回上一頁 ===== -->
     <Button @click="router.back()" label="返回上層" />
-    <h1 class="text-2xl font-bold">廣告數據</h1>
+    <h1 class="text-2xl font-bold">广告数据</h1>
 
     <TabView v-model:activeIndex="activeTabIndex">
       <!-- ──────────────────── 每日記錄 ──────────────────── -->
