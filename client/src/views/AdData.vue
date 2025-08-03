@@ -21,8 +21,10 @@
             <Button label="Excel 格式說明" size="small" outlined @click="excelDialog = true" />
           </div>
 
-          <!-- 右：匯出 / 新增 / 說明 -->
+          <!-- 右：日期範圍 / 匯出 / 新增 / 說明 -->
           <div class="flex items-center gap-2">
+            <DatePicker v-model="startDate" placeholder="開始日期" />
+            <DatePicker v-model="endDate" placeholder="結束日期" />
             <Button label="匯出" size="small" @click="exportDaily" />
             <Button label="新增記錄" @click="openCreateDialog" />
             <Button icon="pi pi-info-circle" link size="small" @click="showHelp = true" />
@@ -312,6 +314,8 @@ const toggleOrder = () => {
 }
 
 /**** 每日資料 ****/
+const startDate = ref('')
+const endDate = ref('')
 const dailyData = ref([])         // [{ date:'2025-06-16', extraData:{ 花費:100, 詢問:5 } }]
 const recordForm = ref({ date: '', extraData: {}, colors: {} })
 
@@ -473,6 +477,7 @@ const loadDaily = async () => {
     params.order = sortOrder.value === 1 ? 'asc' : 'desc'
   }
   const list = await fetchDaily(clientId, platformId, params)
+
   dailyData.value = list
 }
 
@@ -484,8 +489,10 @@ const loadWeeklyNotes = async () => {
   }, {})
 }
 
+
 watch([sortField, sortOrder], () => {
   loadDaily()
+
 })
 
 /**** --------------------------------------------------- 折線圖繪製 --------------------------------------------------- ****/

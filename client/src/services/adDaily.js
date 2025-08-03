@@ -1,10 +1,12 @@
 import api from './api'
 
 
+
 export const fetchDaily = (clientId, platformId, params = {}) =>
   api
     .get(`/clients/${clientId}/platforms/${platformId}/ad-daily`, { params })
     .then(r => r.data)
+
 
 export const createDaily = (clientId, platformId, data) =>
   api.post(
