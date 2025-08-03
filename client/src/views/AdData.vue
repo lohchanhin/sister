@@ -75,7 +75,7 @@
           </Column>
           <!-- 動態欄位總計 -->
           <Column v-for="field in numericColumns" :key="field" :header="field" width="100">
-            <template #body="{ data }">{{ data[field] }}</template>
+            <template #body="{ data }">{{ formatNumber(data[field]) }}</template>
           </Column>
 
           <!-- 圖片欄 -->
@@ -334,8 +334,17 @@ const weeklyAgg = computed(() => {
       map[w].images = note?.images || []
     }
   })
+  // 四捨五入至小數點兩位
+  const arr = Object.values(map)
+  arr.forEach(week => {
+    customColumns.value.forEach(f => {
+      if (f.type === 'number' && typeof week[f.name] === 'number') {
+        week[f.name] = Number(week[f.name].toFixed(2))
+      }
+    })
+  })
   // 轉陣列並按週期排序
-  return Object.values(map).sort((a, b) => a.week.localeCompare(b.week))
+  return arr.sort((a, b) => a.week.localeCompare(b.week))
 })
 
 /**** 折線圖狀態 ****/
@@ -378,6 +387,12 @@ const formatWeekRange = (w) => {
   const start = base.startOf('isoWeek').format('YYYY/MM/DD')
   const end = base.endOf('isoWeek').format('YYYY/MM/DD')
   return `${start} - ${end}`
+}
+
+/* 數值 formatter，保留兩位小數 */
+const formatNumber = val => {
+  const num = Number(val || 0)
+  return num.toFixed(2)
 }
 
 
