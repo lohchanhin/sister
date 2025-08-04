@@ -5,7 +5,8 @@ export const fetchFolders = (
   tags = [],
   type,
   deep = false,
-  withProgress = false
+  withProgress = false,
+  sort
 ) => {
   const params = {}
   if (parentId) params.parentId = parentId
@@ -13,11 +14,9 @@ export const fetchFolders = (
   if (type) params.type = type
   if (deep) params.deep = 'true'
   if (withProgress) params.progress = 'true'
-  return api.get('/folders', { params }).then((res) =>
-    Array.isArray(res.data)
-      ? res.data.map(f => ({ ...f, newCount: f.newCount || 0 }))
-      : res.data
-  )
+  if (sort) params.sort = sort
+  return api.get('/folders', { params }).then((res) => res.data)
+
 
 }
 
