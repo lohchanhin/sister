@@ -475,8 +475,9 @@ const products = ref([])
 const currentFolder = ref(null)
 const newFolderName = ref('')
 const filterTags = ref([])
-const sortOrder = ref('updatedAt_desc')
+const sortOrder = ref('recentFirst')
 const sortOptions = [
+  { label: '最近更新優先', value: 'recentFirst' },
   { label: '更新時間（新→舊）', value: 'updatedAt_desc' },
   { label: '更新時間（舊→新）', value: 'updatedAt_asc' },
   { label: '名稱（A→Z）', value: 'name_asc' },
@@ -600,7 +601,12 @@ async function loadData(folderId = null) {
   try {
     const [folderData, productData, currentFolderData] = await Promise.all([
       fetchFolders(folderId, filterTags.value, 'edited', false, false, sortOrder.value),
-      fetchProducts(folderId, filterTags.value, false, sortOrder.value),
+      fetchProducts(
+        folderId,
+        filterTags.value,
+        false,
+        sortOrder.value === 'recentFirst' ? 'updatedAt_desc' : sortOrder.value
+      ),
       folderId ? getFolder(folderId) : Promise.resolve(null)
     ])
     folders.value = folderData
