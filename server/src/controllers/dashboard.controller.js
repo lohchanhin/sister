@@ -49,8 +49,8 @@ export const getSummary = async (req, res) => {
       updatedBy: r.updatedBy?.name || r.updatedBy?.username
     }))
 
-  /* -------- 最近成品及進度 -------- */
-  const productDocs = await Asset.find({ type: 'edited', createdAt: { $gte: since } })
+  /* -------- 成品及進度 -------- */
+  const productDocs = await Asset.find({ type: 'edited' })
     .sort({ createdAt: -1 })
     .populate('uploadedBy', 'username name')
     .lean()
