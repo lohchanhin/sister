@@ -341,7 +341,7 @@ onUnmounted(() => {
 }
 
 .notification-panel {
-  position: absolute;
+  position: fixed;
   top: 3.5rem;
   right: 0;
   width: 300px;
@@ -351,7 +351,7 @@ onUnmounted(() => {
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 0.5rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  z-index: 9999;
 }
 
 .notification-list {
