@@ -80,6 +80,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useNotificationStore } from '../stores/notifications'
 import Button from 'primevue/button'
 import Avatar from 'primevue/avatar'
 
@@ -95,17 +96,25 @@ const emit = defineEmits(['update:mobileVisible', 'toggle-collapse'])
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const notificationStore = useNotificationStore()
 
 const isCollapsed = ref(false)
 const isMobile = ref(window.innerWidth <= 991)
 
-const mainMenuItems = [
+const mainMenuItems = computed(() => [
   { path: '/dashboard', label: '仪表板', icon: 'pi pi-home', badge: null },
   { path: '/assets', label: '素材库', icon: 'pi pi-images', badge: null },
-  { path: '/products', label: '成品区', icon: 'pi pi-box', badge: '3' },
+  {
+    path: '/products',
+    label: '成品区',
+    icon: 'pi pi-box',
+    badge: notificationStore.productUnreadCount > 0
+      ? String(notificationStore.productUnreadCount)
+      : null
+  },
 
   // { path: '/ad-data', label: '广告数据', icon: 'pi pi-chart-line', badge: null }
-]
+])
 
 const adminMenuItems = computed(() => {
   const items = [
