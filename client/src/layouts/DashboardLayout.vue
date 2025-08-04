@@ -46,13 +46,32 @@
           </div>
           <div class="header-right">
             <div class="header-actions">
-              <Button
-                icon="pi pi-bell"
-                class="p-button-text p-button-rounded notification-btn"
-                v-tooltip.bottom="'通知'"
-                badge="3"
-                badgeClass="p-badge-danger"
-              />
+              <div class="notification-wrapper">
+                <Button
+                  icon="pi pi-bell"
+                  class="p-button-text p-button-rounded notification-btn"
+                  v-tooltip.bottom="'通知'"
+                  :badge="notificationStore.unreadCount || null"
+                  badgeClass="p-badge-danger"
+                  @click="toggleNotifications"
+                />
+                <div v-if="showNotifications" class="notification-panel">
+                  <ul class="notification-list">
+                    <li
+                      v-for="n in notificationStore.list"
+                      :key="n.id"
+                      :class="{ unread: !n.read }"
+                    >
+                      <router-link :to="n.link" @click="handleNotificationClick(n)">
+                        {{ n.title }}
+                      </router-link>
+                    </li>
+                    <li v-if="notificationStore.list.length === 0" class="empty">
+                      無通知
+                    </li>
+                  </ul>
+                </div>
+              </div>
               <div class="user-profile-dropdown">
                 <div class="user-info">
                   <Avatar
@@ -107,9 +126,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useNotificationStore } from '../stores/notifications'
 import Sidebar from '../components/Sidebar.vue'
 import ProgressTracker from '../components/ProgressTracker.vue'
 import Button from 'primevue/button'
@@ -117,12 +137,14 @@ import Avatar from 'primevue/avatar'
 import { MENU_NAMES } from '../menuNames'
 
 const store = useAuthStore()
+const notificationStore = useNotificationStore()
 const route = useRoute()
 
 const isCollapsed = ref(false)
 const mobileSidebarVisible = ref(false)
 const isMobile = ref(window.innerWidth <= 991)
 const showQuickActions = ref(false)
+const showNotifications = ref(false)
 
 const getPageTitle = () => {
   const path = route.path.substring(1)
@@ -147,6 +169,15 @@ const toggleMobileSidebar = () => {
   mobileSidebarVisible.value = !mobileSidebarVisible.value
 }
 
+const toggleNotifications = () => {
+  showNotifications.value = !showNotifications.value
+}
+
+const handleNotificationClick = n => {
+  notificationStore.markAsRead(n.id)
+  showNotifications.value = false
+}
+
 const handleResize = () => {
   isMobile.value = window.innerWidth <= 991
   if (!isMobile.value) {
@@ -157,6 +188,7 @@ const handleResize = () => {
 
 onMounted(() => {
   store.fetchProfile()
+  notificationStore.fetch()
   window.addEventListener('resize', handleResize)
 })
 
@@ -302,6 +334,44 @@ onUnmounted(() => {
 .notification-btn:hover {
   background: rgba(102, 126, 234, 0.2);
   transform: scale(1.05);
+}
+
+.notification-wrapper {
+  position: relative;
+}
+
+.notification-panel {
+  position: absolute;
+  top: 3.5rem;
+  right: 0;
+  width: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}
+
+.notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notification-list li {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.notification-list li.unread {
+  background: #f1f5f9;
+}
+
+.notification-list li.empty {
+  text-align: center;
+  color: #64748b;
 }
 
 .user-profile-dropdown {
