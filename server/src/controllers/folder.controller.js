@@ -102,8 +102,9 @@ export const getFolders = async (req, res) => {
   const folderIds = result.map(f => f._id)
   let countMap = {}
   if (folderIds.length) {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000)
     const counts = await Asset.aggregate([
-      { $match: { folderId: { $in: folderIds }, type: 'edited', reviewStatus: 'pending' } },
+      { $match: { folderId: { $in: folderIds }, type: 'edited', reviewStatus: 'pending', updatedAt: { $gte: cutoff } } },
       { $group: { _id: '$folderId', count: { $sum: 1 } } }
     ])
     counts.forEach(c => {
