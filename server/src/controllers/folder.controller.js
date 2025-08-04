@@ -76,17 +76,27 @@ export const getFolders = async (req, res) => {
     query.tags = { $all: tags }
   }
   const sortParam = req.query.sort || 'updatedAt_desc'
-  const [sortField, sortOrder] = sortParam.split('_')
-  const sort = { [sortField]: sortOrder === 'asc' ? 1 : -1 }
+  let foldersQuery = Folder.find(query).populate('createdBy', 'username name')
+  if (sortParam === 'recentFirst') {
+    foldersQuery = foldersQuery.sort({ updatedAt: -1 })
+  } else {
+    const [sortField, sortOrder] = sortParam.split('_')
+    const sort = { [sortField]: sortOrder === 'asc' ? 1 : -1 }
+    foldersQuery = foldersQuery.sort(sort)
+  }
 
-  const folders = await Folder.find(query)
-    .sort(sort)
-    .populate('createdBy', 'username name')
-  let result = folders
+  let result = await foldersQuery
   if (req.user.roleId?.name !== 'manager') {
-    result = folders.filter(f =>
+    result = result.filter(f =>
       !f.allowedUsers?.length || f.allowedUsers.some(id => id.equals(req.user._id))
     )
+  }
+
+  if (sortParam === 'recentFirst') {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const recent = result.filter(f => f.updatedAt >= cutoff)
+    const older = result.filter(f => f.updatedAt < cutoff)
+    result = [...recent, ...older]
   }
   // Count new edited assets (reviewStatus pending) for each folder
   const folderIds = result.map(f => f._id)
