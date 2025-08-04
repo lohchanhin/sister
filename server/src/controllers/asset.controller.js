@@ -256,7 +256,8 @@ export const deleteAsset = async (req, res) => {
 /* ---------- 依 limit 取得最新素材 ---------- */
 export const getRecentAssets = async (req, res) => {
   const limit = Number(req.query.limit) || 5
-  const query = {}
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+  const query = { createdAt: { $gte: since } }
   const assets = await Asset.find(query)
     .sort({ createdAt: -1 })
     .limit(limit)
