@@ -17,6 +17,7 @@ export const fetchFolders = (
   if (sort) params.sort = sort
   return api.get('/folders', { params }).then((res) => res.data)
 
+
 }
 
 export const createFolder = (data, type) => {

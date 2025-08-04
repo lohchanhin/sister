@@ -88,6 +88,18 @@ export const getFolders = async (req, res) => {
       !f.allowedUsers?.length || f.allowedUsers.some(id => id.equals(req.user._id))
     )
   }
+  // Count new edited assets (reviewStatus pending) for each folder
+  const folderIds = result.map(f => f._id)
+  let countMap = {}
+  if (folderIds.length) {
+    const counts = await Asset.aggregate([
+      { $match: { folderId: { $in: folderIds }, type: 'edited', reviewStatus: 'pending' } },
+      { $group: { _id: '$folderId', count: { $sum: 1 } } }
+    ])
+    counts.forEach(c => {
+      countMap[c._id.toString()] = c.count
+    })
+  }
 
   if (req.query.progress === 'true') {
     const total = await ReviewStage.countDocuments()
@@ -96,14 +108,15 @@ export const getFolders = async (req, res) => {
       { $match: { folderId: { $in: ids }, completed: true } },
       { $group: { _id: '$folderId', done: { $sum: 1 } } }
     ])
-    const map = {}
+    const progressMap = {}
     records.forEach(r => {
-      map[r._id.toString()] = r.done
+      progressMap[r._id.toString()] = r.done
     })
     const data = result.map(f => ({
       ...f.toObject(),
-      progress: { done: map[f._id.toString()] || 0, total },
-      creatorName: f.createdBy?.name || f.createdBy?.username
+      progress: { done: progressMap[f._id.toString()] || 0, total },
+      creatorName: f.createdBy?.name || f.createdBy?.username,
+      newCount: countMap[f._id.toString()] || 0
     }))
     await setCache(cacheKey, data)
     return res.json(data)
@@ -111,7 +124,8 @@ export const getFolders = async (req, res) => {
 
   const data = result.map(f => ({
     ...f.toObject(),
-    creatorName: f.createdBy?.name || f.createdBy?.username
+    creatorName: f.createdBy?.name || f.createdBy?.username,
+    newCount: countMap[f._id.toString()] || 0
   }))
   await setCache(cacheKey, data)
   res.json(data)
