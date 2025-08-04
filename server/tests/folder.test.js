@@ -176,16 +176,48 @@ describe('Batch update folder viewers', () => {
 })
 
 
-describe('Folder review', () => {
-  it('update reviewStatus', async () => {
-    const res = await request(app)
-      .put(`/api/folders/${folderId}/review`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({ reviewStatus: 'approved' })
-      .expect(200)
-    expect(res.body.reviewStatus).toBe('approved')
+  describe('Folder review', () => {
+    it('update reviewStatus', async () => {
+      const res = await request(app)
+        .put(`/api/folders/${folderId}/review`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ reviewStatus: 'approved' })
+        .expect(200)
+      expect(res.body.reviewStatus).toBe('approved')
+    })
+  })
 
-describe('Delete folder', () => {
+  describe('Folder sorting', () => {
+    let f1, f2
+
+    beforeAll(async () => {
+      f1 = await Folder.create({ name: 'A-folder', tags: ['sorttest'] })
+      await Folder.findByIdAndUpdate(f1._id, { updatedAt: new Date(Date.now() - 1000) })
+      f2 = await Folder.create({ name: 'B-folder', tags: ['sorttest'] })
+    })
+
+    it('default sort by updatedAt desc', async () => {
+      const res = await request(app)
+        .get('/api/folders')
+        .query({ tags: 'sorttest' })
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200)
+      expect(res.body[0]._id).toBe(f2._id.toString())
+      expect(res.body[1]._id).toBe(f1._id.toString())
+    })
+
+    it('sort by name asc', async () => {
+      const res = await request(app)
+        .get('/api/folders')
+        .query({ tags: 'sorttest', sort: 'name_asc' })
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200)
+      expect(res.body[0]._id).toBe(f1._id.toString())
+      expect(res.body[1]._id).toBe(f2._id.toString())
+    })
+  })
+
+  describe('Delete folder', () => {
   it('should remove subfolders and assets', async () => {
     const child = await Folder.create({ name: 'c1', parentId: folderId })
     const grand = await Folder.create({ name: 'c2', parentId: child._id })

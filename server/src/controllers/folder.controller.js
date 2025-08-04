@@ -75,7 +75,13 @@ export const getFolders = async (req, res) => {
       : req.query.tags.split(',')
     query.tags = { $all: tags }
   }
-  const folders = await Folder.find(query).populate('createdBy', 'username name')
+  const sortParam = req.query.sort || 'updatedAt_desc'
+  const [sortField, sortOrder] = sortParam.split('_')
+  const sort = { [sortField]: sortOrder === 'asc' ? 1 : -1 }
+
+  const folders = await Folder.find(query)
+    .sort(sort)
+    .populate('createdBy', 'username name')
   let result = folders
   if (req.user.roleId?.name !== 'manager') {
     result = folders.filter(f =>

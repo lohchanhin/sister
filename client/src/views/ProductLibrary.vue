@@ -56,17 +56,25 @@
           </div>
         </div>
         <div class="toolbar-right">
-          <MultiSelect 
-            v-model="filterTags" 
-            :options="allTags" 
-            placeholder="篩選標籤" 
+          <MultiSelect
+            v-model="filterTags"
+            :options="allTags"
+            placeholder="篩選標籤"
             class="tag-filter"
             :maxSelectedLabels="2"
           />
+          <Dropdown
+            v-model="sortOrder"
+            :options="sortOptions"
+            optionLabel="label"
+            optionValue="value"
+            class="sort-select"
+            @change="loadData(currentFolder?._id)"
+          />
           <div class="view-controls">
-            <Button 
-              icon="pi pi-th-large" 
-              @click="viewMode = 'grid'" 
+            <Button
+              icon="pi pi-th-large"
+              @click="viewMode = 'grid'"
               :class="{'active': viewMode === 'grid'}"
               class="view-btn"
               v-tooltip.bottom="'網格檢視'"
@@ -460,6 +468,13 @@ const products = ref([])
 const currentFolder = ref(null)
 const newFolderName = ref('')
 const filterTags = ref([])
+const sortOrder = ref('updatedAt_desc')
+const sortOptions = [
+  { label: '更新時間（新→舊）', value: 'updatedAt_desc' },
+  { label: '更新時間（舊→新）', value: 'updatedAt_asc' },
+  { label: '名稱（A→Z）', value: 'name_asc' },
+  { label: '名稱（Z→A）', value: 'name_desc' }
+]
 const allTags = ref([])
 const users = ref([])
 const viewMode = ref('grid')
@@ -577,8 +592,8 @@ async function loadData(folderId = null) {
   loading.value = true
   try {
     const [folderData, productData, currentFolderData] = await Promise.all([
-      fetchFolders(folderId, filterTags.value, 'edited'),
-      fetchProducts(folderId, filterTags.value),
+      fetchFolders(folderId, filterTags.value, 'edited', false, false, sortOrder.value),
+      fetchProducts(folderId, filterTags.value, false, sortOrder.value),
       folderId ? getFolder(folderId) : Promise.resolve(null)
     ])
     folders.value = folderData
@@ -840,6 +855,7 @@ onMounted(() => {
 
 watch(() => route.params.folderId, (newId) => loadData(newId || null))
 watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
+watch(sortOrder, () => loadData(currentFolder.value?._id))
 </script>
 
 <style scoped>
