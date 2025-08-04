@@ -204,7 +204,10 @@
                   <i :class="getItemIcon(item)" class="preview-icon"></i>
                 </div>
                 <div class="item-info">
-                  <h4 class="item-title">{{ item.name }}</h4>
+                  <div class="item-title-wrapper">
+                    <h4 class="item-title">{{ item.name }}</h4>
+                    <Badge v-if="item.type === 'folder' && item.newCount" :value="item.newCount" class="new-count-badge" />
+                  </div>
                   <div class="item-meta">
                     <span class="meta-date">建於: {{ formatDate(item.createdAt) }}</span>
                     <span class="meta-creator">由: {{ item.creatorName || item.uploaderName }}</span>
@@ -259,7 +262,10 @@
               </div>
               <div class="item-details" @click="handleItemClick(item)">
                 <div class="details-main">
-                  <h4 class="item-title">{{ item.name }}</h4>
+                  <div class="item-title-wrapper">
+                    <h4 class="item-title">{{ item.name }}</h4>
+                    <Badge v-if="item.type === 'folder' && item.newCount" :value="item.newCount" class="new-count-badge" />
+                  </div>
                   <div class="item-tags" v-if="item.tags?.length || item.reviewStatus">
                     <Tag v-if="item.reviewStatus" :value="item.reviewStatus" :severity="getStatusSeverity(item.reviewStatus)" class="item-tag status-tag" />
                     <Tag 
@@ -445,6 +451,7 @@ import Tag from 'primevue/tag'
 import SplitButton from 'primevue/splitbutton'
 import Toast from 'primevue/toast'
 import Dropdown from 'primevue/dropdown'
+import Badge from 'primevue/badge'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -1187,6 +1194,12 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
   width: 100%;
 }
 
+.item-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .item-title {
   margin: 0 0 1rem 0;
   font-size: 1.125rem;
@@ -1316,6 +1329,11 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 
 .details-main {
   margin-bottom: 0.75rem;
+}
+
+.new-count-badge {
+  background: #22c55e;
+  color: #fff;
 }
 
 .item-title {
