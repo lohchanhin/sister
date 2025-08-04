@@ -6,7 +6,9 @@ export const useNotificationStore = defineStore('notifications', {
     list: []
   }),
   getters: {
-    unreadCount: state => state.list.filter(n => !n.read).length
+    unreadCount: state => state.list.filter(n => !n.read).length,
+    productUnreadCount: state =>
+      state.list.filter(n => !n.read && n.link === '/products').length
   },
   actions: {
     async fetch() {
