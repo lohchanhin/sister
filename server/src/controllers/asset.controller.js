@@ -117,7 +117,13 @@ export const getAssets = async (req, res) => {
     query.tags = { $all: tags }
   }
 
+  const sortParam = req.query.sort || 'updatedAt_desc'
+  const [sortField, sortOrder] = sortParam.split('_')
+  const fieldMap = { name: 'title' }
+  const sort = { [fieldMap[sortField] || sortField]: sortOrder === 'asc' ? 1 : -1 }
+
   const assets = await Asset.find(query)
+    .sort(sort)
     .populate('uploadedBy', 'username name')
 
   const filtered = assets.filter(a =>

@@ -56,17 +56,25 @@
           </div>
         </div>
         <div class="toolbar-right">
-          <MultiSelect 
-            v-model="filterTags" 
-            :options="allTags" 
-            placeholder="篩選標籤" 
+          <MultiSelect
+            v-model="filterTags"
+            :options="allTags"
+            placeholder="篩選標籤"
             class="tag-filter"
             :maxSelectedLabels="2"
           />
+          <Dropdown
+            v-model="sortOrder"
+            :options="sortOptions"
+            optionLabel="label"
+            optionValue="value"
+            class="sort-select"
+            @change="loadData(currentFolder?._id)"
+          />
           <div class="view-controls">
-            <Button 
-              icon="pi pi-th-large" 
-              @click="viewMode = 'grid'" 
+            <Button
+              icon="pi pi-th-large"
+              @click="viewMode = 'grid'"
               :class="{'active': viewMode === 'grid'}"
               class="view-btn"
               v-tooltip.bottom="'網格檢視'"
@@ -204,7 +212,10 @@
                   <i :class="getItemIcon(item)" class="preview-icon"></i>
                 </div>
                 <div class="item-info">
-                  <h4 class="item-title">{{ item.name }}</h4>
+                  <div class="item-title-wrapper">
+                    <h4 class="item-title">{{ item.name }}</h4>
+                    <Badge v-if="item.type === 'folder' && item.newCount" :value="item.newCount" class="new-count-badge" />
+                  </div>
                   <div class="item-meta">
                     <span class="meta-date">建於: {{ formatDate(item.createdAt) }}</span>
                     <span class="meta-creator">由: {{ item.creatorName || item.uploaderName }}</span>
@@ -259,7 +270,10 @@
               </div>
               <div class="item-details" @click="handleItemClick(item)">
                 <div class="details-main">
-                  <h4 class="item-title">{{ item.name }}</h4>
+                  <div class="item-title-wrapper">
+                    <h4 class="item-title">{{ item.name }}</h4>
+                    <Badge v-if="item.type === 'folder' && item.newCount" :value="item.newCount" class="new-count-badge" />
+                  </div>
                   <div class="item-tags" v-if="item.tags?.length || item.reviewStatus">
                     <Tag v-if="item.reviewStatus" :value="item.reviewStatus" :severity="getStatusSeverity(item.reviewStatus)" class="item-tag status-tag" />
                     <Tag 
@@ -445,6 +459,7 @@ import Tag from 'primevue/tag'
 import SplitButton from 'primevue/splitbutton'
 import Toast from 'primevue/toast'
 import Dropdown from 'primevue/dropdown'
+import Badge from 'primevue/badge'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -460,6 +475,13 @@ const products = ref([])
 const currentFolder = ref(null)
 const newFolderName = ref('')
 const filterTags = ref([])
+const sortOrder = ref('updatedAt_desc')
+const sortOptions = [
+  { label: '更新時間（新→舊）', value: 'updatedAt_desc' },
+  { label: '更新時間（舊→新）', value: 'updatedAt_asc' },
+  { label: '名稱（A→Z）', value: 'name_asc' },
+  { label: '名稱（Z→A）', value: 'name_desc' }
+]
 const allTags = ref([])
 const users = ref([])
 const viewMode = ref('grid')
@@ -577,8 +599,8 @@ async function loadData(folderId = null) {
   loading.value = true
   try {
     const [folderData, productData, currentFolderData] = await Promise.all([
-      fetchFolders(folderId, filterTags.value, 'edited'),
-      fetchProducts(folderId, filterTags.value),
+      fetchFolders(folderId, filterTags.value, 'edited', false, false, sortOrder.value),
+      fetchProducts(folderId, filterTags.value, false, sortOrder.value),
       folderId ? getFolder(folderId) : Promise.resolve(null)
     ])
     folders.value = folderData
@@ -840,6 +862,7 @@ onMounted(() => {
 
 watch(() => route.params.folderId, (newId) => loadData(newId || null))
 watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
+watch(sortOrder, () => loadData(currentFolder.value?._id))
 </script>
 
 <style scoped>
@@ -1187,6 +1210,12 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
   width: 100%;
 }
 
+.item-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .item-title {
   margin: 0 0 1rem 0;
   font-size: 1.125rem;
@@ -1316,6 +1345,11 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 
 .details-main {
   margin-bottom: 0.75rem;
+}
+
+.new-count-badge {
+  background: #22c55e;
+  color: #fff;
 }
 
 .item-title {

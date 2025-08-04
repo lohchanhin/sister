@@ -141,6 +141,36 @@ describe('Batch update viewers', () => {
   })
 })
 
+describe('Asset sorting', () => {
+  let a1, a2
+
+  beforeAll(async () => {
+    a1 = await Asset.create({ filename: 'a.mp4', path: '/tmp/a', type: 'edited', title: 'Alpha', tags: ['sorttest'] })
+    await Asset.findByIdAndUpdate(a1._id, { updatedAt: new Date(Date.now() - 1000) })
+    a2 = await Asset.create({ filename: 'b.mp4', path: '/tmp/b', type: 'edited', title: 'Beta', tags: ['sorttest'] })
+  })
+
+  it('default sort by updatedAt desc', async () => {
+    const res = await request(app)
+      .get('/api/assets')
+      .query({ tags: 'sorttest', type: 'edited' })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    expect(res.body[0]._id).toBe(a2._id.toString())
+    expect(res.body[1]._id).toBe(a1._id.toString())
+  })
+
+  it('sort by name asc', async () => {
+    const res = await request(app)
+      .get('/api/assets')
+      .query({ tags: 'sorttest', type: 'edited', sort: 'name_asc' })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    expect(res.body[0]._id).toBe(a1._id.toString())
+    expect(res.body[1]._id).toBe(a2._id.toString())
+  })
+})
+
 describe('Asset signed url', () => {
   it('should return signed url', async () => {
     const res = await request(app)

@@ -75,12 +75,30 @@ export const getFolders = async (req, res) => {
       : req.query.tags.split(',')
     query.tags = { $all: tags }
   }
-  const folders = await Folder.find(query).populate('createdBy', 'username name')
+  const sortParam = req.query.sort || 'updatedAt_desc'
+  const [sortField, sortOrder] = sortParam.split('_')
+  const sort = { [sortField]: sortOrder === 'asc' ? 1 : -1 }
+
+  const folders = await Folder.find(query)
+    .sort(sort)
+    .populate('createdBy', 'username name')
   let result = folders
   if (req.user.roleId?.name !== 'manager') {
     result = folders.filter(f =>
       !f.allowedUsers?.length || f.allowedUsers.some(id => id.equals(req.user._id))
     )
+  }
+  // Count new edited assets (reviewStatus pending) for each folder
+  const folderIds = result.map(f => f._id)
+  let countMap = {}
+  if (folderIds.length) {
+    const counts = await Asset.aggregate([
+      { $match: { folderId: { $in: folderIds }, type: 'edited', reviewStatus: 'pending' } },
+      { $group: { _id: '$folderId', count: { $sum: 1 } } }
+    ])
+    counts.forEach(c => {
+      countMap[c._id.toString()] = c.count
+    })
   }
 
   if (req.query.progress === 'true') {
@@ -90,14 +108,15 @@ export const getFolders = async (req, res) => {
       { $match: { folderId: { $in: ids }, completed: true } },
       { $group: { _id: '$folderId', done: { $sum: 1 } } }
     ])
-    const map = {}
+    const progressMap = {}
     records.forEach(r => {
-      map[r._id.toString()] = r.done
+      progressMap[r._id.toString()] = r.done
     })
     const data = result.map(f => ({
       ...f.toObject(),
-      progress: { done: map[f._id.toString()] || 0, total },
-      creatorName: f.createdBy?.name || f.createdBy?.username
+      progress: { done: progressMap[f._id.toString()] || 0, total },
+      creatorName: f.createdBy?.name || f.createdBy?.username,
+      newCount: countMap[f._id.toString()] || 0
     }))
     await setCache(cacheKey, data)
     return res.json(data)
@@ -105,7 +124,8 @@ export const getFolders = async (req, res) => {
 
   const data = result.map(f => ({
     ...f.toObject(),
-    creatorName: f.createdBy?.name || f.createdBy?.username
+    creatorName: f.createdBy?.name || f.createdBy?.username,
+    newCount: countMap[f._id.toString()] || 0
   }))
   await setCache(cacheKey, data)
   res.json(data)

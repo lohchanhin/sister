@@ -16,12 +16,13 @@ export const fetchAssets = (folderId, type, tags = [], deep = false) => {
   )
 }
 
-export const fetchProducts = (folderId, tags = [], deep = false, withProgress = false) => {
+export const fetchProducts = (folderId, tags = [], deep = false, withProgress = false, sort) => {
   const params = {}
   if (folderId) params.folderId = folderId
   if (tags.length) params.tags = tags
   if (deep) params.deep = 'true'
   if (withProgress) params.progress = 'true'
+  if (sort) params.sort = sort
 
   return api.get('/products', { params }).then(res =>
     res.data.map(a => ({
