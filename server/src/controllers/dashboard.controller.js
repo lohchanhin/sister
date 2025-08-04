@@ -10,8 +10,10 @@ export const getSummary = async (req, res) => {
   const cached = await getCache(cacheKey)
   if (cached) return res.json(cached)
 
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+
   /* -------- 最近素材 -------- */
-  const assetDocs = await Asset.find()
+  const assetDocs = await Asset.find({ createdAt: { $gte: since } })
     .sort({ createdAt: -1 })
     .limit(7)
     .populate('uploadedBy', 'username name')
@@ -48,7 +50,7 @@ export const getSummary = async (req, res) => {
     }))
 
   /* -------- 最近成品及進度 -------- */
-  const productDocs = await Asset.find({ type: 'edited' })
+  const productDocs = await Asset.find({ type: 'edited', createdAt: { $gte: since } })
     .sort({ createdAt: -1 })
     .populate('uploadedBy', 'username name')
     .lean()
