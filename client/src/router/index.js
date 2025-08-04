@@ -31,7 +31,11 @@ const routes = [
     children: [
       { path: 'dashboard', name: 'Dashboard', component: Dashboard, meta: { menu: 'dashboard' } },
       { path: 'account', name: 'Account', component: Account, meta: { menu: 'account' } },
+      { path: 'assets/asset/:assetId', name: 'AssetDetailRoot', component: AssetLibrary, meta: { menu: 'assets' } },
+      { path: 'assets/:folderId/asset/:assetId', name: 'AssetDetail', component: AssetLibrary, meta: { menu: 'assets' } },
       { path: 'assets/:folderId?', name: 'Assets', component: AssetLibrary, meta: { menu: 'assets' } },
+      { path: 'products/asset/:assetId', name: 'ProductAssetDetailRoot', component: ProductLibrary, meta: { menu: 'products' } },
+      { path: 'products/:folderId/asset/:assetId', name: 'ProductAssetDetail', component: ProductLibrary, meta: { menu: 'products' } },
       { path: 'products/:folderId?', name: 'Products', component: ProductLibrary, meta: { menu: 'products' } },
 
       { path: 'employees', name: 'EmployeeManager', component: EmployeeManager, meta: { menu: 'employees' } },
