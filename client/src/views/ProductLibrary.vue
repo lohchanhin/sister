@@ -1225,6 +1225,7 @@ watch(sortOrder, () => loadData(currentFolder.value?._id))
 .item-title-wrapper {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
 }
 
@@ -1240,6 +1241,7 @@ watch(sortOrder, () => loadData(currentFolder.value?._id))
 .item-meta {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.25rem;
   margin-bottom: 1rem;
   font-size: 0.875rem;
