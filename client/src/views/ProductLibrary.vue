@@ -214,7 +214,10 @@
                 <div class="item-info">
                   <div class="item-title-wrapper">
                     <h4 class="item-title">{{ item.name }}</h4>
-                    <Badge v-if="item.type === 'folder' && item.newCount" :value="item.newCount" class="new-count-badge" />
+                    <Badge
+                      v-if="item.type === 'folder' && item.newCount > 0"
+                      class="update-dot"
+                    />
                   </div>
                   <div class="item-meta">
                     <span class="meta-date">建於: {{ formatDate(item.createdAt) }}</span>
@@ -272,7 +275,10 @@
                 <div class="details-main">
                   <div class="item-title-wrapper">
                     <h4 class="item-title">{{ item.name }}</h4>
-                    <Badge v-if="item.type === 'folder' && item.newCount" :value="item.newCount" class="new-count-badge" />
+                    <Badge
+                      v-if="item.type === 'folder' && item.newCount > 0"
+                      class="update-dot"
+                    />
                   </div>
                   <div class="item-tags" v-if="item.tags?.length || item.reviewStatus">
                     <Tag v-if="item.reviewStatus" :value="item.reviewStatus" :severity="getStatusSeverity(item.reviewStatus)" class="item-tag status-tag" />
@@ -1355,7 +1361,17 @@ watch(sortOrder, () => loadData(currentFolder.value?._id))
 
 .new-count-badge {
   background: #22c55e;
-  color: #fff;
+}
+
+.update-dot {
+  background: #22c55e;
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  border-radius: 50%;
+  padding: 0;
+  display: inline-flex;
 }
 
 .item-title {
