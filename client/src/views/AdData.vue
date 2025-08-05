@@ -189,8 +189,8 @@
       <p class="text-sm text-gray-500 mb-2">週別：{{ formatWeekRange(noteForm.week) }}</p>
       <Textarea v-model="noteForm.text" rows="4" placeholder="輸入文字筆記" style="width: 100%" />
       <!-- 上傳圖片（僅本地暫存） -->
-      <FileUpload multiple :auto="false" :customUpload="true" @uploader="noteForm.images = $event.files"
-        :showUploadButton="false" :showCancelButton="false">
+      <FileUpload multiple :auto="false" v-model:files="noteForm.images" @select="onImageSelect"
+        @remove="onImageRemove" :showUploadButton="false" :showCancelButton="false">
         <template #empty>
           <i class="pi pi-plus"></i>
         </template>
@@ -735,6 +735,21 @@ const downloadTemplate = () => {
 
 /**** ------------------------------------------------------- 週備註 ------------------------------------------------------- ****/
 const noteForm = ref({ week: '', text: '', images: [] })
+const keepImages = ref([])
+
+const onImageSelect = e => {
+  e.files.forEach(f => {
+    if (!f.objectURL) f.objectURL = URL.createObjectURL(f)
+  })
+}
+
+const onImageRemove = e => {
+  const file = e.file
+  noteForm.value.images = noteForm.value.images.filter(f => f !== file)
+  if (file.path) {
+    keepImages.value = keepImages.value.filter(p => p !== file.path)
+  }
+}
 
 const openNote = async row => {
   const week = row.week
@@ -747,7 +762,7 @@ const openNote = async row => {
     const promises = note.images.map(async p => {
       try {
         const url = await getWeeklyNoteImageUrl(clientId, platformId, p)
-        return { name: p, url, path: p }
+        return { name: p, objectURL: url, path: p }
       } catch {
         return null
       }
@@ -755,16 +770,16 @@ const openNote = async row => {
     images = (await Promise.all(promises)).filter(Boolean)
   }
   noteForm.value = { week, text: note?.text || '', images }
+  keepImages.value = images.map(i => i.path)
   noteDialog.value = true
 }
 
 const saveNote = async () => {
   const { week, text, images } = noteForm.value
-  const keepImages = images.filter(i => i.path).map(i => i.path)
-  const newImages = images.filter(i => !i.path).map(f => f.raw)
+  const newImages = images.filter(i => !i.path)
   let note
   try {
-    note = await updateWeeklyNote(clientId, platformId, week, { text, images: newImages, keepImages })
+    note = await updateWeeklyNote(clientId, platformId, week, { text, images: newImages, keepImages: keepImages.value })
   } catch {
     note = await createWeeklyNote(clientId, platformId, { week, text, images: newImages })
   }
