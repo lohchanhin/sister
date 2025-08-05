@@ -44,10 +44,11 @@ export const updateWeeklyNote = (clientId, platformId, week, data) => {
   ).then(r => r.data)
 }
 
-export const getWeeklyNoteImageUrl = (clientId, platformId, path) =>
-  api
+export const getWeeklyNoteImageUrl = (clientId, platformId, path) => {
+  return api
     .get(
       `/clients/${clientId}/platforms/${platformId}/weekly-notes/image-url`,
       { params: { path } }
     )
     .then(r => r.data.url)
+}
