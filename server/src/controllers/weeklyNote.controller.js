@@ -28,6 +28,23 @@ const parseKeepImages = value => {
   return arr.filter(Boolean)
 }
 
+const appendSignedUrls = async note => {
+  if (!note) return note
+  const obj = note.toObject ? note.toObject() : note
+  if (!obj.images?.length) return obj
+  const images = await Promise.all(
+    obj.images.map(async p => {
+      try {
+        const url = await getSignedUrl(p)
+        return { path: p, url }
+      } catch {
+        return { path: p, url: '' }
+      }
+    })
+  )
+  return { ...obj, images }
+}
+
 export const createWeeklyNote = async (req, res) => {
   console.log('uploaded files:', req.files)
   const images = await uploadImages(req.files)
@@ -39,7 +56,8 @@ export const createWeeklyNote = async (req, res) => {
     images
   })
   await clearCacheByPrefix('weeklyNotes:')
-  res.status(201).json(note)
+  const noteWithUrls = await appendSignedUrls(note)
+  res.status(201).json(noteWithUrls)
 }
 
 export const getWeeklyNote = async (req, res) => {
@@ -84,7 +102,8 @@ export const updateWeeklyNote = async (req, res) => {
   if (!note) return res.status(404).json({ message: t('NOTE_NOT_FOUND') })
   await clearCacheByPrefix('weeklyNotes:')
   await delCache(`weeklyNote:${req.params.clientId}:${req.params.platformId}:${req.params.week}`)
-  res.json(note)
+  const noteWithUrls = await appendSignedUrls(note)
+  res.json(noteWithUrls)
 }
 
 export const getWeeklyNotes = async (req, res) => {

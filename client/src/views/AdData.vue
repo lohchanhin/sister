@@ -785,19 +785,6 @@ const saveNote = async () => {
   } catch {
     note = await createWeeklyNote(clientId, platformId, { week, text, images: newImages })
   }
-  if (note?.images?.length) {
-    const imgList = await Promise.all(
-      note.images.map(async p => {
-        try {
-          const url = await getWeeklyNoteImageUrl(clientId, platformId, p)
-          return { path: p, url }
-        } catch {
-          return { path: p, url: '' }
-        }
-      })
-    )
-    note.images = imgList
-  }
   weeklyNotes.value[week] = note
   toast.add({ severity: 'success', summary: '成功', detail: '已儲存備註', life: 3000 })
   noteDialog.value = false
