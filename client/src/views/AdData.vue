@@ -46,7 +46,8 @@
               {{ dateFmt(data) }}
             </template>
           </Column>
-          <Column v-for="field in customColumns" :key="field.name" :field="'extraData.' + field.name" :header="field.name" sortable>
+          <Column v-for="field in customColumns" :key="field.name" :field="'extraData.' + field.name"
+            :header="field.name" sortable>
             <template #body="{ data }">
               <span v-if="field.type === 'date'" :style="{ backgroundColor: data.colors?.[field.name] }">
                 {{ formatExtraDate(data.extraData?.[field.name]) }}
@@ -124,7 +125,7 @@
         <!-- 日期欄 -->
         <div class="flex gap-2">
           <label for="date" class="w-16 shrink-0 pt-2 text-right">日期</label>
-          <DatePicker v-model="recordForm.date" inputId="date" class="flex-1 min-w-0"  />
+          <DatePicker v-model="recordForm.date" inputId="date" class="flex-1 min-w-0" />
         </div>
 
         <!-- 動態欄位 -->
@@ -189,8 +190,8 @@
       <p class="text-sm text-gray-500 mb-2">週別：{{ formatWeekRange(noteForm.week) }}</p>
       <Textarea v-model="noteForm.text" rows="4" placeholder="輸入文字筆記" style="width: 100%" />
       <!-- 上傳圖片（僅本地暫存） -->
-      <FileUpload multiple :auto="false" v-model:files="noteForm.images" @select="onImageSelect"
-        @remove="onImageRemove" :showUploadButton="false" :showCancelButton="false">
+      <FileUpload multiple :auto="false" v-model:files="noteForm.images" @select="onImageSelect" @remove="onImageRemove"
+        :showUploadButton="false" :showCancelButton="false">
         <template #empty>
           <i class="pi pi-plus"></i>
         </template>
@@ -779,11 +780,16 @@ const openNote = async row => {
 const saveNote = async () => {
   const { week, text, images } = noteForm.value
   const newImages = images.filter(i => !i.path)
+  console.log("開始處理");
   let note
   try {
     note = await updateWeeklyNote(clientId, platformId, week, { text, images: newImages, keepImages: keepImages.value })
+    console.log("更新筆記");
+
   } catch {
     note = await createWeeklyNote(clientId, platformId, { week, text, images: newImages })
+    console.log("新增筆記");
+
   }
   weeklyNotes.value[week] = note
   toast.add({ severity: 'success', summary: '成功', detail: '已儲存備註', life: 3000 })
