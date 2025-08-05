@@ -293,14 +293,16 @@
     </div>
 
     <!-- Hidden File Upload -->
-    <FileUpload 
+    <FileUpload
       ref="fileUploadRef"
-      mode="basic" 
-      :auto="true" 
-      :customUpload="true" 
-      @uploader="uploadRequest" 
+      mode="basic"
+      :auto="true"
+      :customUpload="true"
+      @uploader="uploadRequest"
       :multiple="true"
-      style="display: none;"
+      accept="image/*"
+      capture="environment"
+      class="hidden-file-upload"
     />
 
     <!-- Dialogs -->
@@ -739,6 +741,11 @@ onMounted(() => {
   loadData(route.params.folderId || null)
   fetchTags().then(tags => allTags.value = tags.map(t => t.name))
   fetchUsers().then(u => users.value = u)
+  const input = fileUploadRef.value?.$el.querySelector('input[type="file"]')
+  if (input) {
+    input.setAttribute('accept', 'image/*')
+    input.setAttribute('capture', 'environment')
+  }
 })
 
 watch(() => route.params.folderId, (newId) => loadData(newId || null))
@@ -746,6 +753,14 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 </script>
 
 <style scoped>
+.hidden-file-upload {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+  left: -9999px;
+}
+
 .library-container {
   padding: 0;
   max-width: none;
