@@ -189,8 +189,8 @@
       <p class="text-sm text-gray-500 mb-2">週別：{{ formatWeekRange(noteForm.week) }}</p>
       <Textarea v-model="noteForm.text" rows="4" placeholder="輸入文字筆記" style="width: 100%" />
       <!-- 上傳圖片（僅本地暫存） -->
-      <FileUpload multiple :auto="false" :customUpload="true" @uploader="noteForm.images = $event.files"
-        :showUploadButton="false" :showCancelButton="false">
+      <FileUpload v-model:files="noteForm.images" multiple :auto="false" :customUpload="true"
+        @select="onSelectImages" @remove="onRemoveImage" :showUploadButton="false" :showCancelButton="false">
         <template #empty>
           <i class="pi pi-plus"></i>
         </template>
@@ -734,7 +734,7 @@ const downloadTemplate = () => {
 }
 
 /**** ------------------------------------------------------- 週備註 ------------------------------------------------------- ****/
-const noteForm = ref({ week: '', text: '', images: [] })
+const noteForm = ref({ week: '', text: '', images: [], keepImages: [] })
 
 const openNote = async row => {
   const week = row.week
@@ -747,28 +747,56 @@ const openNote = async row => {
     const promises = note.images.map(async p => {
       try {
         const url = await getWeeklyNoteImageUrl(clientId, platformId, p)
-        return { name: p, url }
+        return { name: p, objectURL: url }
       } catch {
         return null
       }
     })
     images = (await Promise.all(promises)).filter(Boolean)
   }
-  noteForm.value = { week, text: note?.text || '', images }
+  noteForm.value = {
+    week,
+    text: note?.text || '',
+    images,
+    keepImages: images.map(i => i.name)
+  }
   noteDialog.value = true
 }
 
 const saveNote = async () => {
-  const { week, text, images } = noteForm.value
+  const { week, text, images, keepImages } = noteForm.value
+  const uploadFiles = images
+    .filter(f => f instanceof File || f.raw)
+    .map(f => f.raw || f)
   let note
   try {
-    note = await updateWeeklyNote(clientId, platformId, week, { text, images: images.map(f => f.raw) })
+    note = await updateWeeklyNote(clientId, platformId, week, { text, images: uploadFiles, keepImages })
   } catch {
-    note = await createWeeklyNote(clientId, platformId, { week, text, images: images.map(f => f.raw) })
+    note = await createWeeklyNote(clientId, platformId, { week, text, images: uploadFiles })
   }
   weeklyNotes.value[week] = note
   toast.add({ severity: 'success', summary: '成功', detail: '已儲存備註', life: 3000 })
   noteDialog.value = false
+}
+
+const onSelectImages = e => {
+  noteForm.value.images = e.files
+  e.files.forEach(f => {
+    if (f instanceof File && !f.objectURL) {
+      f.objectURL = URL.createObjectURL(f)
+    }
+  })
+}
+
+const onRemoveImage = e => {
+  const removed = e.file
+  noteForm.value.images = e.files
+  if (!(removed instanceof File)) {
+    noteForm.value.keepImages = noteForm.value.keepImages.filter(n => n !== removed.name)
+  }
+  if (removed instanceof File && removed.objectURL) {
+    URL.revokeObjectURL(removed.objectURL)
+  }
 }
 
 const previewImages = async imgs => {
