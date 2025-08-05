@@ -747,7 +747,7 @@ const openNote = async row => {
     const promises = note.images.map(async p => {
       try {
         const url = await getWeeklyNoteImageUrl(clientId, platformId, p)
-        return { name: p, url }
+        return { name: p, url, path: p }
       } catch {
         return null
       }
@@ -760,11 +760,13 @@ const openNote = async row => {
 
 const saveNote = async () => {
   const { week, text, images } = noteForm.value
+  const keepImages = images.filter(i => i.path).map(i => i.path)
+  const newImages = images.filter(i => !i.path).map(f => f.raw)
   let note
   try {
-    note = await updateWeeklyNote(clientId, platformId, week, { text, images: images.map(f => f.raw) })
+    note = await updateWeeklyNote(clientId, platformId, week, { text, images: newImages, keepImages })
   } catch {
-    note = await createWeeklyNote(clientId, platformId, { week, text, images: images.map(f => f.raw) })
+    note = await createWeeklyNote(clientId, platformId, { week, text, images: newImages })
   }
   weeklyNotes.value[week] = note
   toast.add({ severity: 'success', summary: '成功', detail: '已儲存備註', life: 3000 })
