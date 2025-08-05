@@ -25,7 +25,8 @@ export const createWeeklyNote = (clientId, platformId, data) => {
   return api
     .post(
       `/clients/${clientId}/platforms/${platformId}/weekly-notes`,
-      formData
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
     )
     .then(r => r.data)
 }
@@ -47,7 +48,8 @@ export const updateWeeklyNote = (clientId, platformId, week, data) => {
   return api
     .put(
       `/clients/${clientId}/platforms/${platformId}/weekly-notes/${week}`,
-      formData
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
     )
     .then(r => r.data)
 }
