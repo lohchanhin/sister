@@ -7,10 +7,15 @@ import fs from 'node:fs'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
-const storage = new Storage({
-  projectId: process.env.GCS_PROJECT_ID,
-  keyFilename: process.env.GCS_KEY_FILE
-})
+const storageOptions = {
+  projectId: process.env.GCS_PROJECT_ID
+}
+
+if (process.env.GCS_KEY_FILE) {
+  storageOptions.keyFilename = process.env.GCS_KEY_FILE
+}
+
+const storage = new Storage(storageOptions)
 
 const bucket = storage.bucket(process.env.GCS_BUCKET)
 
