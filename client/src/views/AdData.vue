@@ -698,10 +698,12 @@ async function exportWeekly() {
     /* 第一張圖片嵌入 */
     if (row.hasImage && row.images[0]) {
       try {
-        const signedUrl = await getWeeklyNoteImageUrl(clientId, platformId, row.images[0])
+        const firstImg = row.images[0]
+        const imgPath = typeof firstImg === 'string' ? firstImg : firstImg.path
+        const signedUrl = await getWeeklyNoteImageUrl(clientId, platformId, imgPath)
         const res = await fetch(signedUrl)
         const buf = await res.arrayBuffer()
-        const ext = row.images[0].split('.').pop().replace('jpg', 'jpeg')   // exceljs 要用 jpeg / png
+        const ext = imgPath.split('.').pop().replace('jpg', 'jpeg')   // exceljs 要用 jpeg / png
         const imgId = wb.addImage({ buffer: buf, extension: ext })
         const rIdx = wsRow.number - 1           // zero-based
         const cIdx = headers.length - 1         // 「圖片」欄
@@ -782,6 +784,19 @@ const saveNote = async () => {
     note = await updateWeeklyNote(clientId, platformId, week, { text, images: newImages, keepImages: keepImages.value })
   } catch {
     note = await createWeeklyNote(clientId, platformId, { week, text, images: newImages })
+  }
+  if (note?.images?.length) {
+    const imgList = await Promise.all(
+      note.images.map(async p => {
+        try {
+          const url = await getWeeklyNoteImageUrl(clientId, platformId, p)
+          return { path: p, url }
+        } catch {
+          return { path: p, url: '' }
+        }
+      })
+    )
+    note.images = imgList
   }
   weeklyNotes.value[week] = note
   toast.add({ severity: 'success', summary: '成功', detail: '已儲存備註', life: 3000 })
