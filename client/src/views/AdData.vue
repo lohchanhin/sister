@@ -189,8 +189,14 @@
       <p class="text-sm text-gray-500 mb-2">週別：{{ formatWeekRange(noteForm.week) }}</p>
       <Textarea v-model="noteForm.text" rows="4" placeholder="輸入文字筆記" style="width: 100%" />
       <!-- 上傳圖片（僅本地暫存） -->
-      <FileUpload multiple :auto="false" :customUpload="true" @uploader="noteForm.images = $event.files"
-        :showUploadButton="false" :showCancelButton="false">
+      <FileUpload
+        multiple
+        :auto="false"
+        :customUpload="true"
+        @uploader="noteForm.images = [...noteForm.images, ...$event.files]"
+        :showUploadButton="false"
+        :showCancelButton="false"
+      >
         <template #empty>
           <i class="pi pi-plus"></i>
         </template>
@@ -742,29 +748,32 @@ const openNote = async row => {
   try { note = await fetchWeeklyNote(clientId, platformId, week) }
   catch { /* ignore */ }
   if (note) weeklyNotes.value[week] = note
-  let images = []
-  if (note?.images && note.images.length) {
-    const promises = note.images.map(async p => {
-      try {
-        const url = await getWeeklyNoteImageUrl(clientId, platformId, p)
-        return { name: p, url }
-      } catch {
-        return null
-      }
-    })
-    images = (await Promise.all(promises)).filter(Boolean)
+  noteForm.value = {
+    week,
+    text: note?.text || '',
+    images: note?.images ? [...note.images] : []
   }
-  noteForm.value = { week, text: note?.text || '', images }
   noteDialog.value = true
 }
 
 const saveNote = async () => {
   const { week, text, images } = noteForm.value
+  const newFiles = []
+  const keepImages = []
+  images.forEach(img => {
+    if (img instanceof File) {
+      newFiles.push(img)
+    } else if (typeof img === 'string') {
+      keepImages.push(img)
+    } else if (img && img.name) {
+      keepImages.push(img.name)
+    }
+  })
   let note
   try {
-    note = await updateWeeklyNote(clientId, platformId, week, { text, images: images.map(f => f.raw) })
+    note = await updateWeeklyNote(clientId, platformId, week, { text, images: newFiles, keepImages })
   } catch {
-    note = await createWeeklyNote(clientId, platformId, { week, text, images: images.map(f => f.raw) })
+    note = await createWeeklyNote(clientId, platformId, { week, text, images: newFiles, keepImages })
   }
   weeklyNotes.value[week] = note
   toast.add({ severity: 'success', summary: '成功', detail: '已儲存備註', life: 3000 })
