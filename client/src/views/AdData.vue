@@ -190,12 +190,13 @@
       <p class="text-sm text-gray-500 mb-2">週別：{{ formatWeekRange(noteForm.week) }}</p>
       <Textarea v-model="noteForm.text" rows="4" placeholder="輸入文字筆記" style="width: 100%" />
       <!-- 上傳圖片（僅本地暫存） -->
-      <FileUpload multiple :auto="false" v-model:files="noteForm.images" @select="onImageSelect" @remove="onImageRemove"
-        :showUploadButton="false" :showCancelButton="false">
+      <FileUpload name="images" accept="image/*" multiple :auto="false" v-model:files="noteForm.images"
+        @select="onImageSelect" @remove="onImageRemove" :showUploadButton="false" :showCancelButton="false">
         <template #empty>
           <i class="pi pi-plus"></i>
         </template>
       </FileUpload>
+
       <template #footer>
         <Button label="取消" severity="secondary" @click="noteDialog = false" />
         <Button label="儲存" @click="saveNote" />
@@ -740,19 +741,28 @@ const downloadTemplate = () => {
 const noteForm = ref({ week: '', text: '', images: [] })
 const keepImages = ref([])
 
+/* 上傳時：為每個 File 加上 preview（objectURL），並以 *展開運算子* 重新指派，
+   確保 Vue 能追蹤到陣列變動 → FileUpload 與 noteForm.images 同步 */
 const onImageSelect = e => {
   e.files.forEach(f => {
     if (!f.objectURL) f.objectURL = URL.createObjectURL(f)
   })
+  /* ★ 關鍵：重新複製陣列 (trigger reactivity) */
+  noteForm.value.images = [...e.files]
+  console.log('[onImageSelect] noteForm.images', noteForm.value.images)
 }
 
+/* 移除時：先由 FileUpload 本身把檔案移除後，再手動同步 keepImages */
 const onImageRemove = e => {
-  const file = e.file
-  noteForm.value.images = noteForm.value.images.filter(f => f !== file)
-  if (file.path) {
-    keepImages.value = keepImages.value.filter(p => p !== file.path)
-  }
+  /* ★ e.files 是移除後的最新檔案陣列，直接覆寫即可 */
+  noteForm.value.images = [...e.files]
+  const removed = e.originalEvent?.files || []
+  removed.forEach(file => {
+    if (file.path) keepImages.value = keepImages.value.filter(p => p !== file.path)
+  })
+  console.log('[onImageRemove] noteForm.images', noteForm.value.images)
 }
+
 
 const openNote = async row => {
   const week = row.week
@@ -779,22 +789,36 @@ const openNote = async row => {
 
 const saveNote = async () => {
   const { week, text, images } = noteForm.value
+  /* ★ newImages = 新增的 File 物件 */
   const newImages = images.filter(i => !i.path)
-  console.log("開始處理");
+  console.log('[saveNote] week =', week)
+  console.log('[saveNote] keepImages =', keepImages.value)
+  console.log('[saveNote] newImages (to upload) =', newImages)
+
   let note
   try {
-    note = await updateWeeklyNote(clientId, platformId, week, { text, images: newImages, keepImages: keepImages.value })
-    console.log("更新筆記");
-
-  } catch {
-    note = await createWeeklyNote(clientId, platformId, { week, text, images: newImages })
-    console.log("新增筆記");
-
+    note = await updateWeeklyNote(
+      clientId,
+      platformId,
+      week,
+      { text, images: newImages, keepImages: keepImages.value }
+    )
+    console.log('[saveNote] updateWeeklyNote → 成功')
+  } catch (err) {
+    console.warn('[saveNote] updateWeeklyNote 404 / 失敗，改用 createWeeklyNote', err?.message)
+    note = await createWeeklyNote(
+      clientId,
+      platformId,
+      { week, text, images: newImages }
+    )
+    console.log('[saveNote] createWeeklyNote → 成功')
   }
+
   weeklyNotes.value[week] = note
   toast.add({ severity: 'success', summary: '成功', detail: '已儲存備註', life: 3000 })
   noteDialog.value = false
 }
+
 
 const previewImages = async imgs => {
   if (!imgs || !imgs.length) return
