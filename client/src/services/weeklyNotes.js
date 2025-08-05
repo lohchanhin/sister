@@ -18,9 +18,10 @@ export const createWeeklyNote = (clientId, platformId, data) => {
   const formData = new FormData()
   formData.append('week', data.week)
   formData.append('text', data.text || '')
-  ;(data.images || []).forEach(f =>
-    formData.append('images', f instanceof File ? f : f.file)
-  )
+  ;(data.images || []).forEach(f => {
+    const file = f.raw || f.file || f
+    formData.append('images', file)
+  })
   return api
     .post(
       `/clients/${clientId}/platforms/${platformId}/weekly-notes`,
@@ -32,9 +33,10 @@ export const createWeeklyNote = (clientId, platformId, data) => {
 export const updateWeeklyNote = (clientId, platformId, week, data) => {
   const formData = new FormData()
   formData.append('text', data.text || '')
-  ;(data.images || []).forEach(f =>
-    formData.append('images', f instanceof File ? f : f.file)
-  )
+  ;(data.images || []).forEach(f => {
+    const file = f.raw || f.file || f
+    formData.append('images', file)
+  })
   if (Array.isArray(data.keepImages)) {
     if (data.keepImages.length) {
       data.keepImages.forEach(i => formData.append('keepImages', i))
