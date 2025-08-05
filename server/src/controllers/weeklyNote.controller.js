@@ -29,12 +29,14 @@ const parseKeepImages = value => {
 }
 
 export const createWeeklyNote = async (req, res) => {
+  console.log('uploaded files:', req.files)
+  const images = await uploadImages(req.files)
   const note = await WeeklyNote.create({
     clientId: req.params.clientId,
     platformId: req.params.platformId,
     week: req.body.week,
     text: req.body.text || '',
-    images: await uploadImages(req.files)
+    images
   })
   await clearCacheByPrefix('weeklyNotes:')
   res.status(201).json(note)
@@ -63,6 +65,7 @@ export const updateWeeklyNote = async (req, res) => {
   let newImages = []
   if (keep !== undefined) newImages = keep
   if (req.files?.length) {
+    console.log('uploaded files:', req.files)
     const uploaded = await uploadImages(req.files)
     newImages = [...newImages, ...uploaded]
   }
