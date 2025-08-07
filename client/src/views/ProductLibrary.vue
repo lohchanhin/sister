@@ -338,7 +338,6 @@
       :customUpload="true"
       @uploader="uploadRequest"
       :multiple="true"
-      accept="image/*"
       capture="environment"
       class="hidden-file-upload"
     />
@@ -873,7 +872,6 @@ onMounted(() => {
   fetchUsers().then(u => users.value = u)
   const input = fileUploadRef.value?.$el.querySelector('input[type="file"]')
   if (input) {
-    input.setAttribute('accept', 'image/*')
     input.setAttribute('capture', 'environment')
   }
 })
