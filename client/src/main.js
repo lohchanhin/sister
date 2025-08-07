@@ -10,6 +10,7 @@ import ConfirmationService from 'primevue/confirmationservice'
 import Aura from '@primeuix/themes/aura' // Aura Light Blue 主題
 import 'primeicons/primeicons.css'
 import 'primeflex/primeflex.css'
+import './assets/shared-library-styles.css'
 
 // 移除 ElementPlus 的樣式和全域樣式
 // import './style.css'
