@@ -671,7 +671,7 @@ const exportDaily = () => {
     })
     return row
   })
-  const csv = Papa.unparse(rows)
+  const csv = '\uFEFF' + Papa.unparse(rows)
   saveAs(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), 'daily.csv')
 }
 
