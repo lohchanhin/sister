@@ -1,6 +1,6 @@
 <!-- src/views/AdData.vue – 動態欄位 + 週折線圖（Y 軸可選） -->
 <template>
-  <section class="p-6 space-y-6 bg-white text-gray-800">
+  <section class="p-6 space-y-3 bg-white text-gray-800">
     <Toast />
     <ConfirmDialog />
     <!-- ===== 返回上一頁 ===== -->
@@ -13,7 +13,7 @@
       <!-- ──────────────────── 每日記錄 ──────────────────── -->
       <TabPanel header="每日記錄">
         <!-- 工具列 -->
-        <div class="flex justify-between items-center mb-4">
+        <div class="flex justify-between items-center mb-2">
           <!-- 左：匯入 / 格式說明 -->
           <div class="flex items-center gap-2">
             <FileUpload mode="basic" :auto="true" :customUpload="true" @uploader="importFile"
@@ -74,7 +74,7 @@
         </div>
 
         <!-- 折線圖（如需） -->
-        <div style="height:300px;width:100%" class="mb-4">
+        <div style="height:300px;width:100%" class="mb-2">
           <canvas id="weekly-chart" />
         </div>
 
@@ -161,7 +161,7 @@
 
     <!-- ─────────── Dialog：操作說明 ─────────── -->
     <Dialog v-model:visible="showHelp" header="操作說明" modal style="width: 380px">
-      <ul class="list-disc pl-5 leading-7">
+      <ul class="list-disc pl-5 leading-6">
         <li>點 <b>新增記錄</b>：手動輸入每日數據。</li>
         <li>點 <b>匯入 CSV / Excel</b>：批量匯入多筆資料。</li>
         <li>不了解欄位？可先點 <b>Excel 格式說明</b> 查看範例。</li>
@@ -836,4 +836,8 @@ const previewImages = async imgs => {
 
 <style scoped>
 /* 自行視覺調整 */
+:deep(.p-datatable td){
+  padding-top:0.5rem;
+  padding-bottom:0.5rem;
+}
 </style>
