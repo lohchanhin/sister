@@ -75,7 +75,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
@@ -108,6 +108,7 @@ const transferDialog = ref(false)
 const transferTarget = ref('')
 const transferId = ref('')
 const form = ref({ name: '', platformType: '', mode: 'custom', fields: [] })
+const initializing = ref(false)
 
 const newFieldName = ref('')
 const newFieldType = ref('number')
@@ -153,14 +154,25 @@ const loadPlatforms = async () => {
 
 const openCreate = () => {
   editing.value = false
+  initializing.value = true
   form.value = { name: '', platformType: '', mode: 'custom', fields: [] }
   dialog.value = true
+  nextTick(() => {
+    initializing.value = false
+  })
 }
 
 const openEdit = (platform) => {
   editing.value = true
-  form.value = { ...platform, fields: platform.fields.map(f => (typeof f === 'string' ? { name: f, type: 'text', order: 0 } : f)) }
+  initializing.value = true
+  form.value = {
+    ...platform,
+    fields: platform.fields.map(f => (typeof f === 'string' ? { name: f, type: 'text', order: 0 } : f))
+  }
   dialog.value = true
+  nextTick(() => {
+    initializing.value = false
+  })
 }
 
 const submit = async () => {
@@ -230,11 +242,12 @@ const confirmDeletePlatform = (platform) => {
 }
 
 watch(() => form.value.mode, (newMode) => {
-    if (newMode === 'default') {
-        form.value.fields = JSON.parse(JSON.stringify(defaultFields))
-    } else {
-        form.value.fields = []
-    }
+  if (initializing.value) return
+  if (newMode === 'default') {
+    form.value.fields = JSON.parse(JSON.stringify(defaultFields))
+  } else {
+    form.value.fields = []
+  }
 })
 
 onMounted(loadPlatforms)
