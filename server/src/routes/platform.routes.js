@@ -8,17 +8,19 @@ import {
   deletePlatform
 } from '../controllers/platform.controller.js'
 
+import asyncHandler from '../utils/asyncHandler.js'
+
 const router = Router({ mergeParams: true })
 
 router.use(protect)
 
 router.route('/')
-  .post(createPlatform)
-  .get(getPlatforms)
+  .post(asyncHandler(createPlatform))
+  .get(asyncHandler(getPlatforms))
 
 router.route('/:id')
-  .get(getPlatform)
-  .put(updatePlatform)
-  .delete(deletePlatform)
+  .get(asyncHandler(getPlatform))
+  .put(asyncHandler(updatePlatform))
+  .delete(asyncHandler(deletePlatform))
 
 export default router

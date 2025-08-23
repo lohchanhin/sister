@@ -8,17 +8,19 @@ import {
   deleteClient
 } from '../controllers/client.controller.js'
 
+import asyncHandler from '../utils/asyncHandler.js'
+
 const router = Router()
 
 router.use(protect)
 
 router.route('/')
-  .post(createClient)
-  .get(getClients)
+  .post(asyncHandler(createClient))
+  .get(asyncHandler(getClients))
 
 router.route('/:id')
-  .get(getClient)
-  .put(updateClient)
-  .delete(deleteClient)
+  .get(asyncHandler(getClient))
+  .put(asyncHandler(updateClient))
+  .delete(asyncHandler(deleteClient))
 
 export default router
