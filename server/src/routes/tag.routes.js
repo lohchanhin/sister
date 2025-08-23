@@ -9,18 +9,19 @@ import {
   updateTag,
   deleteTag
 } from '../controllers/tag.controller.js'
+import asyncHandler from '../utils/asyncHandler.js'
 
 const router = Router()
 
 router.use(protect)
 
 router.route('/')
-  .post(requirePerm(PERMISSIONS.TAG_MANAGE), createTag)
-  .get(getTags)
+  .post(requirePerm(PERMISSIONS.TAG_MANAGE), asyncHandler(createTag))
+  .get(asyncHandler(getTags))
 
 router.route('/:id')
-  .get(getTag)
-  .put(requirePerm(PERMISSIONS.TAG_MANAGE), updateTag)
-  .delete(requirePerm(PERMISSIONS.TAG_MANAGE), deleteTag)
+  .get(asyncHandler(getTag))
+  .put(requirePerm(PERMISSIONS.TAG_MANAGE), asyncHandler(updateTag))
+  .delete(requirePerm(PERMISSIONS.TAG_MANAGE), asyncHandler(deleteTag))
 
 export default router

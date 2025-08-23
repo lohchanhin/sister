@@ -10,21 +10,22 @@ import {
   getProfile,
   updateProfile
 } from '../controllers/user.controller.js'
+import asyncHandler from '../utils/asyncHandler.js'
 
 const router = Router()
 
 router.use(protect)               // 登入保護
-router.get('/profile', getProfile)
-router.put('/profile', updateProfile)
+router.get('/profile', asyncHandler(getProfile))
+router.put('/profile', asyncHandler(updateProfile))
 
 router
   .route('/')
-  .get(requirePerm(PERMISSIONS.USER_MANAGE), getAllUsers)               // GET  /api/user
-  .post(requirePerm(PERMISSIONS.USER_MANAGE), createUser)               // POST /api/user
+  .get(requirePerm(PERMISSIONS.USER_MANAGE), asyncHandler(getAllUsers))               // GET  /api/user
+  .post(requirePerm(PERMISSIONS.USER_MANAGE), asyncHandler(createUser))               // POST /api/user
 
 router
   .route('/:id')
-  .put(requirePerm(PERMISSIONS.USER_MANAGE), updateUser)                // PUT    /api/user/:id
-  .delete(requirePerm(PERMISSIONS.USER_MANAGE), deleteUser)             // DELETE /api/user/:id
+  .put(requirePerm(PERMISSIONS.USER_MANAGE), asyncHandler(updateUser))                // PUT    /api/user/:id
+  .delete(requirePerm(PERMISSIONS.USER_MANAGE), asyncHandler(deleteUser))             // DELETE /api/user/:id
 
 export default router

@@ -24,6 +24,7 @@ import {
   getAssetStages,
   updateStageStatus
 } from '../controllers/reviewRecord.controller.js'
+import asyncHandler from '../utils/asyncHandler.js'
 
 const router = Router()
 
@@ -32,26 +33,26 @@ router.post(
   protect,
   requirePerm(PERMISSIONS.ASSET_CREATE),
   upload.single('file'),
-  uploadFile
+  asyncHandler(uploadFile)
 )
 router.post(
   '/presign',
   protect,
   requirePerm(PERMISSIONS.ASSET_CREATE),
-  presign
+  asyncHandler(presign)
 )
-router.post('/', protect, requirePerm(PERMISSIONS.ASSET_CREATE), createAsset)
-router.post('/batch-download', protect, batchDownload)
-router.get('/batch-download/:id', protect, getBatchDownloadProgress)
-router.get('/', protect, requirePerm(PERMISSIONS.ASSET_READ), getAssets)
+router.post('/', protect, requirePerm(PERMISSIONS.ASSET_CREATE), asyncHandler(createAsset))
+router.post('/batch-download', protect, asyncHandler(batchDownload))
+router.get('/batch-download/:id', protect, asyncHandler(getBatchDownloadProgress))
+router.get('/', protect, requirePerm(PERMISSIONS.ASSET_READ), asyncHandler(getAssets))
 router.post(
   '/:id/comment',
   protect,
   requirePerm(PERMISSIONS.ASSET_UPDATE),
-  addComment
+  asyncHandler(addComment)
 )
-router.get('/recent', protect, requirePerm(PERMISSIONS.ASSET_READ), getRecentAssets)
-router.get('/:id/url', protect, requirePerm(PERMISSIONS.ASSET_READ), getAssetSignedUrl)
+router.get('/recent', protect, requirePerm(PERMISSIONS.ASSET_READ), asyncHandler(getRecentAssets))
+router.get('/:id/url', protect, requirePerm(PERMISSIONS.ASSET_READ), asyncHandler(getAssetSignedUrl))
 
 /* ★ 新增：更新檔名／描述 */
 
@@ -59,30 +60,30 @@ router.put(
   '/viewers',
   protect,
   requirePerm(PERMISSIONS.ASSET_UPDATE),
-  updateAssetsViewers
+  asyncHandler(updateAssetsViewers)
 )
 router.put(
   '/move',
   protect,
   requirePerm(PERMISSIONS.ASSET_UPDATE),
-  moveAssets
+  asyncHandler(moveAssets)
 )
 router.put(
   '/:id',
   protect,
   requirePerm(PERMISSIONS.ASSET_UPDATE),
-  updateAsset
+  asyncHandler(updateAsset)
 )
 router.put(
   '/:id/review',
   protect,
   requirePerm(PERMISSIONS.REVIEW_MANAGE),
-  reviewAsset
+  asyncHandler(reviewAsset)
 )
-router.get('/:id/stages', protect, getAssetStages)
-router.put('/:id/stages/:stageId', protect, updateStageStatus)
-router.delete('/', protect, deleteAssets)
-router.delete('/:id', protect, deleteAsset)    // assets
+router.get('/:id/stages', protect, asyncHandler(getAssetStages))
+router.put('/:id/stages/:stageId', protect, asyncHandler(updateStageStatus))
+router.delete('/', protect, asyncHandler(deleteAssets))
+router.delete('/:id', protect, asyncHandler(deleteAsset))    // assets
 
 
 export default router
