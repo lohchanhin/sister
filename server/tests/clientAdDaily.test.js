@@ -18,6 +18,7 @@ let app
 let token
 let clientId
 let platformId
+let formulaPlatformId
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create()
@@ -59,6 +60,22 @@ describe('Client and AdDaily', () => {
       .send({ name: 'Meta', platformType: 'Meta' })
       .expect(201)
     platformId = res.body._id
+  })
+
+  it('create platform with formula field', async () => {
+    const res = await request(app)
+      .post(`/api/clients/${clientId}/platforms`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Calc',
+        fields: [
+          { name: 'a', type: 'number' },
+          { name: 'b', type: 'number' },
+          { name: 'c', type: 'formula', formula: 'a + b' }
+        ]
+      })
+      .expect(201)
+    formulaPlatformId = res.body._id
   })
 
   it('weekly aggregate', async () => {
@@ -173,6 +190,28 @@ describe('Client and AdDaily', () => {
     expect(res.body.length).toBe(2)
     expect(res.body[0].extraData).toEqual({ metric: 1 })
     expect(res.body[1].extraData).toEqual({ metric: 2 })
+  })
+
+  it('compute formula on create and bulk', async () => {
+    const date = new Date('2024-07-01').toISOString()
+    const res = await request(app)
+      .post(`/api/clients/${clientId}/platforms/${formulaPlatformId}/ad-daily`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ date, extraData: { a: 2, b: 3 } })
+      .expect(201)
+    expect(res.body.extraData).toEqual({ a: 2, b: 3, c: 5 })
+
+    const rows = [
+      { date: new Date('2024-07-02').toISOString(), extraData: { a: 1, b: 2 } },
+      { date: new Date('2024-07-03').toISOString(), extraData: { a: 3, b: 4 } }
+    ]
+    const bulk = await request(app)
+      .post(`/api/clients/${clientId}/platforms/${formulaPlatformId}/ad-daily/bulk`)
+      .set('Authorization', `Bearer ${token}`)
+      .send(rows)
+      .expect(201)
+    expect(bulk.body[0].extraData.c).toBe(3)
+    expect(bulk.body[1].extraData.c).toBe(7)
   })
 
   it('sort adDaily by spent desc', async () => {

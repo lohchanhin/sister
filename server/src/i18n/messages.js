@@ -25,6 +25,7 @@ export const languages = {
     PARAMS_ERROR: '参数错误',
     RECORD_NOT_FOUND: '记录不存在',
     RECORD_DELETED: '记录已删除',
+    INVALID_FORMULA: '公式無效',
     TAG_NOT_FOUND: '标签不存在',
     TAG_DELETED: '标签已删除',
     DATA_FORMAT_ERROR: '资料格式错误',

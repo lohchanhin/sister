@@ -137,7 +137,8 @@
             <DatePicker v-if="field.type === 'date'" v-model="recordForm.extraData[field.name]" :inputId="field.name"
               class="flex-1" />
 
-            <InputText v-else v-model="recordForm.extraData[field.name]" :inputId="field.name" class="flex-1" />
+            <InputText v-else v-model="recordForm.extraData[field.name]" :inputId="field.name" class="flex-1"
+              :readonly="field.type === 'formula'" />
 
             <!-- 色票下拉固定 96px -->
             <Dropdown v-model="recordForm.colors[field.name]" :options="colorOptions" optionLabel="label"
@@ -301,8 +302,40 @@ const imgList = ref([])
 const customColumns = ref([])      // e.g. [{ name:'備註', type:'text' }]
 const platform = ref(null)
 const numericColumns = computed(() =>
-  customColumns.value.filter(f => f.type === 'number').map(f => f.name)
+  customColumns.value.filter(f => f.type === 'number' || f.type === 'formula').map(f => f.name)
 )
+
+const formulaFields = computed(() => customColumns.value.filter(f => f.type === 'formula'))
+const formulaPattern = /^[0-9+\-*/().\s_a-zA-Z]+$/
+const evalFormula = (formula, data) => {
+  if (!formula || !formulaPattern.test(formula)) return 0
+  try {
+    const fn = new Function('data', `with (data) { return ${formula}; }`)
+    const res = fn(data)
+    return typeof res === 'number' && !isNaN(res) ? res : 0
+  } catch {
+    return 0
+  }
+}
+
+const recalcFormulas = () => {
+  const vars = { ...recordForm.value.extraData }
+  formulaFields.value.forEach(f => {
+    const val = evalFormula(f.formula, vars)
+    recordForm.value.extraData[f.name] = val
+    vars[f.name] = val
+  })
+}
+
+const nonFormulaData = computed(() => {
+  const obj = {}
+  customColumns.value.filter(f => f.type !== 'formula').forEach(f => {
+    obj[f.name] = recordForm.value.extraData[f.name]
+  })
+  return obj
+})
+
+watch(nonFormulaData, recalcFormulas)
 
 /**** 排序狀態 ****/
 const sortField = ref('')
@@ -333,11 +366,11 @@ const weeklyAgg = computed(() => {
     if (!map[week]) {
       map[week] = { week }
       customColumns.value.forEach(f => {
-        if (f.type === 'number') map[week][f.name] = 0
+        if (f.type === 'number' || f.type === 'formula') map[week][f.name] = 0
       })
     }
     customColumns.value.forEach(f => {
-      if (f.type === 'number') {
+      if (f.type === 'number' || f.type === 'formula') {
         const val = Number(d.extraData[f.name] || 0)
         map[week][f.name] += isNaN(val) ? 0 : val
       }
@@ -356,7 +389,7 @@ const weeklyAgg = computed(() => {
       const note = weeklyNotes.value[w]
       map[w] = { week: w }
       customColumns.value.forEach(f => {
-        if (f.type === 'number') map[w][f.name] = 0
+        if (f.type === 'number' || f.type === 'formula') map[w][f.name] = 0
       })
       map[w].note = note?.text || ''
       map[w].hasNote = !!(note && note.text)
@@ -368,7 +401,7 @@ const weeklyAgg = computed(() => {
   const arr = Object.values(map)
   arr.forEach(week => {
     customColumns.value.forEach(f => {
-      if (f.type === 'number' && typeof week[f.name] === 'number') {
+      if ((f.type === 'number' || f.type === 'formula') && typeof week[f.name] === 'number') {
         week[f.name] = Number(week[f.name].toFixed(2))
       }
     })
@@ -394,7 +427,8 @@ const excelSpec = computed(() => {
       field: f.name,
       type: f.type === 'number' ? '數字'
         : f.type === 'date' ? '日期 (YYYY-MM-DD)'
-          : '文字',
+        : f.type === 'formula' ? '公式(自動計算)'
+        : '文字',
       sample: f.type === 'date' ? dayjs().format('YYYY-MM-DD') : ''
     }))
   )
@@ -462,12 +496,12 @@ const loadPlatform = async () => {
     .map(f =>
       typeof f === 'string'
         ? { name: f, type: 'text', order: 0 }
-        : { name: f.name, type: f.type || 'text', order: f.order || 0 }
+        : { name: f.name, type: f.type || 'text', order: f.order || 0, formula: f.formula || '' }
     )
     .sort((a, b) => a.order - b.order)
   // 預設 Y 軸選第一個欄位
   if (!yMetric.value) {
-    const first = customColumns.value.find(f => f.type === 'number')
+    const first = customColumns.value.find(f => f.type === 'number' || f.type === 'formula')
     if (first) yMetric.value = first.name
   }
 }
@@ -541,6 +575,7 @@ onMounted(async () => {
     recordForm.value.extraData[f.name] = ''
     recordForm.value.colors[f.name] = ''
   })
+  recalcFormulas()
   await loadDaily()
   await loadWeeklyNotes()
   loading.value = false
@@ -555,6 +590,7 @@ const openCreateDialog = () => {
     recordForm.value.extraData[f.name] = ''
     recordForm.value.colors[f.name] = ''
   })
+  recalcFormulas()
   dialogVisible.value = true
 }
 
@@ -583,6 +619,7 @@ const openEdit = row => {
   recordForm.value.date = row.date
   recordForm.value.extraData = { ...row.extraData }
   recordForm.value.colors = { ...row.colors }
+  recalcFormulas()
   dialogVisible.value = true
 }
 

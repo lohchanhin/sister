@@ -132,6 +132,18 @@ describe('Platform API', () => {
     expect(res.body.message).toBe(t('PLATFORM_NAME_DUPLICATE'))
   })
 
+  it('rejects invalid formula', async () => {
+    const res = await request(app)
+      .post(`/api/clients/${clientId}/platforms`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'BadFormula',
+        fields: [{ name: 'f1', type: 'formula', formula: 'process.exit()' }]
+      })
+      .expect(400)
+    expect(res.body.message).toBe(t('INVALID_FORMULA'))
+  })
+
   it('transfer platform to another client', async () => {
     const resNewClient = await request(app)
       .post('/api/clients')
