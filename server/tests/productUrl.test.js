@@ -75,4 +75,20 @@ describe('Product signed url', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(404)
   })
+
+  it('should return 400 when invalid id', async () => {
+    await request(app)
+      .get('/api/products/invalid-id/url')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400)
+  })
+})
+
+describe('Get product', () => {
+  it('should return 400 when invalid id', async () => {
+    await request(app)
+      .get('/api/products/invalid-id')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400)
+  })
 })
