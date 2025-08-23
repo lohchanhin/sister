@@ -9,11 +9,9 @@ import {
   updateAssetsViewers,
   moveAssets,
   getAssetUrl,
-  batchDownloadAssets,
-  deleteAssetsBulk,
-  startBatchDownload as startAssetBatchDownload,
-  getBatchDownloadProgress as getAssetBatchDownloadProgress
+  deleteAssetsBulk
 } from './assets'
+import api from './api'
 
 export const fetchProducts = (folderId, tags = [], deep = false, sort) =>
   fetchProductsRaw(folderId, tags, deep, true, sort)
@@ -50,10 +48,9 @@ export const moveProducts = (ids, folderId) =>
 export const getProductUrl = (id, download = false) =>
   getAssetUrl(id, download)
 
-export const batchDownloadProducts = ids => batchDownloadAssets(ids)
-
 export const deleteProducts = ids => deleteAssetsBulk(ids)
+export const startBatchDownload = ids =>
+  api.post('/products/batch-download', { ids }).then(res => res.data)
 
-export const startBatchDownload = ids => startAssetBatchDownload(ids)
-
-export const getBatchDownloadProgress = id => getAssetBatchDownloadProgress(id)
+export const getBatchDownloadProgress = id =>
+  api.get(`/products/batch-download/${id}`).then(res => res.data)
