@@ -13,6 +13,12 @@ export const getProducts = async (req, res) => {
   await getAssets(req, res);
 };
 
+export const getProduct = async (req, res) => {
+  const product = await Asset.findOne({ _id: req.params.id, type: 'edited' });
+  if (!product) return res.status(404).json({ message: t('ASSET_NOT_FOUND') });
+  res.json(product);
+};
+
 export const batchDownload = async (req, res) => {
   const { ids } = req.body;
   if (!Array.isArray(ids) || !ids.length) {
