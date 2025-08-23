@@ -44,13 +44,15 @@
         <div class="p-inputgroup">
             <InputText v-model="newFieldName" placeholder="欄位名稱" />
             <Dropdown v-model="newFieldType" :options="fieldTypeOptions" optionLabel="label" optionValue="value" />
+            <InputText v-if="newFieldType === 'formula'" v-model="newFieldFormula" placeholder="公式" />
             <Button icon="pi pi-plus" @click="addField" />
         </div>
         <OrderList v-model="form.fields" listStyle="height:auto" dataKey="name" class="mt-2">
             <template #header>欄位列表</template>
             <template #item="slotProps">
-                <div class="flex justify-content-between align-items-center w-full">
+                <div class="flex justify-content-between align-items-center w-full gap-2">
                     <span>{{slotProps.item.name}} ({{slotProps.item.type}})</span>
+                    <InputText v-if="slotProps.item.type === 'formula'" v-model="slotProps.item.formula" placeholder="公式" class="flex-1" />
                     <Button icon="pi pi-times" class="p-button-danger p-button-text" @click="removeField(slotProps.index)" />
                 </div>
             </template>
@@ -112,10 +114,12 @@ const initializing = ref(false)
 
 const newFieldName = ref('')
 const newFieldType = ref('number')
+const newFieldFormula = ref('')
 const fieldTypeOptions = ref([
     { label: '數字', value: 'number' },
     { label: '文字', value: 'text' },
     { label: '日期', value: 'date' },
+    { label: '公式', value: 'formula' },
 ])
 const modeOptions = ref([
     { label: '預設', value: 'default' },
@@ -132,8 +136,11 @@ const defaultFields = [
 const addField = () => {
   const name = newFieldName.value.trim()
   if (name && !form.value.fields.find(f => f.name === name)) {
-    form.value.fields.push({ name, type: newFieldType.value, order: form.value.fields.length + 1 })
+    const field = { name, type: newFieldType.value, order: form.value.fields.length + 1 }
+    if (newFieldType.value === 'formula') field.formula = newFieldFormula.value.trim()
+    form.value.fields.push(field)
     newFieldName.value = ''
+    newFieldFormula.value = ''
   }
 }
 
@@ -156,6 +163,7 @@ const openCreate = () => {
   editing.value = false
   initializing.value = true
   form.value = { name: '', platformType: '', mode: 'custom', fields: [] }
+  newFieldFormula.value = ''
   dialog.value = true
   nextTick(() => {
     initializing.value = false
@@ -169,6 +177,7 @@ const openEdit = (platform) => {
     ...platform,
     fields: platform.fields.map(f => (typeof f === 'string' ? { name: f, type: 'text', order: 0 } : f))
   }
+  newFieldFormula.value = ''
   dialog.value = true
   nextTick(() => {
     initializing.value = false

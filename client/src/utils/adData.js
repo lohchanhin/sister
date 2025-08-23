@@ -13,6 +13,7 @@ export const buildExcelSpec = customFields => [
     field: c.name,
     type: c.type === 'number' ? '數字'
       : c.type === 'date' ? '日期 (YYYY-MM-DD)'
+      : c.type === 'formula' ? '公式(自動計算)'
       : '文字',
     sample: c.type === 'date' ? '2025-06-01' : ''
   }))
@@ -45,6 +46,7 @@ export const normalizeRows = (arr, customFields) => arr
     }
     const extra = {}
     customFields.forEach(c => {
+      if (c.type === 'formula') return
       if (r[c.name] !== undefined) {
         const val = r[c.name]
         if (c.type === 'number') extra[c.name] = Number(val) || 0

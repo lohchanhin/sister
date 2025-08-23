@@ -1,6 +1,7 @@
 import { t } from '../i18n/messages.js'
 import mongoose from 'mongoose'
 import AdDaily from '../models/adDaily.model.js'
+import Platform from '../models/platform.model.js'
 import path from 'node:path'
 import { uploadFile } from '../utils/gcs.js'
 import { decodeFilename } from '../utils/decodeFilename.js'
@@ -23,6 +24,18 @@ const sanitizeExtraData = obj => {
   return result
 }
 
+const formulaPattern = /^[0-9+\-*/().\s_a-zA-Z]+$/
+const evalFormula = (formula, data) => {
+  if (!formula || !formulaPattern.test(formula)) return 0
+  try {
+    const fn = new Function('data', `with (data) { return ${formula}; }`)
+    const res = fn(data)
+    return typeof res === 'number' && !isNaN(res) ? res : 0
+  } catch {
+    return 0
+  }
+}
+
 export const createAdDaily = async (req, res) => {
   const payload = {
     date: req.body.date,
@@ -35,6 +48,18 @@ export const createAdDaily = async (req, res) => {
     platformId: req.params.platformId,
     extraData: sanitizeExtraData(req.body.extraData),
     colors: req.body.colors || {}
+  }
+
+  const platform = await Platform.findById(req.params.platformId)
+  const formulas = platform?.fields?.filter(f => f.formula) || []
+  if (formulas.length) {
+    payload.extraData = payload.extraData || {}
+    const vars = { ...payload, ...payload.extraData }
+    for (const f of formulas) {
+      const val = evalFormula(f.formula, vars)
+      payload.extraData[f.name] = val
+      vars[f.name] = val
+    }
   }
   const rec = await AdDaily.findOneAndUpdate(
     { clientId: payload.clientId, platformId: payload.platformId, date: payload.date },
@@ -110,6 +135,9 @@ export const bulkCreateAdDaily = async (req, res) => {
 
   const known = ['date', 'spent', 'enquiries', 'reach', 'impressions', 'clicks', 'extraData', 'colors']
 
+  const platform = await Platform.findById(req.params.platformId)
+  const formulas = platform?.fields?.filter(f => f.formula) || []
+
   const records = req.body
     .map(row => {
       const extra = sanitizeExtraData({ ...(row.extraData || {}) })
@@ -133,6 +161,18 @@ export const bulkCreateAdDaily = async (req, res) => {
     })
     .filter(r => r.date)
     .map(r => ({ ...r, date: new Date(r.date) }))
+
+  if (formulas.length) {
+    for (const r of records) {
+      r.extraData = r.extraData || {}
+      const vars = { ...r, ...r.extraData }
+      for (const f of formulas) {
+        const val = evalFormula(f.formula, vars)
+        r.extraData[f.name] = val
+        vars[f.name] = val
+      }
+    }
+  }
 
   let docs
   try {
@@ -178,6 +218,9 @@ export const importAdDaily = async (req, res) => {
     'colors'
   ]
 
+  const platform = await Platform.findById(req.params.platformId)
+  const formulas = platform?.fields?.filter(f => f.formula) || []
+
   const records = rows
     .map(row => {
       const extra = sanitizeExtraData({ ...(row.extraData || {}) })
@@ -203,6 +246,18 @@ export const importAdDaily = async (req, res) => {
     .filter(r => r.date)
     .map(r => ({ ...r, date: new Date(r.date) }))
 
+  if (formulas.length) {
+    for (const r of records) {
+      r.extraData = r.extraData || {}
+      const vars = { ...r, ...r.extraData }
+      for (const f of formulas) {
+        const val = evalFormula(f.formula, vars)
+        r.extraData[f.name] = val
+        vars[f.name] = val
+      }
+    }
+  }
+
   let docs
   try {
     docs = await AdDaily.insertMany(records, { ordered: false })
@@ -215,18 +270,32 @@ export const importAdDaily = async (req, res) => {
 }
 
 export const updateAdDaily = async (req, res) => {
+  const payload = {
+    date: req.body.date,
+    spent: sanitizeNumber(req.body.spent),
+    enquiries: sanitizeNumber(req.body.enquiries),
+    reach: sanitizeNumber(req.body.reach),
+    impressions: sanitizeNumber(req.body.impressions),
+    clicks: sanitizeNumber(req.body.clicks),
+    extraData: sanitizeExtraData(req.body.extraData),
+    colors: req.body.colors || {}
+  }
+
+  const platform = await Platform.findById(req.params.platformId)
+  const formulas = platform?.fields?.filter(f => f.formula) || []
+  if (formulas.length) {
+    payload.extraData = payload.extraData || {}
+    const vars = { ...payload, ...payload.extraData }
+    for (const f of formulas) {
+      const val = evalFormula(f.formula, vars)
+      payload.extraData[f.name] = val
+      vars[f.name] = val
+    }
+  }
+
   const rec = await AdDaily.findByIdAndUpdate(
     req.params.id,
-    {
-      date: req.body.date,
-      spent: sanitizeNumber(req.body.spent),
-      enquiries: sanitizeNumber(req.body.enquiries),
-      reach: sanitizeNumber(req.body.reach),
-      impressions: sanitizeNumber(req.body.impressions),
-      clicks: sanitizeNumber(req.body.clicks),
-      extraData: sanitizeExtraData(req.body.extraData),
-      colors: req.body.colors || {}
-    },
+    payload,
     { new: true }
   )
   if (!rec) return res.status(404).json({ message: t('RECORD_NOT_FOUND') })

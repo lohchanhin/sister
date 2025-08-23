@@ -4,9 +4,22 @@ import AdDaily from '../models/adDaily.model.js'
 import WeeklyNote from '../models/weeklyNote.model.js'
 import { getCache, setCache, delCache, clearCacheByPrefix } from '../utils/cache.js'
 
+const formulaPattern = /^[0-9+\-*/().\s_a-zA-Z]+$/
+
+const validateFields = fields => {
+  if (!Array.isArray(fields)) return []
+  for (const f of fields) {
+    if (f.formula && !formulaPattern.test(f.formula)) {
+      throw new Error('INVALID_FORMULA')
+    }
+  }
+  return fields
+}
+
 export const createPlatform = async (req, res) => {
   try {
     const { name, platformType, fields, mode } = req.body
+    validateFields(fields)
     const platform = await Platform.create({
       name,
       platformType,
@@ -17,6 +30,9 @@ export const createPlatform = async (req, res) => {
     await clearCacheByPrefix('platforms:')
     res.status(201).json(platform)
   } catch (err) {
+    if (err.message === 'INVALID_FORMULA') {
+      return res.status(400).json({ message: t('INVALID_FORMULA') })
+    }
     if (err.code === 11000) {
       return res.status(409).json({ message: t('PLATFORM_NAME_DUPLICATE') })
     }
@@ -46,6 +62,7 @@ export const getPlatform = async (req, res) => {
 export const updatePlatform = async (req, res) => {
   try {
     const { name, platformType, fields, mode } = req.body
+    validateFields(fields)
     const p = await Platform.findOneAndUpdate(
       { _id: req.params.id, clientId: req.params.clientId },
       { name, platformType, fields, mode },
@@ -56,6 +73,9 @@ export const updatePlatform = async (req, res) => {
     await delCache(`platform:${req.params.id}`)
     res.json(p)
   } catch (err) {
+    if (err.message === 'INVALID_FORMULA') {
+      return res.status(400).json({ message: t('INVALID_FORMULA') })
+    }
     if (err.code === 11000) {
       return res.status(409).json({ message: t('PLATFORM_NAME_DUPLICATE') })
     }

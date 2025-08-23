@@ -13,7 +13,8 @@ const platformSchema = new mongoose.Schema(
           {
             name: { type: String, required: true },
             type: { type: String, default: 'text' },
-            order: { type: Number, default: 0 }
+            order: { type: Number, default: 0 },
+            formula: { type: String, default: '' }
           },
           { _id: false }
         )
