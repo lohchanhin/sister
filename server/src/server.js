@@ -108,7 +108,10 @@ app.use('/api/dashboard', dashboardRoutes)
 /* ────────────────────────── 5. 前端靜態檔案 ───────────────────────── */
 const clientDist = path.resolve(__dirname, '../../client/dist')
 app.use(express.static(clientDist))
-app.get('*', (_, res) => res.sendFile(path.join(clientDist, 'index.html')))
+// 只回傳前端入口給非 /api 路徑，避免覆蓋 API 404
+app.get(/^\/(?!api).*/, (_, res) =>
+  res.sendFile(path.join(clientDist, 'index.html'))
+)
 
 /* ────────────────────────── 6. 404 & 全域錯誤 ───────────────────────── */
 app.use(notFound)
