@@ -2,23 +2,13 @@ import { Router } from 'express'
 import { protect } from '../middleware/auth.js'
 import { requirePerm } from '../middleware/permission.js'
 import { PERMISSIONS } from '../config/permissions.js'
-import {
-    getProducts,
-    getProduct,
-    updateProduct,
-    deleteProduct,
-    reviewProduct,
-    getProductStages,
-    updateProductStageStatus,
-    updateProductsViewers,
-    getProductSignedUrl,
-    batchDownloadProducts,
-    deleteProducts
-} from '../controllers/product.controller.js'
+import { getProducts, batchDownload, getBatchDownloadProgress } from '../controllers/product.controller.js'
 
 const router = Router()
 
-router.use(protect)
+router.post('/batch-download', protect, batchDownload)
+router.get('/batch-download/:id', protect, getBatchDownloadProgress)
+router.get('/', protect, requirePerm(PERMISSIONS.ASSET_READ), getProducts)
 
 router.get('/', requirePerm(PERMISSIONS.ASSET_READ), getProducts)
 router.get('/:id', requirePerm(PERMISSIONS.ASSET_READ), getProduct)
