@@ -45,4 +45,24 @@ describe('POST /api/auth/login', () => {
     expect(res.body).toHaveProperty('user.role')
     expect(res.body.user).toHaveProperty('permissions')
   })
+
+  it('should return 400 if username is missing', async () => {
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({ password: 'mypwd' })
+      .expect(400)
+
+    expect(res.body.message).toBe('Username is required')
+  })
+})
+
+describe('POST /api/auth/register', () => {
+  it('should return 400 if email is invalid', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ username: 'new', password: 'mypwd', email: 'notemail', role: 'manager' })
+      .expect(400)
+
+    expect(res.body.message).toBe('Email is invalid')
+  })
 })
