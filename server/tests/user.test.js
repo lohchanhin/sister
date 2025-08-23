@@ -61,3 +61,30 @@ describe('create user then login', () => {
     expect(res.body).toHaveProperty('token')
   })
 })
+
+describe('validation', () => {
+  it('should return 400 when creating user without username', async () => {
+    const res = await request(app)
+      .post('/api/user')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'U2', email: 'u2@example.com', role: 'employee', password: 'pwd' })
+      .expect(400)
+
+    expect(res.body.message).toBe('Username is required')
+  })
+
+  it('should return 400 when updating user with invalid email', async () => {
+    const created = await request(app)
+      .post('/api/user')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ username: 'u3', name: 'U3', email: 'u3@example.com', role: 'employee', password: 'pwd' })
+
+    const res = await request(app)
+      .put(`/api/user/${created.body._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ email: 'notanemail' })
+      .expect(400)
+
+    expect(res.body.message).toBe('Email is invalid')
+  })
+})
