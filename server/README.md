@@ -9,6 +9,7 @@ npm start                 # 啟動伺服器
 \`\`\`
 
 伺服器啟動前請在根目錄複製 `.env.example` 為 `.env`，並填入 MongoDB、JWT 及 GCS 設定。
+如需允許新的前端網域，請在 `.env` 中設定 `CORS_ALLOW_LIST`（逗號分隔）。
 
 `.env` 中的 `UPLOAD_DIR` 可指定暫存上傳檔案的資料夾，預設值為 `/tmp/uploads`。
 

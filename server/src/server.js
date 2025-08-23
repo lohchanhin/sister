@@ -14,6 +14,7 @@ import dotenv             from 'dotenv'
 import path               from 'node:path'
 import fs                 from 'node:fs'
 import { fileURLToPath }  from 'node:url'
+import { createCorsOptions } from './config/cors.js'
 
 import mongoose                    from 'mongoose'
 import connectDB                   from './config/db.js'
@@ -50,29 +51,7 @@ const app = express()
 app.enable('trust proxy')                  // Heroku 需開啟，否則 secure cookie 不生效
 
 /* ────────────────────────── 2. CORS (放最前) ───────────────────────── */
-const allowList = [
-  'https://www.golden-goose-media.com',
-  'https://golden-goose-media.com',
-  'http://localhost:5173',
-  'http://localhost:3000'
-]
-
-const corsOptions = {
-  /**
-   * 動態驗證 Origin：
-   * 無 Origin（Postman / SSR）直接放行；前端請求需在 allowList
-   */
-  origin: (origin, cb) => {
-    if (!origin) return cb(null, true)
-    if (allowList.includes(origin)) return cb(null, true)
-    console.warn('[CORS] Blocked Origin =', origin)
-    return cb(new Error('Not allowed by CORS'))
-  },
-  credentials: true,
-  allowedHeaders:
-    'Content-Type,Authorization,Accept,Origin,X-Requested-With',
-  methods: 'GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS'
-}
+const corsOptions = createCorsOptions()
 
 app.use(cors(corsOptions))
 app.options('*', cors(corsOptions))        // 處理所有預檢
