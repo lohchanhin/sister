@@ -5,6 +5,7 @@ import { uploadFile, getSignedUrl } from '../utils/gcs.js'
 import { decodeFilename } from '../utils/decodeFilename.js'
 import fs from 'node:fs/promises'
 import { getCache, setCache, delCache, clearCacheByPrefix } from '../utils/cache.js'
+import logger from '../config/logger.js'
 
 const uploadImages = async files => {
   if (!files?.length) return []
@@ -46,7 +47,7 @@ const appendSignedUrls = async note => {
 }
 
 export const createWeeklyNote = async (req, res) => {
-  console.log('uploaded files:', req.files)
+  logger.debug('uploaded files:', req.files)
   const images = await uploadImages(req.files)
   const note = await WeeklyNote.create({
     clientId: req.params.clientId,
@@ -83,7 +84,7 @@ export const updateWeeklyNote = async (req, res) => {
   let newImages = []
   if (keep !== undefined) newImages = keep
   if (req.files?.length) {
-    console.log('uploaded files:', req.files)
+    logger.debug('uploaded files:', req.files)
     const uploaded = await uploadImages(req.files)
     newImages = [...newImages, ...uploaded]
   }

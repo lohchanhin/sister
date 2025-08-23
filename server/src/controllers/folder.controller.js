@@ -11,6 +11,7 @@ import bucket, { uploadFile as gcsUploadFile, getSignedUrl } from '../utils/gcs.
 import fs from 'node:fs/promises'
 import archiver from 'archiver'
 import { createWriteStream } from 'node:fs'
+import logger from '../config/logger.js'
 
 const parseTags = (t) => {
   if (!t) return []
@@ -347,7 +348,7 @@ export const downloadFolder = async (req, res) => {
             await setCache(cacheKey, { percent, url: null, error: null }, 600)
 
           } catch (err) {
-            console.error(`Failed to download or archive ${asset.path}:`, err)
+            logger.error(`Failed to download or archive ${asset.path}:`, err)
             const currentProgress = await getCache(cacheKey) || {}
             const newError = (currentProgress.error || '') + `無法處理 ${asset.title || asset.filename}. `
             await setCache(cacheKey, { ...currentProgress, error: newError }, 600)
@@ -366,11 +367,11 @@ export const downloadFolder = async (req, res) => {
       await setCache(cacheKey, { ...finalProgress, percent: 100, url }, 600)
 
     } catch (e) {
-      console.error('zip error', e)
+      logger.error('zip error', e)
       await setCache(cacheKey, { percent: 100, url: null, error: e.message }, 600)
     } finally {
       if (tmpDir) {
-        await fs.rm(tmpDir, { recursive: true, force: true }).catch(err => console.error(`Failed to remove temp dir ${tmpDir}:`, err))
+        await fs.rm(tmpDir, { recursive: true, force: true }).catch(err => logger.error(`Failed to remove temp dir ${tmpDir}:`, err))
       }
     }
   })()
