@@ -18,50 +18,51 @@ import {
   getFolderStages,
   updateFolderStageStatus
 } from '../controllers/folderReviewRecord.controller.js'
+import asyncHandler from '../utils/asyncHandler.js'
 
 const router = Router()
 
-router.post('/', protect, requirePerm(PERMISSIONS.FOLDER_MANAGE), createFolder)
-router.get('/', protect, requirePerm(PERMISSIONS.FOLDER_READ), getFolders) // GET  /api/folders?progress=true 可取得進度
-router.get('/:id', protect, requirePerm(PERMISSIONS.FOLDER_READ), getFolder)
+router.post('/', protect, requirePerm(PERMISSIONS.FOLDER_MANAGE), asyncHandler(createFolder))
+router.get('/', protect, requirePerm(PERMISSIONS.FOLDER_READ), asyncHandler(getFolders)) // GET  /api/folders?progress=true 可取得進度
+router.get('/:id', protect, requirePerm(PERMISSIONS.FOLDER_READ), asyncHandler(getFolder))
 router.get(
   '/:id/download',
   protect,
   requirePerm(PERMISSIONS.FOLDER_READ),
-  downloadFolder
+  asyncHandler(downloadFolder)
 )
 router.get(
   '/:id/download/progress',
   protect,
   requirePerm(PERMISSIONS.FOLDER_READ),
-  getDownloadProgress
+  asyncHandler(getDownloadProgress)
 )
 router.put(
   '/viewers',
   protect,
   requirePerm(PERMISSIONS.FOLDER_MANAGE),
-  updateFoldersViewers
+  asyncHandler(updateFoldersViewers)
 )
 router.put(
   '/move',
   protect,
   requirePerm(PERMISSIONS.FOLDER_MANAGE),
-  moveFolders
+  asyncHandler(moveFolders)
 )
 router.put(
   '/:id/review',
   protect,
   requirePerm(PERMISSIONS.REVIEW_MANAGE),
-  reviewFolder
+  asyncHandler(reviewFolder)
 )
-router.get('/:id/stages', protect, getFolderStages)
-router.put('/:id/stages/:stageId', protect, updateFolderStageStatus)
-router.put('/:id', protect, requirePerm(PERMISSIONS.FOLDER_MANAGE), updateFolder)
+router.get('/:id/stages', protect, asyncHandler(getFolderStages))
+router.put('/:id/stages/:stageId', protect, asyncHandler(updateFolderStageStatus))
+router.put('/:id', protect, requirePerm(PERMISSIONS.FOLDER_MANAGE), asyncHandler(updateFolder))
 router.delete(
   '/:id',
   protect,
   requirePerm(PERMISSIONS.FOLDER_MANAGE),
-  deleteFolder
+  asyncHandler(deleteFolder)
 )   // folders
 
 export default router

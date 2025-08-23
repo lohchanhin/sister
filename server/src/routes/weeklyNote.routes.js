@@ -8,16 +8,17 @@ import {
   updateWeeklyNote,
   getWeeklyImageUrl
 } from '../controllers/weeklyNote.controller.js'
+import asyncHandler from '../utils/asyncHandler.js'
 
 const router = Router({ mergeParams: true })
 
 router.use(protect)
 
-router.get('/', getWeeklyNotes)
-router.post('/', upload.array('images'), createWeeklyNote)
-router.get('/image-url', getWeeklyImageUrl)
+router.get('/', asyncHandler(getWeeklyNotes))
+router.post('/', upload.array('images'), asyncHandler(createWeeklyNote))
+router.get('/image-url', asyncHandler(getWeeklyImageUrl))
 router.route('/:week')
-  .get(getWeeklyNote)
-  .put(upload.array('images'), updateWeeklyNote)
+  .get(asyncHandler(getWeeklyNote))
+  .put(upload.array('images'), asyncHandler(updateWeeklyNote))
 
 export default router

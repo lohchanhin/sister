@@ -9,6 +9,7 @@ import {
   updateRole,
   deleteRole
 } from '../controllers/role.controller.js'
+import asyncHandler from '../utils/asyncHandler.js'
 
 const router = Router()
 
@@ -16,12 +17,12 @@ router.use(protect)
 router.use(requirePerm(PERMISSIONS.ROLE_MANAGE))
 
 router.route('/')
-  .post(createRole)
-  .get(getRoles)
+  .post(asyncHandler(createRole))
+  .get(asyncHandler(getRoles))
 
 router.route('/:id')
-  .get(getRole)
-  .put(updateRole)
-  .delete(deleteRole)
+  .get(asyncHandler(getRole))
+  .put(asyncHandler(updateRole))
+  .delete(asyncHandler(deleteRole))
 
 export default router
