@@ -29,6 +29,7 @@
    npm install
    \`\`\`
 伺服器啟動前，請在根目錄複製 `.env.example` 為 `.env`，並依需求調整 MongoDB、JWT、GCS 等設定。
+若要允許額外的前端網域，請設定 `CORS_ALLOW_LIST`（以逗號分隔）。
  `.env` 中需填入以下 GCS 相關欄位：
 
 \`\`\`bash
@@ -144,7 +145,7 @@ server/  # 後端 API
 以下為將專案部署至 **Heroku** 的基本流程：
 
 1. **設定環境變數**：在 Heroku 後台依序新增
-   `MONGODB_URI`、`JWT_SECRET`、`JWT_EXPIRES_IN` 及 `UPLOAD_DIR` 等欄位，
+   `MONGODB_URI`、`JWT_SECRET`、`JWT_EXPIRES_IN`、`CORS_ALLOW_LIST` 及 `UPLOAD_DIR` 等欄位，
    值可參考 `server/.env.example`。
 2. **部署程式碼**：登入後建立應用程式並執行
    \`\`\`bash
