@@ -8,6 +8,7 @@ import archiver from 'archiver';
 import bucket, { uploadFile as gcsUploadFile, getSignedUrl } from '../utils/gcs.js';
 import { getCache, setCache, delCache } from '../utils/cache.js';
 import logger from '../config/logger.js';
+import mongoose from 'mongoose';
 
 export const getProducts = async (req, res) => {
   if (!req.query.type) req.query.type = 'edited';
@@ -15,12 +16,18 @@ export const getProducts = async (req, res) => {
 };
 
 export const getProduct = async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(400).json({ message: t('PARAMS_ERROR') });
+  }
   const product = await Asset.findOne({ _id: req.params.id, type: 'edited' });
   if (!product) return res.status(404).json({ message: t('ASSET_NOT_FOUND') });
   res.json(product);
 };
 
 export const getProductSignedUrl = async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(400).json({ message: t('PARAMS_ERROR') });
+  }
   const product = await Asset.findOne({ _id: req.params.id, type: 'edited' });
   if (!product) return res.status(404).json({ message: t('ASSET_NOT_FOUND') });
 
