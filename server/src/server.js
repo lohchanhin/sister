@@ -14,6 +14,7 @@ import dotenv             from 'dotenv'
 import path               from 'node:path'
 import fs                 from 'node:fs'
 import { fileURLToPath }  from 'node:url'
+import rateLimit          from 'express-rate-limit'
 
 import mongoose                    from 'mongoose'
 import connectDB                   from './config/db.js'
@@ -89,6 +90,15 @@ app.use((req, _res, next) => {
 app.use(express.json())
 app.use(cookieParser())
 
+/* ────────────────────────── 3.1 Rate Limit ───────────────────────── */
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 分鐘
+  max: 100,                 // 每 IP 最多 100 次
+  standardHeaders: true,
+  legacyHeaders: false
+})
+// 可視需求套用至其他敏感路由：app.use('/api/some-path', authLimiter)
+
 /* ────────────────────────── 4. 路由載入 ───────────────────────── */
 import authRoutes         from './routes/auth.routes.js'
 import userRoutes         from './routes/user.routes.js'
@@ -108,7 +118,7 @@ import adDailyRoutes      from './routes/adDaily.routes.js'
 import weeklyNoteRoutes   from './routes/weeklyNote.routes.js'
 import dashboardRoutes    from './routes/dashboard.routes.js'
 
-app.use('/api/auth',     authRoutes)
+app.use('/api/auth',     authLimiter, authRoutes)
 app.use('/api/user',     userRoutes)
 app.use('/api/assets',   assetRoutes)
 app.use('/api/products', productRoutes)
