@@ -7,6 +7,7 @@ import { createWriteStream } from 'node:fs';
 import archiver from 'archiver';
 import bucket, { uploadFile as gcsUploadFile, getSignedUrl } from '../utils/gcs.js';
 import { getCache, setCache, delCache } from '../utils/cache.js';
+import logger from '../config/logger.js';
 
 export const getProducts = async (req, res) => {
   if (!req.query.type) req.query.type = 'edited';
@@ -80,7 +81,7 @@ export const batchDownload = async (req, res) => {
             await setCache(cacheKey, { percent, url: null, error: null }, 600);
 
           } catch (err) {
-            console.error(`Failed to download or archive ${product.path}:`, err);
+            logger.error(`Failed to download or archive ${product.path}:`, err);
             const currentProgress = await getCache(cacheKey) || {};
             const newError = (currentProgress.error || '') + `無法處理 ${product.title || product.filename}. `;
             await setCache(cacheKey, { ...currentProgress, error: newError }, 600);
@@ -99,11 +100,11 @@ export const batchDownload = async (req, res) => {
       await setCache(cacheKey, { ...finalProgress, percent: 100, url }, 600);
 
     } catch (e) {
-      console.error('zip error', e);
+      logger.error('zip error', e);
       await setCache(cacheKey, { percent: 100, url: null, error: e.message }, 600);
     } finally {
       if (tmpDir) {
-        await fs.rm(tmpDir, { recursive: true, force: true }).catch(err => console.error(`Failed to remove temp dir ${tmpDir}:`, err));
+        await fs.rm(tmpDir, { recursive: true, force: true }).catch(err => logger.error(`Failed to remove temp dir ${tmpDir}:`, err));
       }
     }
   })();

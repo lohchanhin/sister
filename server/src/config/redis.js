@@ -8,6 +8,7 @@ import RedisMock from 'ioredis-mock'
 import dotenv    from 'dotenv'
 import path      from 'node:path'
 import { fileURLToPath } from 'node:url'
+import logger from './logger.js'
 
 /* ---------- .env ---------- */
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -40,10 +41,9 @@ const redis = new RedisClient(
   redisOptions
 )
 
-console.log('[Redis] 初始化來源 =',
-            REDIS_URL ? 'Heroku' : 'localhost:6379')
+logger.info(`[Redis] 初始化來源 = ${REDIS_URL ? 'Heroku' : 'localhost:6379'}`)
 
-redis.on('connect', () => console.log('🟢 Redis 已連線'))
-redis.on('error',   err => console.error('Redis 連線失敗：', err))
+redis.on('connect', () => logger.info('🟢 Redis 已連線'))
+redis.on('error',   err => logger.error('Redis 連線失敗：', err))
 
 export default redis
