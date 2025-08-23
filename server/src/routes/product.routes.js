@@ -5,6 +5,7 @@ import { PERMISSIONS } from '../config/permissions.js'
 import {
   getProducts,
   getProduct,
+  getProductStages,
   batchDownload,
   getBatchDownloadProgress,
   getProductSignedUrl
@@ -17,6 +18,7 @@ router.post('/batch-download', protect, asyncHandler(batchDownload))
 router.get('/batch-download/:id', protect, asyncHandler(getBatchDownloadProgress))
 router.get('/', protect, requirePerm(PERMISSIONS.ASSET_READ), asyncHandler(getProducts))
 router.get('/:id', protect, requirePerm(PERMISSIONS.ASSET_READ), asyncHandler(getProduct))
+router.get('/:id/stages', protect, requirePerm(PERMISSIONS.ASSET_READ), asyncHandler(getProductStages))
 router.get('/:id/url', protect, requirePerm(PERMISSIONS.ASSET_READ), asyncHandler(getProductSignedUrl))
 
 export default router

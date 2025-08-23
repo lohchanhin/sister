@@ -7,6 +7,8 @@ import { createWriteStream } from 'node:fs';
 import archiver from 'archiver';
 import bucket, { uploadFile as gcsUploadFile, getSignedUrl } from '../utils/gcs.js';
 import { getCache, setCache, delCache } from '../utils/cache.js';
+import ReviewStage from '../models/reviewStage.model.js';
+import ReviewRecord from '../models/reviewRecord.model.js';
 import logger from '../config/logger.js';
 
 export const getProducts = async (req, res) => {
@@ -32,6 +34,29 @@ export const getProductSignedUrl = async (req, res) => {
 
   const url = await getSignedUrl(product.path, options);
   res.json({ url });
+};
+
+export const getProductStages = async (req, res) => {
+  const product = await Asset.findOne({ _id: req.params.id, type: 'edited' });
+  if (!product) return res.status(404).json({ message: t('ASSET_NOT_FOUND') });
+
+  const cacheKey = `productStages:${req.params.id}`;
+  const cached = await getCache(cacheKey);
+  if (cached) return res.json(cached);
+
+  const stages = await ReviewStage.find().populate('responsible').sort('order');
+  const records = await ReviewRecord.find({ assetId: req.params.id });
+  const map = {};
+  for (const r of records) map[r.stageId.toString()] = r;
+  const list = stages.map(s => ({
+    _id: s._id,
+    name: s.name,
+    order: s.order,
+    responsible: s.responsible,
+    completed: map[s._id.toString()]?.completed || false
+  }));
+  await setCache(cacheKey, list);
+  res.json(list);
 };
 
 export const batchDownload = async (req, res) => {
