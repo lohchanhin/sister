@@ -39,30 +39,32 @@
         </div>
 
         <!-- 每日表格 -->
-        <DataTable :value="dailyData" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料"
-          :sortField="sortField" :sortOrder="sortOrder">
-          <Column field="date" header="日期" width="140" sortable>
-            <template #body="{ data }">
-              {{ dateFmt(data) }}
-            </template>
-          </Column>
-          <Column v-for="field in customColumns" :key="field.name" :field="'extraData.' + field.name"
-            :header="field.name" sortable>
-            <template #body="{ data }">
-              <span v-if="field.type === 'date'" :style="{ backgroundColor: data.colors?.[field.name] }">
-                {{ formatExtraDate(data.extraData?.[field.name]) }}
-              </span>
-              <span v-else :style="{ backgroundColor: data.colors?.[field.name] }">{{ data.extraData?.[field.name] ?? ''
-              }}</span>
-            </template>
-          </Column>
-          <Column header="操作" width="160">
-            <template #body="{ data }">
-              <Button link severity="primary" @click="openEdit(data)" label="編輯" />
-              <Button link severity="danger" @click="removeDaily(data)" label="刪除" />
-            </template>
-          </Column>
-        </DataTable>
+        <div class="sticky-table-wrapper">
+          <DataTable :value="dailyData" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料"
+            :sortField="sortField" :sortOrder="sortOrder" scrollable scrollHeight="70vh">
+            <Column field="date" header="日期" width="140" sortable>
+              <template #body="{ data }">
+                {{ dateFmt(data) }}
+              </template>
+            </Column>
+            <Column v-for="field in customColumns" :key="field.name" :field="'extraData.' + field.name"
+              :header="field.name" sortable>
+              <template #body="{ data }">
+                <span v-if="field.type === 'date'" :style="{ backgroundColor: data.colors?.[field.name] }">
+                  {{ formatExtraDate(data.extraData?.[field.name]) }}
+                </span>
+                <span v-else :style="{ backgroundColor: data.colors?.[field.name] }">{{ data.extraData?.[field.name] ?? ''
+                }}</span>
+              </template>
+            </Column>
+            <Column header="操作" width="160">
+              <template #body="{ data }">
+                <Button link severity="primary" @click="openEdit(data)" label="編輯" />
+                <Button link severity="danger" @click="removeDaily(data)" label="刪除" />
+              </template>
+            </Column>
+          </DataTable>
+        </div>
       </TabPanel>
 
       <!-- ──────────────────── 週摘要 ──────────────────── -->
@@ -79,40 +81,42 @@
         </div>
 
         <!-- 週表格 -->
-        <DataTable :value="weeklyAgg" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料">
-          <!-- 第一欄 -->
-          <Column header="日期" width="200">
-            <template #body="{ data }">
-              {{ formatWeekRange(data.week) }}
-            </template>
-          </Column>
-          <!-- 動態欄位總計 -->
-          <Column v-for="field in numericColumns" :key="field" :header="field" width="100">
-            <template #body="{ data }">{{ formatNumber(data[field]) }}</template>
-          </Column>
+        <div class="sticky-table-wrapper">
+          <DataTable :value="weeklyAgg" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料" scrollable scrollHeight="70vh">
+            <!-- 第一欄 -->
+            <Column header="日期" width="200">
+              <template #body="{ data }">
+                {{ formatWeekRange(data.week) }}
+              </template>
+            </Column>
+            <!-- 動態欄位總計 -->
+            <Column v-for="field in numericColumns" :key="field" :header="field" width="100">
+              <template #body="{ data }">{{ formatNumber(data[field]) }}</template>
+            </Column>
 
-          <!-- 圖片欄 -->
-          <Column header="圖片" width="120">
-            <template #body="{ data }">
-              <Button v-if="data.hasImage" link severity="primary" size="small" @click="previewImages(data.images)"
-                label="查看圖片" />
-            </template>
-          </Column>
+            <!-- 圖片欄 -->
+            <Column header="圖片" width="120">
+              <template #body="{ data }">
+                <Button v-if="data.hasImage" link severity="primary" size="small" @click="previewImages(data.images)"
+                  label="查看圖片" />
+              </template>
+            </Column>
 
-          <!-- 筆記欄 -->
-          <Column header="筆記" width="160">
-            <template #body="{ data }">
-              <span v-html="formatNote(data.note)" />
-            </template>
-          </Column>
+            <!-- 筆記欄 -->
+            <Column header="筆記" width="160">
+              <template #body="{ data }">
+                <span v-html="formatNote(data.note)" />
+              </template>
+            </Column>
 
-          <!-- 備註操作欄 -->
-          <Column header="備註" width="120">
-            <template #body="{ data }">
-              <Button link severity="primary" @click="openNote(data)" label="編輯" />
-            </template>
-          </Column>
-        </DataTable>
+            <!-- 備註操作欄 -->
+            <Column header="備註" width="120">
+              <template #body="{ data }">
+                <Button link severity="primary" @click="openNote(data)" label="編輯" />
+              </template>
+            </Column>
+          </DataTable>
+        </div>
       </TabPanel>
     </TabView>
 
@@ -872,6 +876,16 @@ const previewImages = async imgs => {
 </script>
 
 <style scoped>
+.sticky-table-wrapper {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.sticky-table-wrapper :deep(.p-datatable-thead > tr > th) {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff;
+}
 /* 自行視覺調整 */
 :deep(.p-datatable td){
   padding-top:0.5rem;
