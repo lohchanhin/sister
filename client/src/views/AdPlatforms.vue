@@ -41,10 +41,10 @@
     </div>
     <div v-if="form.mode === 'custom'" class="field">
         <label>自訂欄位</label>
-        <div class="p-inputgroup">
+        <div class="flex flex-wrap align-items-center gap-2">
             <InputText v-model="newFieldName" placeholder="欄位名稱" />
             <Dropdown v-model="newFieldType" :options="fieldTypeOptions" optionLabel="label" optionValue="value" />
-            <InputText v-if="newFieldType === 'formula'" v-model="newFieldFormula" placeholder="公式" />
+            <FormulaBuilder v-if="newFieldType === 'formula'" v-model="newFieldFormula" :fields="fieldNames" class="flex-1" />
             <Button icon="pi pi-plus" @click="addField" />
         </div>
         <OrderList v-model="form.fields" listStyle="height:auto" dataKey="name" class="mt-2">
@@ -52,7 +52,7 @@
             <template #item="slotProps">
                 <div class="flex justify-content-between align-items-center w-full gap-2">
                     <span>{{slotProps.item.name}} ({{slotProps.item.type}})</span>
-                    <InputText v-if="slotProps.item.type === 'formula'" v-model="slotProps.item.formula" placeholder="公式" class="flex-1" />
+                    <FormulaBuilder v-if="slotProps.item.type === 'formula'" v-model="slotProps.item.formula" :fields="fieldNames" class="flex-1" />
                     <Button icon="pi pi-times" class="p-button-danger p-button-text" @click="removeField(slotProps.index)" />
                 </div>
             </template>
@@ -77,7 +77,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, watch, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
@@ -94,6 +94,7 @@ import InputText from 'primevue/inputtext'
 import Dropdown from 'primevue/dropdown'
 import SelectButton from 'primevue/selectbutton'
 import OrderList from 'primevue/orderlist'
+import FormulaBuilder from '../components/FormulaBuilder.vue'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -111,6 +112,8 @@ const transferTarget = ref('')
 const transferId = ref('')
 const form = ref({ name: '', platformType: '', mode: 'custom', fields: [] })
 const initializing = ref(false)
+
+const fieldNames = computed(() => form.value.fields.map(f => f.name))
 
 const newFieldName = ref('')
 const newFieldType = ref('number')
