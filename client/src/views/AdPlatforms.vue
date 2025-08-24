@@ -7,7 +7,10 @@
             <Button icon="pi pi-arrow-left" class="p-button-text mr-2" @click="router.back()" />
             <h1 class="text-2xl font-bold">平台管理</h1>
         </div>
-        <Button label="新增平台" icon="pi pi-plus" @click="openCreate" />
+        <div class="flex align-items-center gap-2">
+          <Button label="新增平台" icon="pi pi-plus" @click="openCreate" />
+          <Button icon="pi pi-question-circle" class="p-button-text" @click="helpDialog = true" />
+        </div>
       </div>
     </template>
     <template #content>
@@ -74,6 +77,14 @@
         <Button label="確認" icon="pi pi-check" @click="submitTransfer" />
       </template>
   </Dialog>
+
+  <Dialog v-model:visible="helpDialog" header="使用說明" :modal="true" class="p-fluid w-full md:w-30rem">
+    <ol class="m-0 pl-3">
+      <li>點擊「新增平台」按鈕。</li>
+      <li>於表單中設定自訂欄位。</li>
+      <li>選擇欄位類型為「公式」並輸入公式。</li>
+    </ol>
+  </Dialog>
 </template>
 
 <script setup>
@@ -109,6 +120,7 @@ const editing = ref(false)
 const transferDialog = ref(false)
 const transferTarget = ref('')
 const transferId = ref('')
+const helpDialog = ref(false)
 const form = ref({ name: '', platformType: '', mode: 'custom', fields: [] })
 const initializing = ref(false)
 
