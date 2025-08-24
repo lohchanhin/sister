@@ -144,6 +144,37 @@ describe('Platform API', () => {
     expect(res.body.message).toBe(t('INVALID_FORMULA'))
   })
 
+  it('validates field references in formula', async () => {
+    const resBad = await request(app)
+      .post(`/api/clients/${clientId}/platforms`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'BadRef',
+        fields: [
+          { name: 'a', type: 'number' },
+          { name: 'b', type: 'formula', formula: 'a + c' }
+        ]
+      })
+      .expect(400)
+    expect(resBad.body.message).toBe(t('INVALID_FORMULA'))
+
+    const resGood = await request(app)
+      .post(`/api/clients/${clientId}/platforms`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'GoodRef',
+        fields: [
+          { name: 'a', type: 'number' },
+          { name: 'b', type: 'formula', formula: 'a + 1' }
+        ]
+      })
+      .expect(201)
+    expect(resGood.body.fields).toEqual([
+      { name: 'a', type: 'number' },
+      { name: 'b', type: 'formula', formula: 'a + 1' }
+    ])
+  })
+
   it('transfer platform to another client', async () => {
     const resNewClient = await request(app)
       .post('/api/clients')
