@@ -162,15 +162,9 @@
           <h3 class="empty-title">此資料夾為空</h3>
           <p class="empty-description">開始上傳成品或建立新資料夾來組織您的內容</p>
           <div class="empty-actions">
-            <Button 
-              icon="pi pi-upload" 
-              label="上傳成品" 
-              class="action-btn primary"
-              @click="triggerUpload"
-            />
-            <Button 
-              icon="pi pi-plus" 
-              label="建立資料夾" 
+            <Button
+              icon="pi pi-plus"
+              label="建立資料夾"
               class="action-btn secondary"
               @click="focusFolderInput"
             />
