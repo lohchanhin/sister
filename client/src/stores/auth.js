@@ -25,14 +25,19 @@ export const useAuthStore = defineStore('auth', {
     async login(username, password) {
       const data = await loginService({ username, password })
       this.token = data.token
-      Cookies.set('token', data.token, { secure: true })
+      const isHttps = window.location.protocol === 'https:'
+      Cookies.set('token', data.token, {
+        secure: isHttps,
+        sameSite: 'strict',
+        path: '/'
+      })
       this.user = data.user
     },
     /* ---------- 登出 ---------- */
     logout() {
       this.token = null
       this.user = { menus: [], permissions: [] }
-      Cookies.remove('token')
+      Cookies.remove('token', { path: '/' })
     },
     /* ---------- 讀取個人資料 ---------- */
     async fetchProfile() {
