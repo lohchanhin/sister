@@ -62,6 +62,7 @@ import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import { fetchUsers, createUser, updateUser, deleteUser } from '../services/user'
 import { fetchRoles } from '../services/roles'
+import { fetchDepartments, fetchSubDepartments } from '../services/departments'
 import { useAuthStore } from '../stores/auth'
 
 // PrimeVue Components
@@ -86,6 +87,8 @@ if (!authStore.hasPermission('user:manage')) {
 const loading = ref(true)
 const users = ref([])
 const roleOptions = ref([])
+const departments = ref([])
+const subDepartments = ref([])
 const dialog = ref(false)
 const editing = ref(false)
 const form = ref({})
@@ -112,6 +115,17 @@ const loadRoles = async () => {
     roleOptions.value = roles.map(r => ({ label: r.name, value: r.name }))
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load roles', life: 3000 })
+  }
+}
+
+const loadDepartments = async () => {
+  try {
+    departments.value = await fetchDepartments()
+    if (departments.value.length) {
+      subDepartments.value = await fetchSubDepartments(departments.value[0])
+    }
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load departments', life: 3000 })
   }
 }
 
@@ -169,5 +183,6 @@ const confirmDeleteUser = (user) => {
 onMounted(() => {
   loadUsers()
   loadRoles()
+  loadDepartments()
 })
 </script>
