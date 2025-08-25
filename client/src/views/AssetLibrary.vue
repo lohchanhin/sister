@@ -752,12 +752,8 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 </script>
 
 <style scoped>
-.hidden-file-upload {
-  opacity: 0;
-  width: 0;
-  height: 0;
-  position: absolute;
-  left: -9999px;
+:deep(.hidden-file-upload) {
+  display: none;
 }
 
 .library-container {
