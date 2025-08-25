@@ -284,7 +284,16 @@ export const getAssetSignedUrl = async (req, res) => {
 
   const options = {}
   if (req.query.download === '1') {
-    const name = encodeURIComponent(asset.title || asset.filename)
+    let filename = asset.title || asset.filename
+    if (!path.extname(asset.title || '')) {
+      const ext = path.extname(asset.filename || '')
+      if (asset.title && ext) {
+        filename = asset.title + ext
+      } else {
+        filename = asset.filename || asset.title
+      }
+    }
+    const name = encodeURIComponent(filename)
     options.responseDisposition = `attachment; filename="${name}"`
   }
 
