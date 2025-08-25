@@ -471,6 +471,14 @@ const formatDate = d => d ? new Date(d).toLocaleDateString('zh-TW', {
 const isImage = item => item && item.name && /\.(png|jpe?g|gif|webp|svg)$/i.test(item.name)
 const isVideo = item => item && item.name && /\.(mp4|webm|ogg|avi|mov)$/i.test(item.name)
 
+const getDownloadName = (item) => {
+  const title = item?.title || ''
+  if (title && /\.[^\\/]+$/.test(title)) {
+    return title
+  }
+  return item?.filename || title
+}
+
 const getItemIcon = (item) => {
   if (item.type === 'folder') return 'pi pi-folder'
   if (isImage(item)) return 'pi pi-image'
@@ -588,7 +596,7 @@ async function downloadSingleItem(item) {
     if (isVideo(item)) {
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', item.name);
+      link.setAttribute('download', getDownloadName(item));
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

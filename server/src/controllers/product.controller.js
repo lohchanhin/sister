@@ -70,7 +70,16 @@ export const getProductSignedUrl = async (req, res) => {
 
   const options = {};
   if (req.query.download === '1') {
-    const name = encodeURIComponent(product.title || product.filename);
+    let filename = product.title || product.filename;
+    if (!path.extname(product.title || '')) {
+      const ext = path.extname(product.filename || '');
+      if (product.title && ext) {
+        filename = product.title + ext;
+      } else {
+        filename = product.filename || product.title;
+      }
+    }
+    const name = encodeURIComponent(filename);
     options.responseDisposition = `attachment; filename="${name}"`;
   }
 
