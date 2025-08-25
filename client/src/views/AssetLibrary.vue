@@ -154,15 +154,9 @@
           <h3 class="empty-title">此資料夾為空</h3>
           <p class="empty-description">開始上傳素材或建立新資料夾來組織您的內容</p>
           <div class="empty-actions">
-            <Button 
-              icon="pi pi-upload" 
-              label="上傳素材" 
-              class="action-btn primary"
-              @click="triggerUpload"
-            />
-            <Button 
-              icon="pi pi-plus" 
-              label="建立資料夾" 
+            <Button
+              icon="pi pi-plus"
+              label="建立資料夾"
               class="action-btn secondary"
               @click="focusFolderInput"
             />
@@ -292,7 +286,7 @@
       </div>
     </div>
 
-    <!-- Hidden File Upload
+    <!-- Hidden File Upload -->
     <FileUpload
       ref="fileUploadRef"
       mode="basic"
@@ -302,7 +296,7 @@
       :multiple="true"
       capture="environment"
       class="hidden-file-upload"
-    /> -->
+    />
 
     <!-- Dialogs -->
     <Dialog v-model:visible="showDetail" :header="detail.name" class="detail-dialog" :modal="true">
@@ -751,6 +745,7 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 
 <style scoped>
 .hidden-file-upload {
+  display: none;
   opacity: 0;
   width: 0;
   height: 0;
