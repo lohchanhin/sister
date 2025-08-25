@@ -331,7 +331,7 @@
     </div>
 
     <!-- Hidden File Upload -->
-    <!-- <FileUpload
+    <FileUpload
       ref="fileUploadRef"
       mode="basic"
       :auto="true"
@@ -340,7 +340,7 @@
       :multiple="true"
       capture="environment"
       class="hidden-file-upload"
-    /> -->
+    />
 
     <!-- Dialogs -->
     <Dialog v-model:visible="showDetail" :header="detail.name" class="detail-dialog" :modal="true">
