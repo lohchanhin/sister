@@ -86,6 +86,7 @@ import platformTransferRoutes from './routes/platformTransfer.routes.js'
 import adDailyRoutes      from './routes/adDaily.routes.js'
 import weeklyNoteRoutes   from './routes/weeklyNote.routes.js'
 import dashboardRoutes    from './routes/dashboard.routes.js'
+import departmentRoutes   from './routes/department.routes.js'
 
 app.use('/api/auth',     authRoutes)
 app.use('/api/user',     userRoutes)
@@ -94,6 +95,7 @@ app.use('/api/products', productRoutes)
 app.use('/api/folders',  folderRoutes)
 app.use('/api/roles',    roleRoutes)
 app.use('/api/tags',     tagRoutes)
+app.use('/api/departments', departmentRoutes)
 app.use('/api/clients',  clientRoutes)
 app.use('/api/clients/:clientId/platforms', platformRoutes)
 app.use('/api/platforms', platformTransferRoutes)
