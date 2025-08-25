@@ -882,6 +882,7 @@ watch(sortOrder, () => loadData(currentFolder.value?._id))
   height: 0;
   position: absolute;
   left: -9999px;
+  display: none;
 }
 
 .library-container {
