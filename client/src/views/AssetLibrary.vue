@@ -753,6 +753,7 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 
 <style scoped>
 .hidden-file-upload {
+  display: none;
   opacity: 0;
   width: 0;
   height: 0;
