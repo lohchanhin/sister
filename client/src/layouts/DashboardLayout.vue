@@ -126,7 +126,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useNotificationStore } from '../stores/notifications'
@@ -135,10 +135,15 @@ import ProgressTracker from '../components/ProgressTracker.vue'
 import Button from 'primevue/button'
 import Avatar from 'primevue/avatar'
 import { MENU_NAMES } from '../menuNames'
+import { getPlatform } from '../services/platforms'
+import { getClient } from '../services/clients'
 
 const store = useAuthStore()
 const notificationStore = useNotificationStore()
 const route = useRoute()
+
+const clientName = ref('')
+const platformName = ref('')
 
 const isCollapsed = ref(false)
 const mobileSidebarVisible = ref(false)
@@ -153,6 +158,11 @@ const getPageTitle = () => {
 }
 
 const getBreadcrumb = () => {
+  if (route.name === 'AdData') {
+    return [clientName.value, platformName.value, '廣告數據']
+      .filter(Boolean)
+      .join(' / ')
+  }
   const path = route.path.substring(1)
   const segments = path.split('/')
   const menuKey = route.meta.menu || segments[0]
@@ -195,6 +205,36 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
 })
+
+const fetchNames = async () => {
+  if (route.name !== 'AdData') {
+    clientName.value = ''
+    platformName.value = ''
+    return
+  }
+  const { clientId, platformId } = route.params
+  try {
+    if (clientId) {
+      const client = await getClient(clientId)
+      clientName.value = client?.name
+    }
+    if (clientId && platformId) {
+      const platform = await getPlatform(clientId, platformId)
+      platformName.value = platform?.name
+    }
+  } catch {
+    clientName.value = ''
+    platformName.value = ''
+  }
+}
+
+watch(
+  () => route.fullPath,
+  () => {
+    fetchNames()
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>
