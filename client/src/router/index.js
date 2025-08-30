@@ -43,7 +43,7 @@ const routes = [
       { path: 'tags', name: 'TagManager', component: TagManager, meta: { menu: 'tags' } },
       { path: 'review-settings', name: 'ReviewSettings', component: ReviewSettings, meta: { menu: 'review-stages' } },
       { path: 'ad-clients', name: 'AdClients', component: AdClients, meta: { menu: 'ad-data' } },
-      { path: 'clients/:clientId/platforms', name: 'AdPlatforms', component: AdPlatforms },
+      { path: 'clients/:clientId/platforms', name: 'AdPlatforms', component: AdPlatforms, meta: { menu: 'ad-data' } },
       { path: 'clients/:clientId/platforms/:platformId/data', name: 'AdData', component: AdData }
     ]
   },
