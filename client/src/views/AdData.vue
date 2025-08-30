@@ -460,7 +460,7 @@ const formatWeekRange = (w) => {
 /* 數值 formatter，保留兩位小數 */
 const formatNumber = val => {
   const num = Number(val || 0)
-  return num.toFixed(2)
+  return Number.isInteger(num) ? String(num) : num.toFixed(2)
 }
 
 
