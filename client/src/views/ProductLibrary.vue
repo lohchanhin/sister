@@ -546,7 +546,10 @@ const selectAll = computed({
   set: val => { selectedItems.value = val ? combinedItems.value.map(i => i.id) : [] }
 })
 
-const breadcrumbHome = ref({ icon: 'pi pi-home', to: '/products' })
+const breadcrumbHome = ref({
+  icon: 'pi pi-home',
+  command: () => router.push({ name: 'Products' })
+})
 const breadcrumbItems = ref([])
 
 const formatDate = d => d ? new Date(d).toLocaleDateString('zh-TW', { 
@@ -658,7 +661,7 @@ function buildBreadcrumb(folder) {
   while (current) {
     items.unshift({
       label: current.name,
-      to: `/products/${current._id}`
+      command: () => router.push({ name: 'Products', params: { folderId: current._id } })
     })
     current = current.parent
   }
