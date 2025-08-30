@@ -163,6 +163,11 @@ const getBreadcrumb = () => {
       .filter(Boolean)
       .join(' / ')
   }
+  if (route.name === 'AdPlatforms') {
+    return [clientName.value, '平台設定']
+      .filter(Boolean)
+      .join(' / ')
+  }
   const path = route.path.substring(1)
   const segments = path.split('/')
   const menuKey = route.meta.menu || segments[0]
@@ -207,20 +212,24 @@ onUnmounted(() => {
 })
 
 const fetchNames = async () => {
-  if (route.name !== 'AdData') {
+  if (route.name !== 'AdData' && route.name !== 'AdPlatforms') {
     clientName.value = ''
     platformName.value = ''
     return
   }
+
   const { clientId, platformId } = route.params
   try {
     if (clientId) {
       const client = await getClient(clientId)
       clientName.value = client?.name
     }
-    if (clientId && platformId) {
+
+    if (route.name === 'AdData' && clientId && platformId) {
       const platform = await getPlatform(clientId, platformId)
       platformName.value = platform?.name
+    } else {
+      platformName.value = ''
     }
   } catch {
     clientName.value = ''

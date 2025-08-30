@@ -8,5 +8,6 @@ export const MENU_NAMES = {
   tags: '标签管理',
   'review-stages': '审查关卡',
   'ad-data': '广告数据',
+  'ad-platforms': '平台設定',
   account: '帐号资讯'
 }
