@@ -626,7 +626,10 @@ function buildBreadcrumb(folder) {
   const items = []
   let current = folder
   while (current) {
-    items.unshift({ label: current.name, to: { name: 'Products', params: { folderId: current._id } } })
+    items.unshift({
+      label: current.name,
+      to: `/products/${current._id}`
+    })
     current = current.parent
   }
   breadcrumbItems.value = items
