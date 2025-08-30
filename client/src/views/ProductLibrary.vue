@@ -220,12 +220,29 @@
                       更新: {{ formatDate(item.updatedAt) }} 由 {{ item.updatedBy.username }}
                     </span>
                   </div>
+                  <p
+                    class="item-description"
+                    :class="{ expanded: isExpanded(item.id) }"
+                    v-if="item.description"
+                  >
+                    {{
+                      isExpanded(item.id)
+                        ? item.description
+                        : truncate(item.description)
+                    }}
+                    <a
+                      v-if="needsTruncate(item.description)"
+                      @click.stop="toggleExpand(item.id)"
+                    >
+                      {{ isExpanded(item.id) ? '收起' : '展開' }}
+                    </a>
+                  </p>
                   <div class="item-tags" v-if="item.tags?.length || item.reviewStatus">
                     <Tag v-if="item.reviewStatus" :value="item.reviewStatus" :severity="getStatusSeverity(item.reviewStatus)" class="item-tag status-tag" />
-                    <Tag 
-                      v-for="tag in item.tags.slice(0, 2)" 
-                      :key="tag" 
-                      :value="tag" 
+                    <Tag
+                      v-for="tag in item.tags.slice(0, 2)"
+                      :key="tag"
+                      :value="tag"
                       class="item-tag"
                     />
                     <span v-if="item.tags.length > 2" class="tag-more">+{{ item.tags.length - 2 }}</span>
@@ -499,6 +516,19 @@ const reviewStages = ref([])
 const moveDialog = ref(false)
 const targetFolder = ref(null)
 const folderOptions = ref([])
+
+const expandedItems = ref(new Set())
+const TRUNCATE_LENGTH = 60
+const isExpanded = id => expandedItems.value.has(id)
+const toggleExpand = id => {
+  if (expandedItems.value.has(id)) expandedItems.value.delete(id)
+  else expandedItems.value.add(id)
+}
+const needsTruncate = text => text && text.length > TRUNCATE_LENGTH
+const truncate = text =>
+  text && text.length > TRUNCATE_LENGTH
+    ? text.slice(0, TRUNCATE_LENGTH) + '...'
+    : text
 
 const combinedItems = computed(() => {
   const safeFolders = Array.isArray(folders.value) ? folders.value : [];
@@ -1391,6 +1421,27 @@ watch(sortOrder, () => loadData(currentFolder.value?._id))
   color: var(--text-color-secondary);
   line-height: 1.5;
   font-size: 0.875rem;
+}
+
+.grid-view .item-description {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.grid-view .item-description.expanded {
+  overflow: visible;
+  text-overflow: unset;
+  -webkit-line-clamp: unset;
+  display: block;
+}
+
+.grid-view .item-description a {
+  margin-left: 0.5rem;
+  color: var(--primary-color);
+  cursor: pointer;
 }
 
 .item-metadata {
