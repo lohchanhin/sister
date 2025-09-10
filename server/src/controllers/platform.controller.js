@@ -118,6 +118,33 @@ export const updatePlatform = async (req, res) => {
   }
 }
 
+export const renamePlatformField = async (req, res) => {
+  const { id, name, slug } = req.body
+  if (!id || !slug) {
+    return res.status(400).json({ message: t('PARAMS_ERROR') })
+  }
+  if (!slugPattern.test(slug)) {
+    return res.status(400).json({ message: t('INVALID_FORMULA') })
+  }
+  const platform = await Platform.findOne({ _id: req.params.id, clientId: req.params.clientId })
+  if (!platform) return res.status(404).json({ message: t('PLATFORM_NOT_FOUND') })
+  const field = platform.fields?.find(f => f.id === id)
+  if (!field) return res.status(404).json({ message: t('RECORD_NOT_FOUND') })
+  const oldKey = field.id
+  field.name = name
+  field.slug = slug
+  field.id = slug
+  await platform.save()
+  await AdDaily.updateMany(
+    { clientId: req.params.clientId, platformId: req.params.id },
+    { $rename: { [`extraData.${oldKey}`]: `extraData.${slug}` } }
+  )
+  await clearCacheByPrefix('platforms:')
+  await delCache(`platform:${req.params.id}`)
+  await clearCacheByPrefix('adDaily:')
+  res.json(platform)
+}
+
 export const deletePlatform = async (req, res) => {
   await Platform.findOneAndDelete({ _id: req.params.id, clientId: req.params.clientId })
   await clearCacheByPrefix('platforms:')
