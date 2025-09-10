@@ -11,6 +11,11 @@ const platformSchema = new mongoose.Schema(
       type: [
         new mongoose.Schema(
           {
+            id: {
+              type: String,
+              required: true,
+              default: () => new mongoose.Types.ObjectId().toString()
+            },
             name: { type: String, required: true },
             slug: { type: String, required: true },
             type: { type: String, default: 'text' },

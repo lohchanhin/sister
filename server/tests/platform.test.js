@@ -72,7 +72,8 @@ describe('Platform API', () => {
       })
       .expect(201)
     platformId = resC.body._id
-    expect(resC.body.fields).toEqual([{ name: 'note', slug: 'note', type: 'text' }])
+    expect(resC.body.fields[0]).toMatchObject({ name: 'note', slug: 'note', type: 'text' })
+    expect(resC.body.fields[0].id).toBeDefined()
 
     const resG = await request(app)
       .get(`/api/clients/${clientId}/platforms`)
@@ -91,10 +92,9 @@ describe('Platform API', () => {
         ]
       })
       .expect(200)
-    expect(resU.body.fields).toEqual([
-      { name: 'x', slug: 'x', type: 'number' },
-      { name: 'y', slug: 'y', type: 'text' }
-    ])
+    expect(resU.body.fields.length).toBe(2)
+    expect(resU.body.fields[0]).toMatchObject({ name: 'x', slug: 'x', type: 'number' })
+    expect(resU.body.fields[1]).toMatchObject({ name: 'y', slug: 'y', type: 'text' })
 
     await request(app)
       .delete(`/api/clients/${clientId}/platforms/${platformId}`)
@@ -114,7 +114,11 @@ describe('Platform API', () => {
       })
       .expect(201)
     expect(res.body.mode).toBe('default')
-    expect(res.body.fields).toEqual(defaultFields)
+    expect(res.body.fields.length).toBe(defaultFields.length)
+    res.body.fields.forEach((f, idx) => {
+      expect(f).toMatchObject(defaultFields[idx])
+      expect(f.id).toBeDefined()
+    })
   })
 
   it('duplicate platform name returns 409', async () => {
@@ -158,7 +162,7 @@ describe('Platform API', () => {
       .expect(400)
     expect(resBad.body.message).toBe(t('INVALID_FORMULA'))
 
-    const resGood = await request(app)
+  const resGood = await request(app)
       .post(`/api/clients/${clientId}/platforms`)
       .set('Authorization', `Bearer ${token}`)
       .send({
@@ -169,10 +173,9 @@ describe('Platform API', () => {
         ]
       })
       .expect(201)
-    expect(resGood.body.fields).toEqual([
-      { name: 'a', type: 'number' },
-      { name: 'b', type: 'formula', formula: 'a + 1' }
-    ])
+    expect(resGood.body.fields.length).toBe(2)
+    expect(resGood.body.fields[0]).toMatchObject({ name: 'a', type: 'number' })
+    expect(resGood.body.fields[1]).toMatchObject({ name: 'b', type: 'formula', formula: 'a + 1' })
   })
 
   it('transfer platform to another client', async () => {

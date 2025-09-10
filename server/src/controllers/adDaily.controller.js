@@ -51,13 +51,34 @@ export const createAdDaily = async (req, res) => {
   }
 
   const platform = await Platform.findById(req.params.platformId)
+  const idMap = {}
+  platform?.fields?.forEach(f => {
+    idMap[f.id] = f.id
+    idMap[f.slug] = f.id
+    idMap[f.name] = f.id
+  })
+  const mapped = {}
+  for (const [k, v] of Object.entries(payload.extraData || {})) {
+    mapped[idMap[k] || k] = v
+  }
+  payload.extraData = mapped
   const formulas = platform?.fields?.filter(f => f.formula) || []
   if (formulas.length) {
     payload.extraData = payload.extraData || {}
-    const vars = { ...payload, ...payload.extraData }
+    const vars = {
+      spent: payload.spent,
+      enquiries: payload.enquiries,
+      reach: payload.reach,
+      impressions: payload.impressions,
+      clicks: payload.clicks
+    }
+    for (const f of platform.fields || []) {
+      const v = payload.extraData[f.id]
+      if (v !== undefined) vars[f.slug] = v
+    }
     for (const f of formulas) {
       const val = evalFormula(f.formula, vars)
-      payload.extraData[f.slug] = val
+      payload.extraData[f.id] = val
       vars[f.slug] = val
     }
   }
@@ -140,11 +161,34 @@ export const bulkCreateAdDaily = async (req, res) => {
 
   const records = req.body
     .map(row => {
-      const extra = sanitizeExtraData({ ...(row.extraData || {}) })
+      let extra = sanitizeExtraData({ ...(row.extraData || {}) })
+      const mappedExtra = {}
+      for (const [k, v] of Object.entries(extra)) {
+        const field = platform.fields?.find(
+          f => f.id === k || f.slug === k || f.name === k
+        )
+        mappedExtra[field ? field.id : k] = v
+      }
+      extra = mappedExtra
+      const colors = { ...(row.colors || {}) }
       for (const k of Object.keys(row)) {
-        if (!known.includes(k)) extra[k] = numericPattern.test(String(row[k]))
-          ? sanitizeNumber(row[k])
-          : row[k]
+        if (!known.includes(k)) {
+          if (k.startsWith('color_')) {
+            const name = k.replace(/^color_/, '')
+            const field = platform.fields?.find(
+              f => f.name === name || f.slug === name || f.id === name
+            )
+            if (field) colors[field.id] = row[k]
+          } else {
+            const field = platform.fields?.find(
+              f => f.name === k || f.slug === k || f.id === k
+            )
+            const key = field ? field.id : k
+            extra[key] = numericPattern.test(String(row[k]))
+              ? sanitizeNumber(row[k])
+              : row[k]
+          }
+        }
       }
       return {
         date: row.date,
@@ -156,7 +200,7 @@ export const bulkCreateAdDaily = async (req, res) => {
         clientId: req.params.clientId,
         platformId: req.params.platformId,
         extraData: Object.keys(extra).length ? extra : undefined,
-        colors: row.colors || undefined
+        colors: Object.keys(colors).length ? colors : undefined
       }
     })
     .filter(r => r.date)
@@ -165,10 +209,20 @@ export const bulkCreateAdDaily = async (req, res) => {
   if (formulas.length) {
     for (const r of records) {
       r.extraData = r.extraData || {}
-      const vars = { ...r, ...r.extraData }
+      const vars = {
+        spent: r.spent,
+        enquiries: r.enquiries,
+        reach: r.reach,
+        impressions: r.impressions,
+        clicks: r.clicks
+      }
+      for (const f of platform.fields || []) {
+        const v = r.extraData[f.id]
+        if (v !== undefined) vars[f.slug] = v
+      }
       for (const f of formulas) {
         const val = evalFormula(f.formula, vars)
-        r.extraData[f.slug] = val
+        r.extraData[f.id] = val
         vars[f.slug] = val
       }
     }
@@ -223,12 +277,34 @@ export const importAdDaily = async (req, res) => {
 
   const records = rows
     .map(row => {
-      const extra = sanitizeExtraData({ ...(row.extraData || {}) })
+      let extra = sanitizeExtraData({ ...(row.extraData || {}) })
+      const mappedExtra = {}
+      for (const [k, v] of Object.entries(extra)) {
+        const field = platform.fields?.find(
+          f => f.id === k || f.slug === k || f.name === k
+        )
+        mappedExtra[field ? field.id : k] = v
+      }
+      extra = mappedExtra
+      const colors = {}
       for (const k of Object.keys(row)) {
-        if (!known.includes(k))
-          extra[k] = numericPattern.test(String(row[k]))
-            ? sanitizeNumber(row[k])
-            : row[k]
+        if (!known.includes(k)) {
+          if (k.startsWith('color_')) {
+            const name = k.replace(/^color_/, '')
+            const field = platform.fields?.find(
+              f => f.name === name || f.slug === name || f.id === name
+            )
+            if (field) colors[field.id] = row[k]
+          } else {
+            const field = platform.fields?.find(
+              f => f.name === k || f.slug === k || f.id === k
+            )
+            const key = field ? field.id : k
+            extra[key] = numericPattern.test(String(row[k]))
+              ? sanitizeNumber(row[k])
+              : row[k]
+          }
+        }
       }
       return {
         date: row.date || row.Date || row['日期'],
@@ -240,7 +316,7 @@ export const importAdDaily = async (req, res) => {
         clientId: req.params.clientId,
         platformId: req.params.platformId,
         extraData: Object.keys(extra).length ? extra : undefined,
-        colors: row.colors || undefined
+        colors: Object.keys(colors).length ? colors : undefined
       }
     })
     .filter(r => r.date)
@@ -249,10 +325,20 @@ export const importAdDaily = async (req, res) => {
   if (formulas.length) {
     for (const r of records) {
       r.extraData = r.extraData || {}
-      const vars = { ...r, ...r.extraData }
+      const vars = {
+        spent: r.spent,
+        enquiries: r.enquiries,
+        reach: r.reach,
+        impressions: r.impressions,
+        clicks: r.clicks
+      }
+      for (const f of platform.fields || []) {
+        const v = r.extraData[f.id]
+        if (v !== undefined) vars[f.slug] = v
+      }
       for (const f of formulas) {
         const val = evalFormula(f.formula, vars)
-        r.extraData[f.slug] = val
+        r.extraData[f.id] = val
         vars[f.slug] = val
       }
     }
@@ -282,13 +368,34 @@ export const updateAdDaily = async (req, res) => {
   }
 
   const platform = await Platform.findById(req.params.platformId)
+  const idMap = {}
+  platform?.fields?.forEach(f => {
+    idMap[f.id] = f.id
+    idMap[f.slug] = f.id
+    idMap[f.name] = f.id
+  })
+  const mapped = {}
+  for (const [k, v] of Object.entries(payload.extraData || {})) {
+    mapped[idMap[k] || k] = v
+  }
+  payload.extraData = mapped
   const formulas = platform?.fields?.filter(f => f.formula) || []
   if (formulas.length) {
     payload.extraData = payload.extraData || {}
-    const vars = { ...payload, ...payload.extraData }
+    const vars = {
+      spent: payload.spent,
+      enquiries: payload.enquiries,
+      reach: payload.reach,
+      impressions: payload.impressions,
+      clicks: payload.clicks
+    }
+    for (const f of platform.fields || []) {
+      const v = payload.extraData[f.id]
+      if (v !== undefined) vars[f.slug] = v
+    }
     for (const f of formulas) {
       const val = evalFormula(f.formula, vars)
-      payload.extraData[f.slug] = val
+      payload.extraData[f.id] = val
       vars[f.slug] = val
     }
   }

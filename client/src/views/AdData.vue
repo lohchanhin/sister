@@ -47,13 +47,13 @@
                 {{ dateFmt(data) }}
               </template>
             </Column>
-            <Column v-for="field in customColumns" :key="field.slug" :field="'extraData.' + field.slug"
+            <Column v-for="field in customColumns" :key="field.id" :field="'extraData.' + field.id"
               :header="field.name" sortable>
               <template #body="{ data }">
-                <span v-if="field.type === 'date'" :style="{ backgroundColor: data.colors?.[field.slug] }">
-                  {{ formatExtraDate(data.extraData?.[field.slug]) }}
+                <span v-if="field.type === 'date'" :style="{ backgroundColor: data.colors?.[field.id] }">
+                  {{ formatExtraDate(data.extraData?.[field.id]) }}
                 </span>
-                <span v-else :style="{ backgroundColor: data.colors?.[field.slug] }">{{ data.extraData?.[field.slug] ?? ''
+                <span v-else :style="{ backgroundColor: data.colors?.[field.id] }">{{ data.extraData?.[field.id] ?? ''
                 }}</span>
               </template>
             </Column>
@@ -90,7 +90,7 @@
               </template>
             </Column>
             <!-- 動態欄位總計 -->
-            <Column v-for="field in numericColumns" :key="field.slug" :header="field.name" width="100">
+            <Column v-for="field in numericColumns" :key="field.id" :header="field.name" width="100">
               <template #body="{ data }">{{ formatNumber(data[field.slug]) }}</template>
             </Column>
 
@@ -133,19 +133,19 @@
         </div>
 
         <!-- 動態欄位 -->
-        <div v-for="field in customColumns" :key="field.slug" class="flex gap-2">
-          <label :for="field.slug" class="w-16 shrink-0 pt-2 text-right">{{ field.name }}</label>
+        <div v-for="field in customColumns" :key="field.id" class="flex gap-2">
+          <label :for="field.id" class="w-16 shrink-0 pt-2 text-right">{{ field.name }}</label>
 
           <!-- ⚠️ 這裡改成 flex-1，並且**不要**再 w-full，也不要 display:none -->
           <div class="flex gap-2 flex-1">
-            <DatePicker v-if="field.type === 'date'" v-model="recordForm.extraData[field.slug]" :inputId="field.slug"
+            <DatePicker v-if="field.type === 'date'" v-model="recordForm.extraData[field.id]" :inputId="field.id"
               class="flex-1" />
 
-            <InputText v-else v-model="recordForm.extraData[field.slug]" :inputId="field.slug" class="flex-1"
+            <InputText v-else v-model="recordForm.extraData[field.id]" :inputId="field.id" class="flex-1"
               :readonly="field.type === 'formula'" />
 
             <!-- 色票下拉固定 96px -->
-            <Dropdown v-model="recordForm.colors[field.slug]" :options="colorOptions" optionLabel="label"
+            <Dropdown v-model="recordForm.colors[field.id]" :options="colorOptions" optionLabel="label"
               optionValue="value" placeholder="顏色" class="w-24" showClear>
               <template #option="{ option }">
                 <div class="flex items-center">
@@ -324,10 +324,13 @@ const evalFormula = (formula, data) => {
 }
 
 const recalcFormulas = () => {
-  const vars = { ...recordForm.value.extraData }
+  const vars = {}
+  customColumns.value.forEach(f => {
+    vars[f.slug] = recordForm.value.extraData[f.id]
+  })
   formulaFields.value.forEach(f => {
     const val = evalFormula(f.formula, vars)
-    recordForm.value.extraData[f.slug] = val
+    recordForm.value.extraData[f.id] = val
     vars[f.slug] = val
   })
 }
@@ -335,7 +338,7 @@ const recalcFormulas = () => {
 const nonFormulaData = computed(() => {
   const obj = {}
   customColumns.value.filter(f => f.type !== 'formula').forEach(f => {
-    obj[f.slug] = recordForm.value.extraData[f.slug]
+    obj[f.id] = recordForm.value.extraData[f.id]
   })
   return obj
 })
@@ -347,7 +350,7 @@ const sortField = ref('')
 const sortOrder = ref(1)
 const sortOptions = computed(() => [
   { label: '日期', value: 'date' },
-  ...customColumns.value.map(f => ({ label: f.name, value: 'extraData.' + f.slug }))
+  ...customColumns.value.map(f => ({ label: f.name, value: 'extraData.' + f.id }))
 ])
 const toggleOrder = () => {
   sortOrder.value = sortOrder.value === 1 ? -1 : 1
@@ -376,7 +379,7 @@ const weeklyAgg = computed(() => {
     }
     customColumns.value.forEach(f => {
       if (f.type === 'number' || f.type === 'formula') {
-        const val = Number(d.extraData[f.slug] || 0)
+        const val = Number(d.extraData[f.id] || 0)
         map[week][f.slug] += isNaN(val) ? 0 : val
       }
     })
@@ -500,8 +503,15 @@ const loadPlatform = async () => {
   customColumns.value = (platform.value?.fields || [])
     .map(f =>
       typeof f === 'string'
-        ? { name: f, slug: slugify(f), type: 'text', order: 0 }
-        : { name: f.name, slug: f.slug || slugify(f.name), type: f.type || 'text', order: f.order || 0, formula: f.formula || '' }
+        ? { id: slugify(f), name: f, slug: slugify(f), type: 'text', order: 0 }
+        : {
+            id: f.id || slugify(f.name),
+            name: f.name,
+            slug: f.slug || slugify(f.name),
+            type: f.type || 'text',
+            order: f.order || 0,
+            formula: f.formula || ''
+          }
     )
     .sort((a, b) => a.order - b.order)
   // 預設 Y 軸選第一個欄位
@@ -578,8 +588,8 @@ onMounted(async () => {
   await loadPlatform()
   // 初始化 recordForm.extraData
   customColumns.value.forEach(f => {
-    recordForm.value.extraData[f.slug] = ''
-    recordForm.value.colors[f.slug] = ''
+    recordForm.value.extraData[f.id] = ''
+    recordForm.value.colors[f.id] = ''
   })
   recalcFormulas()
   await loadDaily()
@@ -593,8 +603,8 @@ const openCreateDialog = () => {
   editingId.value = ''
   recordForm.value.date = ''
   customColumns.value.forEach(f => {
-    recordForm.value.extraData[f.slug] = ''
-    recordForm.value.colors[f.slug] = ''
+    recordForm.value.extraData[f.id] = ''
+    recordForm.value.colors[f.id] = ''
   })
   recalcFormulas()
   dialogVisible.value = true
@@ -690,9 +700,9 @@ const normalize = arr => {
     const colors = {}
     customColumns.value.forEach(col => {
       const val = r[col.name] || ''
-      if (col.type === 'number') extraData[col.slug] = sanitizeNumber(val)
-      else extraData[col.slug] = val
-      if (r[`color_${col.name}`]) colors[col.slug] = r[`color_${col.name}`]
+      if (col.type === 'number') extraData[col.id] = sanitizeNumber(val)
+      else extraData[col.id] = val
+      if (r[`color_${col.name}`]) colors[col.id] = r[`color_${col.name}`]
     })
     const obj = { date: r['日期'] || r.date || '', extraData }
     if (Object.keys(colors).length) obj.colors = colors
@@ -706,10 +716,10 @@ const exportDaily = () => {
   const rows = dailyData.value.map(r => {
     const row = { 日期: dateFmt(r) }
     customColumns.value.forEach(col => {
-      const val = r.extraData[col.slug]
+      const val = r.extraData[col.id]
       row[col.name] = col.type === 'date' ? formatExtraDate(val) : (val ?? '')
-      if (r.colors && r.colors[col.slug]) {
-        row[`color_${col.name}`] = r.colors[col.slug]
+      if (r.colors && r.colors[col.id]) {
+        row[`color_${col.name}`] = r.colors[col.id]
       }
     })
     return row
