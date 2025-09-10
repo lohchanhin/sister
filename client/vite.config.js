@@ -17,5 +17,8 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, 'src')   // ★ 加這行
     }
+  },
+  test: {
+    environment: 'jsdom'
   }
 })

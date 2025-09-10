@@ -524,6 +524,8 @@ const loadPlatform = async () => {
 const loadDaily = async () => {
   loading.value = true
   const params = {}
+  if (startDate.value) params.startDate = startDate.value
+  if (endDate.value) params.endDate = endDate.value
   if (sortField.value) {
     params.sort = sortField.value
     params.order = sortOrder.value === 1 ? 'asc' : 'desc'
@@ -535,6 +537,11 @@ const loadDaily = async () => {
       data = list
     } else if (Array.isArray(list?.data)) {
       data = list.data
+    } else if (Array.isArray(list?.records)) {
+      data = list.records
+    } else if (list && typeof list === 'object') {
+      const firstArray = Object.values(list).find(Array.isArray)
+      data = firstArray || []
     }
     dailyData.value = data
   } catch (err) {
@@ -559,6 +566,8 @@ watch([sortField, sortOrder], () => {
   loadDaily()
 
 })
+
+watch([startDate, endDate], loadDaily)
 
 /**** --------------------------------------------------- 折線圖繪製 --------------------------------------------------- ****/
 const drawChart = () => {
