@@ -47,13 +47,13 @@
                 {{ dateFmt(data) }}
               </template>
             </Column>
-            <Column v-for="field in customColumns" :key="field.name" :field="'extraData.' + field.name"
+            <Column v-for="field in customColumns" :key="field.slug" :field="'extraData.' + field.slug"
               :header="field.name" sortable>
               <template #body="{ data }">
-                <span v-if="field.type === 'date'" :style="{ backgroundColor: data.colors?.[field.name] }">
-                  {{ formatExtraDate(data.extraData?.[field.name]) }}
+                <span v-if="field.type === 'date'" :style="{ backgroundColor: data.colors?.[field.slug] }">
+                  {{ formatExtraDate(data.extraData?.[field.slug]) }}
                 </span>
-                <span v-else :style="{ backgroundColor: data.colors?.[field.name] }">{{ data.extraData?.[field.name] ?? ''
+                <span v-else :style="{ backgroundColor: data.colors?.[field.slug] }">{{ data.extraData?.[field.slug] ?? ''
                 }}</span>
               </template>
             </Column>
@@ -71,7 +71,7 @@
       <TabPanel header="週摘要">
         <!-- 指標切換 + 匯出 -->
         <div class="flex justify-between items-center mb-2">
-          <Dropdown v-model="yMetric" :options="numericColumns" style="width:160px" v-if="numericColumns.length" />
+          <Dropdown v-model="yMetric" :options="numericColumns" optionLabel="name" optionValue="slug" style="width:160px" v-if="numericColumns.length" />
           <Button label="匯出週報" size="small" @click="exportWeekly" />
         </div>
 
@@ -90,8 +90,8 @@
               </template>
             </Column>
             <!-- 動態欄位總計 -->
-            <Column v-for="field in numericColumns" :key="field" :header="field" width="100">
-              <template #body="{ data }">{{ formatNumber(data[field]) }}</template>
+            <Column v-for="field in numericColumns" :key="field.slug" :header="field.name" width="100">
+              <template #body="{ data }">{{ formatNumber(data[field.slug]) }}</template>
             </Column>
 
             <!-- 圖片欄 -->
@@ -133,19 +133,19 @@
         </div>
 
         <!-- 動態欄位 -->
-        <div v-for="field in customColumns" :key="field.name" class="flex gap-2">
-          <label :for="field.name" class="w-16 shrink-0 pt-2 text-right">{{ field.name }}</label>
+        <div v-for="field in customColumns" :key="field.slug" class="flex gap-2">
+          <label :for="field.slug" class="w-16 shrink-0 pt-2 text-right">{{ field.name }}</label>
 
           <!-- ⚠️ 這裡改成 flex-1，並且**不要**再 w-full，也不要 display:none -->
           <div class="flex gap-2 flex-1">
-            <DatePicker v-if="field.type === 'date'" v-model="recordForm.extraData[field.name]" :inputId="field.name"
+            <DatePicker v-if="field.type === 'date'" v-model="recordForm.extraData[field.slug]" :inputId="field.slug"
               class="flex-1" />
 
-            <InputText v-else v-model="recordForm.extraData[field.name]" :inputId="field.name" class="flex-1"
+            <InputText v-else v-model="recordForm.extraData[field.slug]" :inputId="field.slug" class="flex-1"
               :readonly="field.type === 'formula'" />
 
             <!-- 色票下拉固定 96px -->
-            <Dropdown v-model="recordForm.colors[field.name]" :options="colorOptions" optionLabel="label"
+            <Dropdown v-model="recordForm.colors[field.slug]" :options="colorOptions" optionLabel="label"
               optionValue="value" placeholder="顏色" class="w-24" showClear>
               <template #option="{ option }">
                 <div class="flex items-center">
@@ -303,10 +303,11 @@ const imgPreviewDialog = ref(false)
 const imgList = ref([])
 
 /**** 自訂欄位 ****/
-const customColumns = ref([])      // e.g. [{ name:'備註', type:'text' }]
+const slugify = s => s.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')
+const customColumns = ref([])      // e.g. [{ name:'備註', slug:'note', type:'text' }]
 const platform = ref(null)
 const numericColumns = computed(() =>
-  customColumns.value.filter(f => f.type === 'number' || f.type === 'formula').map(f => f.name)
+  customColumns.value.filter(f => f.type === 'number' || f.type === 'formula')
 )
 
 const formulaFields = computed(() => customColumns.value.filter(f => f.type === 'formula'))
@@ -326,15 +327,15 @@ const recalcFormulas = () => {
   const vars = { ...recordForm.value.extraData }
   formulaFields.value.forEach(f => {
     const val = evalFormula(f.formula, vars)
-    recordForm.value.extraData[f.name] = val
-    vars[f.name] = val
+    recordForm.value.extraData[f.slug] = val
+    vars[f.slug] = val
   })
 }
 
 const nonFormulaData = computed(() => {
   const obj = {}
   customColumns.value.filter(f => f.type !== 'formula').forEach(f => {
-    obj[f.name] = recordForm.value.extraData[f.name]
+    obj[f.slug] = recordForm.value.extraData[f.slug]
   })
   return obj
 })
@@ -346,7 +347,7 @@ const sortField = ref('')
 const sortOrder = ref(1)
 const sortOptions = computed(() => [
   { label: '日期', value: 'date' },
-  ...customColumns.value.map(f => ({ label: f.name, value: f.name }))
+  ...customColumns.value.map(f => ({ label: f.name, value: 'extraData.' + f.slug }))
 ])
 const toggleOrder = () => {
   sortOrder.value = sortOrder.value === 1 ? -1 : 1
@@ -370,13 +371,13 @@ const weeklyAgg = computed(() => {
     if (!map[week]) {
       map[week] = { week }
       customColumns.value.forEach(f => {
-        if (f.type === 'number' || f.type === 'formula') map[week][f.name] = 0
+        if (f.type === 'number' || f.type === 'formula') map[week][f.slug] = 0
       })
     }
     customColumns.value.forEach(f => {
       if (f.type === 'number' || f.type === 'formula') {
-        const val = Number(d.extraData[f.name] || 0)
-        map[week][f.name] += isNaN(val) ? 0 : val
+        const val = Number(d.extraData[f.slug] || 0)
+        map[week][f.slug] += isNaN(val) ? 0 : val
       }
     })
   })
@@ -393,7 +394,7 @@ const weeklyAgg = computed(() => {
       const note = weeklyNotes.value[w]
       map[w] = { week: w }
       customColumns.value.forEach(f => {
-        if (f.type === 'number' || f.type === 'formula') map[w][f.name] = 0
+        if (f.type === 'number' || f.type === 'formula') map[w][f.slug] = 0
       })
       map[w].note = note?.text || ''
       map[w].hasNote = !!(note && note.text)
@@ -405,8 +406,8 @@ const weeklyAgg = computed(() => {
   const arr = Object.values(map)
   arr.forEach(week => {
     customColumns.value.forEach(f => {
-      if ((f.type === 'number' || f.type === 'formula') && typeof week[f.name] === 'number') {
-        week[f.name] = Number(week[f.name].toFixed(2))
+      if ((f.type === 'number' || f.type === 'formula') && typeof week[f.slug] === 'number') {
+        week[f.slug] = Number(week[f.slug].toFixed(2))
       }
     })
   })
@@ -499,14 +500,14 @@ const loadPlatform = async () => {
   customColumns.value = (platform.value?.fields || [])
     .map(f =>
       typeof f === 'string'
-        ? { name: f, type: 'text', order: 0 }
-        : { name: f.name, type: f.type || 'text', order: f.order || 0, formula: f.formula || '' }
+        ? { name: f, slug: slugify(f), type: 'text', order: 0 }
+        : { name: f.name, slug: f.slug || slugify(f.name), type: f.type || 'text', order: f.order || 0, formula: f.formula || '' }
     )
     .sort((a, b) => a.order - b.order)
   // 預設 Y 軸選第一個欄位
   if (!yMetric.value) {
     const first = customColumns.value.find(f => f.type === 'number' || f.type === 'formula')
-    if (first) yMetric.value = first.name
+    if (first) yMetric.value = first.slug
   }
 }
 
@@ -541,13 +542,14 @@ const drawChart = () => {
   if (!chartCtx || !yMetric.value) return
   const labels = weeklyAgg.value.map(r => formatWeekRange(r.week))
   const data = weeklyAgg.value.map(r => r[yMetric.value] ?? 0)
+  const metric = customColumns.value.find(f => f.slug === yMetric.value)
   chart && chart.destroy()
   chart = new Chart(chartCtx, {
     type: 'line',
     data: {
       labels,
       datasets: [{
-        label: yMetric.value,
+        label: metric?.name || yMetric.value,
         data,
         borderColor: '#409EFF',
         tension: 0.35
@@ -576,8 +578,8 @@ onMounted(async () => {
   await loadPlatform()
   // 初始化 recordForm.extraData
   customColumns.value.forEach(f => {
-    recordForm.value.extraData[f.name] = ''
-    recordForm.value.colors[f.name] = ''
+    recordForm.value.extraData[f.slug] = ''
+    recordForm.value.colors[f.slug] = ''
   })
   recalcFormulas()
   await loadDaily()
@@ -591,8 +593,8 @@ const openCreateDialog = () => {
   editingId.value = ''
   recordForm.value.date = ''
   customColumns.value.forEach(f => {
-    recordForm.value.extraData[f.name] = ''
-    recordForm.value.colors[f.name] = ''
+    recordForm.value.extraData[f.slug] = ''
+    recordForm.value.colors[f.slug] = ''
   })
   recalcFormulas()
   dialogVisible.value = true
@@ -688,9 +690,9 @@ const normalize = arr => {
     const colors = {}
     customColumns.value.forEach(col => {
       const val = r[col.name] || ''
-      if (col.type === 'number') extraData[col.name] = sanitizeNumber(val)
-      else extraData[col.name] = val
-      if (r[`color_${col.name}`]) colors[col.name] = r[`color_${col.name}`]
+      if (col.type === 'number') extraData[col.slug] = sanitizeNumber(val)
+      else extraData[col.slug] = val
+      if (r[`color_${col.name}`]) colors[col.slug] = r[`color_${col.name}`]
     })
     const obj = { date: r['日期'] || r.date || '', extraData }
     if (Object.keys(colors).length) obj.colors = colors
@@ -704,10 +706,10 @@ const exportDaily = () => {
   const rows = dailyData.value.map(r => {
     const row = { 日期: dateFmt(r) }
     customColumns.value.forEach(col => {
-      const val = r.extraData[col.name]
+      const val = r.extraData[col.slug]
       row[col.name] = col.type === 'date' ? formatExtraDate(val) : (val ?? '')
-      if (r.colors && r.colors[col.name]) {
-        row[`color_${col.name}`] = r.colors[col.name]
+      if (r.colors && r.colors[col.slug]) {
+        row[`color_${col.name}`] = r.colors[col.slug]
       }
     })
     return row
@@ -724,7 +726,7 @@ async function exportWeekly() {
   const ws = wb.addWorksheet('weekly')
 
   /* 標頭 */
-  const headers = ['日期', ...numericColumns.value, '筆記', '圖片']
+  const headers = ['日期', ...numericColumns.value.map(f => f.name), '筆記', '圖片']
   ws.addRow(headers)
   ws.getRow(1).font = { bold: true }
 
@@ -732,7 +734,7 @@ async function exportWeekly() {
   for (const row of weeklyAgg.value) {
     const data = [
       formatWeekRange(row.week),
-      ...numericColumns.value.map(c => row[c] || 0),
+      ...numericColumns.value.map(c => row[c.slug] || 0),
       row.note || '',
       ''
     ]

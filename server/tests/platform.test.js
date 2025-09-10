@@ -20,12 +20,12 @@ let token
 let clientId
 let platformId
 const defaultFields = [
-  { name: 'date',        type: 'text' },
-  { name: 'spent',       type: 'number' },
-  { name: 'enquiries',   type: 'number' },
-  { name: 'reach',       type: 'number' },
-  { name: 'impressions', type: 'number' },
-  { name: 'clicks',      type: 'number' }
+  { name: 'date', slug: 'date', type: 'text' },
+  { name: 'spent', slug: 'spent', type: 'number' },
+  { name: 'enquiries', slug: 'enquiries', type: 'number' },
+  { name: 'reach', slug: 'reach', type: 'number' },
+  { name: 'impressions', slug: 'impressions', type: 'number' },
+  { name: 'clicks', slug: 'clicks', type: 'number' }
 ]
 
 beforeAll(async () => {
@@ -67,12 +67,12 @@ describe('Platform API', () => {
       .send({
         name: 'Meta',
         platformType: 'Meta',
-        fields: [{ name: 'note', type: 'text' }],
+        fields: [{ name: 'note', slug: 'note', type: 'text' }],
         mode: 'custom'
       })
       .expect(201)
     platformId = resC.body._id
-    expect(resC.body.fields).toEqual([{ name: 'note', type: 'text' }])
+    expect(resC.body.fields).toEqual([{ name: 'note', slug: 'note', type: 'text' }])
 
     const resG = await request(app)
       .get(`/api/clients/${clientId}/platforms`)
@@ -86,14 +86,14 @@ describe('Platform API', () => {
       .send({
         name: 'Meta2',
         fields: [
-          { name: 'x', type: 'number' },
-          { name: 'y', type: 'text' }
+          { name: 'x', slug: 'x', type: 'number' },
+          { name: 'y', slug: 'y', type: 'text' }
         ]
       })
       .expect(200)
     expect(resU.body.fields).toEqual([
-      { name: 'x', type: 'number' },
-      { name: 'y', type: 'text' }
+      { name: 'x', slug: 'x', type: 'number' },
+      { name: 'y', slug: 'y', type: 'text' }
     ])
 
     await request(app)
@@ -138,7 +138,7 @@ describe('Platform API', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         name: 'BadFormula',
-        fields: [{ name: 'f1', type: 'formula', formula: 'process.exit()' }]
+        fields: [{ name: 'f1', slug: 'f1', type: 'formula', formula: 'process.exit()' }]
       })
       .expect(400)
     expect(res.body.message).toBe(t('INVALID_FORMULA'))
@@ -151,8 +151,8 @@ describe('Platform API', () => {
       .send({
         name: 'BadRef',
         fields: [
-          { name: 'a', type: 'number' },
-          { name: 'b', type: 'formula', formula: 'a + c' }
+          { name: 'a', slug: 'a', type: 'number' },
+          { name: 'b', slug: 'b', type: 'formula', formula: 'a + c' }
         ]
       })
       .expect(400)

@@ -69,9 +69,9 @@ describe('Client and AdDaily', () => {
       .send({
         name: 'Calc',
         fields: [
-          { name: 'a', type: 'number' },
-          { name: 'b', type: 'number' },
-          { name: 'c', type: 'formula', formula: 'a + b' }
+          { name: 'a', slug: 'a', type: 'number' },
+          { name: 'b', slug: 'b', type: 'number' },
+          { name: 'c', slug: 'c', type: 'formula', formula: 'a + b' }
         ]
       })
       .expect(201)
