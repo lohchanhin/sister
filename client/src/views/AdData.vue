@@ -539,6 +539,7 @@ const loadDaily = async () => {
     dailyData.value = data
   } catch (err) {
     dailyData.value = []
+    console.error('取得每日資料失敗', err)
     toast.add({ severity: 'error', summary: '錯誤', detail: err.message || '取得每日資料失敗', life: 3000 })
   } finally {
     loading.value = false
