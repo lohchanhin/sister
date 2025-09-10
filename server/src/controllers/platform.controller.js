@@ -130,18 +130,26 @@ export const renamePlatformField = async (req, res) => {
   if (!platform) return res.status(404).json({ message: t('PLATFORM_NOT_FOUND') })
   const field = platform.fields?.find(f => f.id === id)
   if (!field) return res.status(404).json({ message: t('RECORD_NOT_FOUND') })
-  const oldKey = field.id
+
+  if (platform.fields.some(f => f.slug === slug && f.id !== id)) {
+    return res.status(409).json({ message: t('INVALID_FORMULA') })
+  }
+
+  const oldSlug = field.slug
   field.name = name
   field.slug = slug
-  field.id = slug
+
+  if (oldSlug !== slug) {
+    for (const f of platform.fields) {
+      if (f.formula) {
+        f.formula = f.formula.replace(new RegExp(`\\b${oldSlug}\\b`, 'g'), slug)
+      }
+    }
+  }
+
   await platform.save()
-  await AdDaily.updateMany(
-    { clientId: req.params.clientId, platformId: req.params.id },
-    { $rename: { [`extraData.${oldKey}`]: `extraData.${slug}` } }
-  )
   await clearCacheByPrefix('platforms:')
   await delCache(`platform:${req.params.id}`)
-  await clearCacheByPrefix('adDaily:')
   res.json(platform)
 }
 
