@@ -57,8 +57,8 @@ export const createAdDaily = async (req, res) => {
     const vars = { ...payload, ...payload.extraData }
     for (const f of formulas) {
       const val = evalFormula(f.formula, vars)
-      payload.extraData[f.name] = val
-      vars[f.name] = val
+      payload.extraData[f.slug] = val
+      vars[f.slug] = val
     }
   }
   const rec = await AdDaily.findOneAndUpdate(
@@ -168,8 +168,8 @@ export const bulkCreateAdDaily = async (req, res) => {
       const vars = { ...r, ...r.extraData }
       for (const f of formulas) {
         const val = evalFormula(f.formula, vars)
-        r.extraData[f.name] = val
-        vars[f.name] = val
+        r.extraData[f.slug] = val
+        vars[f.slug] = val
       }
     }
   }
@@ -252,8 +252,8 @@ export const importAdDaily = async (req, res) => {
       const vars = { ...r, ...r.extraData }
       for (const f of formulas) {
         const val = evalFormula(f.formula, vars)
-        r.extraData[f.name] = val
-        vars[f.name] = val
+        r.extraData[f.slug] = val
+        vars[f.slug] = val
       }
     }
   }
@@ -288,8 +288,8 @@ export const updateAdDaily = async (req, res) => {
     const vars = { ...payload, ...payload.extraData }
     for (const f of formulas) {
       const val = evalFormula(f.formula, vars)
-      payload.extraData[f.name] = val
-      vars[f.name] = val
+      payload.extraData[f.slug] = val
+      vars[f.slug] = val
     }
   }
 

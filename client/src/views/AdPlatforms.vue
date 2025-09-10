@@ -46,16 +46,17 @@
         <label>自訂欄位</label>
         <div class="flex flex-wrap align-items-center gap-2">
             <InputText v-model="newFieldName" placeholder="欄位名稱" />
+            <InputText v-model="newFieldSlug" placeholder="slug" class="w-24" />
             <Dropdown v-model="newFieldType" :options="fieldTypeOptions" optionLabel="label" optionValue="value" />
-            <FormulaBuilder v-if="newFieldType === 'formula'" v-model="newFieldFormula" :fields="fieldNames" class="flex-1" />
+            <FormulaBuilder v-if="newFieldType === 'formula'" v-model="newFieldFormula" :fields="fieldSlugs" class="flex-1" />
             <Button icon="pi pi-plus" @click="addField" />
         </div>
-        <OrderList v-model="form.fields" listStyle="height:auto" dataKey="name" class="mt-2">
+        <OrderList v-model="form.fields" listStyle="height:auto" dataKey="slug" class="mt-2">
             <template #header>欄位列表</template>
             <template #item="slotProps">
                 <div class="flex justify-content-between align-items-center w-full gap-2">
-                    <span>{{slotProps.item.name}} ({{slotProps.item.type}})</span>
-                    <FormulaBuilder v-if="slotProps.item.type === 'formula'" v-model="slotProps.item.formula" :fields="fieldNames" class="flex-1" />
+                    <span>{{slotProps.item.name}} ({{slotProps.item.slug}} / {{slotProps.item.type}})</span>
+                    <FormulaBuilder v-if="slotProps.item.type === 'formula'" v-model="slotProps.item.formula" :fields="fieldSlugs" class="flex-1" />
                     <Button icon="pi pi-times" class="p-button-danger p-button-text" @click="removeField(slotProps.index)" />
                 </div>
             </template>
@@ -125,11 +126,19 @@ const helpDialog = ref(false)
 const form = ref({ name: '', platformType: '', mode: 'custom', fields: [] })
 const initializing = ref(false)
 
-const fieldNames = computed(() => form.value.fields.map(f => f.name))
+const fieldSlugs = computed(() => form.value.fields.map(f => f.slug))
 
 const newFieldName = ref('')
+const newFieldSlug = ref('')
 const newFieldType = ref('number')
 const newFieldFormula = ref('')
+
+const slugify = s =>
+  s.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')
+
+watch(newFieldName, val => {
+  if (!newFieldSlug.value) newFieldSlug.value = slugify(val)
+})
 const fieldTypeOptions = ref([
     { label: '數字', value: 'number' },
     { label: '文字', value: 'text' },
@@ -141,20 +150,22 @@ const modeOptions = ref([
     { label: '自訂', value: 'custom' },
 ])
 const defaultFields = [
-  { name: 'spent', type: 'number', order: 1 },
-  { name: 'enquiries', type: 'number', order: 2 },
-  { name: 'reach', type: 'number', order: 3 },
-  { name: 'impressions', type: 'number', order: 4 },
-  { name: 'clicks', type: 'number', order: 5 }
+  { name: 'spent', slug: 'spent', type: 'number', order: 1 },
+  { name: 'enquiries', slug: 'enquiries', type: 'number', order: 2 },
+  { name: 'reach', slug: 'reach', type: 'number', order: 3 },
+  { name: 'impressions', slug: 'impressions', type: 'number', order: 4 },
+  { name: 'clicks', slug: 'clicks', type: 'number', order: 5 }
 ]
 
 const addField = () => {
   const name = newFieldName.value.trim()
-  if (name && !form.value.fields.find(f => f.name === name)) {
-    const field = { name, type: newFieldType.value, order: form.value.fields.length + 1 }
+  const slug = (newFieldSlug.value.trim() || slugify(name))
+  if (name && slug && !form.value.fields.find(f => f.slug === slug)) {
+    const field = { name, slug, type: newFieldType.value, order: form.value.fields.length + 1 }
     if (newFieldType.value === 'formula') field.formula = newFieldFormula.value.trim()
     form.value.fields.push(field)
     newFieldName.value = ''
+    newFieldSlug.value = ''
     newFieldFormula.value = ''
   }
 }
@@ -179,6 +190,7 @@ const openCreate = () => {
   initializing.value = true
   form.value = { name: '', platformType: '', mode: 'custom', fields: [] }
   newFieldFormula.value = ''
+  newFieldSlug.value = ''
   dialog.value = true
   nextTick(() => {
     initializing.value = false
@@ -190,9 +202,14 @@ const openEdit = (platform) => {
   initializing.value = true
   form.value = {
     ...platform,
-    fields: platform.fields.map(f => (typeof f === 'string' ? { name: f, type: 'text', order: 0 } : f))
+    fields: platform.fields.map(f =>
+      typeof f === 'string'
+        ? { name: f, slug: slugify(f), type: 'text', order: 0 }
+        : { name: f.name, slug: f.slug || slugify(f.name), type: f.type, order: f.order, formula: f.formula || '' }
+    )
   }
   newFieldFormula.value = ''
+  newFieldSlug.value = ''
   dialog.value = true
   nextTick(() => {
     initializing.value = false
