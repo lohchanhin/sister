@@ -43,7 +43,7 @@ afterAll(async () => {
 })
 
 describe('rename platform field', () => {
-  it('rename field and update adDaily extraData', async () => {
+  it('rename field and keep adDaily data and colors accessible', async () => {
     const clientRes = await request(app)
       .post('/api/clients')
       .set('Authorization', `Bearer ${token}`)
@@ -64,7 +64,7 @@ describe('rename platform field', () => {
     await request(app)
       .post(`/api/clients/${clientId}/platforms/${platformId}/ad-daily`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ date, extraData: { old: 5 } })
+      .send({ date, extraData: { old: 5 }, colors: { old: '#fff' } })
       .expect(201)
 
     await request(app)
@@ -77,12 +77,13 @@ describe('rename platform field', () => {
       .get(`/api/clients/${clientId}/platforms/${platformId}/ad-daily?start=${date}&end=${date}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
-    expect(list.body[0].extraData).toEqual({ new: 5 })
+    expect(list.body[0].extraData).toEqual({ old: 5 })
+    expect(list.body[0].colors).toEqual({ old: '#fff' })
 
     const platform = await request(app)
       .get(`/api/clients/${clientId}/platforms/${platformId}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
-    expect(platform.body.fields[0]).toMatchObject({ id: 'new', name: 'New', slug: 'new' })
+    expect(platform.body.fields[0]).toMatchObject({ id: 'old', name: 'New', slug: 'new' })
   })
 })
