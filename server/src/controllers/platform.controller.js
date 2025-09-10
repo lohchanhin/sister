@@ -3,14 +3,17 @@ import Platform from '../models/platform.model.js'
 import AdDaily from '../models/adDaily.model.js'
 import WeeklyNote from '../models/weeklyNote.model.js'
 import { getCache, setCache, delCache, clearCacheByPrefix } from '../utils/cache.js'
+import mongoose from 'mongoose'
 
 const formulaPattern = /^[0-9+\-*/().\s_a-zA-Z]+$/
 const slugPattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/
+const slugify = s => s.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')
 
 const validateFields = fields => {
   if (!Array.isArray(fields)) return []
   const slugs = new Set()
   for (const f of fields) {
+    f.slug = f.slug || slugify(f.name)
     if (!f.slug || !slugPattern.test(f.slug) || slugs.has(f.slug)) {
       throw new Error('INVALID_FORMULA')
     }
@@ -36,10 +39,18 @@ export const createPlatform = async (req, res) => {
   try {
     const { name, platformType, fields, mode } = req.body
     validateFields(fields)
+    const normalized = (fields || []).map(f => ({
+      id: f.id || new mongoose.Types.ObjectId().toString(),
+      name: f.name,
+      slug: f.slug,
+      type: f.type,
+      order: f.order,
+      formula: f.formula
+    }))
     const platform = await Platform.create({
       name,
       platformType,
-      fields,
+      fields: normalized,
       mode,
       clientId: req.params.clientId
     })
@@ -79,9 +90,17 @@ export const updatePlatform = async (req, res) => {
   try {
     const { name, platformType, fields, mode } = req.body
     validateFields(fields)
+    const normalized = (fields || []).map(f => ({
+      id: f.id || new mongoose.Types.ObjectId().toString(),
+      name: f.name,
+      slug: f.slug,
+      type: f.type,
+      order: f.order,
+      formula: f.formula
+    }))
     const p = await Platform.findOneAndUpdate(
       { _id: req.params.id, clientId: req.params.clientId },
-      { name, platformType, fields, mode },
+      { name, platformType, fields: normalized, mode },
       { new: true }
     )
     if (!p) return res.status(404).json({ message: t('PLATFORM_NOT_FOUND') })

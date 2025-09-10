@@ -19,6 +19,9 @@ let token
 let clientId
 let platformId
 let formulaPlatformId
+let fieldAId
+let fieldBId
+let fieldCId
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create()
@@ -76,6 +79,7 @@ describe('Client and AdDaily', () => {
       })
       .expect(201)
     formulaPlatformId = res.body._id
+    ;[fieldAId, fieldBId, fieldCId] = res.body.fields.map(f => f.id)
   })
 
   it('weekly aggregate', async () => {
@@ -197,21 +201,21 @@ describe('Client and AdDaily', () => {
     const res = await request(app)
       .post(`/api/clients/${clientId}/platforms/${formulaPlatformId}/ad-daily`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ date, extraData: { a: 2, b: 3 } })
+      .send({ date, extraData: { [fieldAId]: 2, [fieldBId]: 3 } })
       .expect(201)
-    expect(res.body.extraData).toEqual({ a: 2, b: 3, c: 5 })
+    expect(res.body.extraData).toEqual({ [fieldAId]: 2, [fieldBId]: 3, [fieldCId]: 5 })
 
     const rows = [
-      { date: new Date('2024-07-02').toISOString(), extraData: { a: 1, b: 2 } },
-      { date: new Date('2024-07-03').toISOString(), extraData: { a: 3, b: 4 } }
+      { date: new Date('2024-07-02').toISOString(), extraData: { [fieldAId]: 1, [fieldBId]: 2 } },
+      { date: new Date('2024-07-03').toISOString(), extraData: { [fieldAId]: 3, [fieldBId]: 4 } }
     ]
     const bulk = await request(app)
       .post(`/api/clients/${clientId}/platforms/${formulaPlatformId}/ad-daily/bulk`)
       .set('Authorization', `Bearer ${token}`)
       .send(rows)
       .expect(201)
-    expect(bulk.body[0].extraData.c).toBe(3)
-    expect(bulk.body[1].extraData.c).toBe(7)
+    expect(bulk.body[0].extraData[fieldCId]).toBe(3)
+    expect(bulk.body[1].extraData[fieldCId]).toBe(7)
   })
 
   it('sort adDaily by spent desc', async () => {

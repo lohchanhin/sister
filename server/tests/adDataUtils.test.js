@@ -3,10 +3,10 @@ import dayjs from 'dayjs'
 
 describe('adData helpers', () => {
   const fields = [
-    { name: 'foo', slug: 'foo', type: 'number' },
-    { name: 'bar', slug: 'bar', type: 'text' },
-    { name: 'baz', slug: 'baz', type: 'date' },
-    { name: 'calc', slug: 'calc', type: 'formula', formula: 'foo * 2' }
+    { id: 'foo', name: 'foo', slug: 'foo', type: 'number' },
+    { id: 'bar', name: 'bar', slug: 'bar', type: 'text' },
+    { id: 'baz', name: 'baz', slug: 'baz', type: 'date' },
+    { id: 'calc', name: 'calc', slug: 'calc', type: 'formula', formula: 'foo * 2' }
   ]
 
   test('excel spec and template order', () => {
@@ -27,7 +27,7 @@ describe('adData helpers', () => {
     const rows = normalizeRows([
       { date:'2025-06-02', foo:'A', bar:'B', baz:'2025-06-01', calc:5, spent:100 }
     ], fields)
-    expect(Object.keys(rows[0].extraData)).toEqual(fields.filter(f => f.type !== 'formula').map(f => f.slug))
+    expect(Object.keys(rows[0].extraData)).toEqual(fields.filter(f => f.type !== 'formula').map(f => f.id))
   })
 
   test('export rows follow field order', () => {

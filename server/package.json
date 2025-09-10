@@ -7,7 +7,8 @@
     "start": "node src/server.js",
     "test": "jest --experimental-vm-modules",
     "seed": "node src/scripts/seedUsers.js",
-    "sanitize-ad-daily": "node src/scripts/sanitizeAdDaily.js"
+    "sanitize-ad-daily": "node src/scripts/sanitizeAdDaily.js",
+    "migrate-extra-data": "node src/scripts/migrateExtraDataFieldId.js"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.16.0",

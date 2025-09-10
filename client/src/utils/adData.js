@@ -49,8 +49,8 @@ export const normalizeRows = (arr, customFields) => arr
       if (c.type === 'formula') return
       if (r[c.name] !== undefined) {
         const val = r[c.name]
-        if (c.type === 'number') extra[c.slug] = Number(val) || 0
-        else extra[c.slug] = val
+        if (c.type === 'number') extra[c.id] = Number(val) || 0
+        else extra[c.id] = val
       }
     })
     const ignore = new Set([
@@ -78,7 +78,7 @@ export const buildExportRows = (dailyData, customFields, dateFmt) =>
       點擊: r.clicks
     }
     customFields.forEach(c => {
-      const val = r.extraData?.[c.slug]
+      const val = r.extraData?.[c.id]
       obj[c.name] = c.type === 'date'
         ? (val ? dateFmt({ date: val }) : '')
         : (val ?? '')
