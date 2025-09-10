@@ -77,8 +77,8 @@ describe('rename platform field', () => {
       .get(`/api/clients/${clientId}/platforms/${platformId}/ad-daily?start=${date}&end=${date}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
-    expect(list.body[0].extraData).toEqual({ old: 5 })
-    expect(list.body[0].colors).toEqual({ old: '#fff' })
+    expect(list.body[0].extraData).toEqual({ new: 5 })
+    expect(list.body[0].colors).toEqual({ new: '#fff' })
 
     const platform = await request(app)
       .get(`/api/clients/${clientId}/platforms/${platformId}`)

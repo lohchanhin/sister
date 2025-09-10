@@ -148,6 +148,17 @@ export const renamePlatformField = async (req, res) => {
   }
 
   await platform.save()
+  if (oldSlug !== slug) {
+    await AdDaily.updateMany(
+      { platformId: req.params.id },
+      {
+        $rename: {
+          [`extraData.${oldSlug}`]: `extraData.${slug}`,
+          [`colors.${oldSlug}`]: `colors.${slug}`
+        }
+      }
+    )
+  }
   await clearCacheByPrefix('platforms:')
   await delCache(`platform:${req.params.id}`)
   res.json(platform)
