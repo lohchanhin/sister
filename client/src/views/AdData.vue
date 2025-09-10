@@ -522,14 +522,27 @@ const loadPlatform = async () => {
 }
 
 const loadDaily = async () => {
+  loading.value = true
   const params = {}
   if (sortField.value) {
     params.sort = sortField.value
     params.order = sortOrder.value === 1 ? 'asc' : 'desc'
   }
-  const list = await fetchDaily(clientId, platformId, params)
-
-  dailyData.value = list
+  try {
+    const list = await fetchDaily(clientId, platformId, params)
+    let data = []
+    if (Array.isArray(list)) {
+      data = list
+    } else if (Array.isArray(list?.data)) {
+      data = list.data
+    }
+    dailyData.value = data
+  } catch (err) {
+    dailyData.value = []
+    toast.add({ severity: 'error', summary: '錯誤', detail: err.message || '取得每日資料失敗', life: 3000 })
+  } finally {
+    loading.value = false
+  }
 }
 
 const loadWeeklyNotes = async () => {
