@@ -105,7 +105,42 @@ export const getAdDaily = async (req, res) => {
   const cached = await getCache(cacheKey)
   if (cached) return res.json(cached)
 
+  const platform = await Platform.findById(req.params.platformId)
+  const idMap = {}
+  platform?.fields?.forEach(f => {
+    if (f.name) idMap[f.name] = f.id
+    if (f.slug) idMap[f.slug] = f.id
+  })
+
   const list = await AdDaily.find(query).sort(sortObj)
+  for (const rec of list) {
+    let updated = false
+    const extra = {}
+    for (const [k, v] of Object.entries(rec.extraData || {})) {
+      const nk = idMap[k]
+      if (nk) {
+        extra[nk] = v
+        if (nk !== k) updated = true
+      } else {
+        extra[k] = v
+      }
+    }
+    const colors = {}
+    for (const [k, v] of Object.entries(rec.colors || {})) {
+      const nk = idMap[k]
+      if (nk) {
+        colors[nk] = v
+        if (nk !== k) updated = true
+      } else {
+        colors[k] = v
+      }
+    }
+    if (updated) {
+      await AdDaily.updateOne({ _id: rec._id }, { extraData: extra, colors })
+      rec.extraData = extra
+      rec.colors = colors
+    }
+  }
   await setCache(cacheKey, list)
   res.json(list)
 }

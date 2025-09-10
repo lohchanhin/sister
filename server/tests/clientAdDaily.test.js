@@ -8,6 +8,7 @@ import platformRoutes from '../src/routes/platform.routes.js'
 import adDailyRoutes from '../src/routes/adDaily.routes.js'
 import User from '../src/models/user.model.js'
 import Role from '../src/models/role.model.js'
+import AdDaily from '../src/models/adDaily.model.js'
 import dotenv from 'dotenv'
 
 dotenv.config({ override: true })
@@ -22,6 +23,9 @@ let formulaPlatformId
 let fieldAId
 let fieldBId
 let fieldCId
+let mapPlatformId
+let nameFieldId
+let slugFieldId
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create()
@@ -80,6 +84,22 @@ describe('Client and AdDaily', () => {
       .expect(201)
     formulaPlatformId = res.body._id
     ;[fieldAId, fieldBId, fieldCId] = res.body.fields.map(f => f.id)
+  })
+
+  it('create platform for idMap migration', async () => {
+    const res = await request(app)
+      .post(`/api/clients/${clientId}/platforms`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Map',
+        fields: [
+          { name: 'Name Field', slug: 'name-field', type: 'number' },
+          { name: 'Slug Field', slug: 'slug-field', type: 'number' }
+        ]
+      })
+      .expect(201)
+    mapPlatformId = res.body._id
+    ;[nameFieldId, slugFieldId] = res.body.fields.map(f => f.id)
   })
 
   it('weekly aggregate', async () => {
@@ -216,6 +236,30 @@ describe('Client and AdDaily', () => {
       .expect(201)
     expect(bulk.body[0].extraData[fieldCId]).toBe(3)
     expect(bulk.body[1].extraData[fieldCId]).toBe(7)
+  })
+
+  it('lazy migrate adDaily extraData and colors', async () => {
+    const date = new Date('2024-08-01').toISOString()
+    await AdDaily.create({
+      clientId,
+      platformId: mapPlatformId,
+      date: new Date(date),
+      extraData: { 'Name Field': 1, 'slug-field': 2 },
+      colors: { 'Name Field': '#111', 'slug-field': '#222' }
+    })
+
+    const res = await request(app)
+      .get(
+        `/api/clients/${clientId}/platforms/${mapPlatformId}/ad-daily?start=${date}&end=${date}`
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    expect(res.body[0].extraData).toEqual({ [nameFieldId]: 1, [slugFieldId]: 2 })
+    expect(res.body[0].colors).toEqual({ [nameFieldId]: '#111', [slugFieldId]: '#222' })
+
+    const saved = await AdDaily.findById(res.body[0]._id).lean()
+    expect(saved.extraData).toEqual({ [nameFieldId]: 1, [slugFieldId]: 2 })
+    expect(saved.colors).toEqual({ [nameFieldId]: '#111', [slugFieldId]: '#222' })
   })
 
   it('sort adDaily by spent desc', async () => {
