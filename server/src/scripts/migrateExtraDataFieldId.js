@@ -1,6 +1,7 @@
 import dotenv from 'dotenv'
 import mongoose from 'mongoose'
 import path from 'node:path'
+import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import Platform from '../models/platform.model.js'
 import AdDaily from '../models/adDaily.model.js'
@@ -14,6 +15,7 @@ const run = async () => {
     console.log('✅ MongoDB 已連線')
 
     const platforms = await Platform.find()
+    const mismatches = []
     for (const p of platforms) {
       const nameToId = {}
       const slugToId = {}
@@ -31,17 +33,24 @@ const run = async () => {
         console.log(`平台 ${p.name} 已補齊欄位 id`)
       }
 
+      let adDailyCount = 0
+      let successCount = 0
+      let failCount = 0
       const cursor = AdDaily.find({ platformId: p._id }).cursor()
       for await (const doc of cursor) {
+        adDailyCount += 1
         let changed = false
         const extra = {}
         for (const [k, v] of Object.entries(doc.extraData || {})) {
           const fid = nameToId[k] || slugToId[k]
           if (fid) {
             extra[fid] = v
+            successCount += 1
             if (fid !== k) changed = true
           } else {
             extra[k] = v
+            failCount += 1
+            mismatches.push({ platform: p.name, docId: doc._id.toString(), field: k, type: 'extraData' })
             console.warn(`AdDaily ${doc._id} 欄位 ${k} 無對應 ID`)
           }
         }
@@ -50,9 +59,12 @@ const run = async () => {
           const fid = nameToId[k] || slugToId[k]
           if (fid) {
             colors[fid] = v
+            successCount += 1
             if (fid !== k) changed = true
           } else {
             colors[k] = v
+            failCount += 1
+            mismatches.push({ platform: p.name, docId: doc._id.toString(), field: k, type: 'color' })
             console.warn(`AdDaily ${doc._id} 色票 ${k} 無對應 ID`)
           }
         }
@@ -63,6 +75,12 @@ const run = async () => {
           console.log(`AdDaily ${doc._id} 已更新欄位鍵`)
         }
       }
+      console.log(`平台 ${p.name} 共處理 ${adDailyCount} 筆 AdDaily，成功 ${successCount} 欄位，失敗 ${failCount} 欄位`)
+    }
+    if (mismatches.length) {
+      const outPath = path.resolve(__dirname, 'migrateExtraDataFieldId-unmatched.json')
+      fs.writeFileSync(outPath, JSON.stringify(mismatches, null, 2))
+      console.warn(`已輸出無法匹配欄位至 ${outPath}`)
     }
     console.log('🍺 轉換完成')
   } catch (err) {
