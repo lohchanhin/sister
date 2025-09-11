@@ -41,7 +41,7 @@
 
         <!-- 每日表格 -->
         <div class="sticky-table-wrapper">
-          <DataTable :value="dailyData" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料"
+          <DataTable :value="adData" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料"
             :sortField="sortField" :sortOrder="sortOrder" scrollable scrollHeight="70vh">
             <Column field="date" header="日期" width="140" sortable>
               <template #body="{ data }">
@@ -361,7 +361,7 @@ function autoBuildAliasesIfNeeded() {
 
   const knownNewIds = new Set(customColumns.value.map(f => f.id))
   const unknownCounts = {} // 舊鍵出現次數
-  dailyData.value.forEach(r => {
+  adData.value.forEach(r => {
     Object.keys(r?.extraData || r || {}).forEach(k => {
       if (!knownNewIds.has(k)) unknownCounts[k] = (unknownCounts[k] || 0) + 1
     })
@@ -418,13 +418,13 @@ const customColumns = ref([])      // [{ id, name, slug, type, order, formula }]
 const platform = ref(null)
 
 /* 優先使用後端宣告 type==='number' / 'formula' 的欄；否則動態從資料推斷「數值欄」。 */
-const dailyData = ref([])         // 先宣告，供 numericColumns / watch 使用
+const adData = ref([])         // 先宣告，供 numericColumns / watch 使用
 const numericColumns = computed(() => {
   const declared = customColumns.value.filter(f => f.type === 'number' || f.type === 'formula')
   if (declared.length) return declared
 
   const counts = new Map()
-  dailyData.value.forEach(row => {
+  adData.value.forEach(row => {
     const ed = row?.extraData || row || {}
     Object.keys(ed).forEach(id => {
       const v = ed[id]
@@ -432,7 +432,7 @@ const numericColumns = computed(() => {
       if (ok) counts.set(id, (counts.get(id) || 0) + 1)
     })
   })
-  const threshold = Math.max(1, Math.floor(dailyData.value.length * 0.5)) // 過半
+  const threshold = Math.max(1, Math.floor(adData.value.length * 0.5)) // 過半
   const ids = [...counts.entries()].filter(([, c]) => c >= threshold).map(([id]) => id)
 
   return ids.map(id =>
@@ -475,7 +475,7 @@ watch(nonFormulaData, recalcFormulas)
 const sortField = ref('')
 const sortOrder = ref(1)
 const sortOptions = computed(() => {
-  const hasExtra = dailyData.value.some(r => r && typeof r === 'object' && 'extraData' in r)
+  const hasExtra = adData.value.some(r => r && typeof r === 'object' && 'extraData' in r)
   const prefix = hasExtra ? 'extraData.' : ''
   return [
     { label: '日期', value: 'date' },
@@ -512,7 +512,7 @@ const formatWeekRange = (w) => {
 const weeklyAgg = computed(() => {
   const map = {}
 
-  dailyData.value.forEach(d => {
+  adData.value.forEach(d => {
     const week = toWeekKey(d.date)
     if (!map[week]) {
       map[week] = { week }
@@ -672,9 +672,9 @@ const loadDaily = async () => {
       const firstArray = Object.values(list).find(Array.isArray)
       data = firstArray || []
     }
-    dailyData.value = data
+    adData.value = data
   } catch (err) {
-    dailyData.value = []
+    adData.value = []
     console.error('取得每日資料失敗', err)
     toast.add({ severity: 'error', summary: '錯誤', detail: err?.message || '取得每日資料失敗', life: 3000 })
   } finally {
@@ -692,7 +692,7 @@ watch([sortField, sortOrder], () => { loadDaily() })
 watch([startDate, endDate], loadDaily)
 
 // 若日資料或欄位變動，再嘗試自動建立 alias（只在沒有別名時）
-watch([dailyData, customColumns], () => {
+watch([adData, customColumns], () => {
   if (!Object.keys(fieldAliases.value).length) autoBuildAliasesIfNeeded()
 })
 
@@ -841,11 +841,11 @@ const normalize = arr => {
 
 /**** ---------------------------------------------------- 匯出 ---------------------------------------------------- ****/
 const exportDaily = () => {
-  if (!dailyData.value.length) {
+  if (!adData.value.length) {
     toast.add({ severity: 'warn', summary: '警告', detail: '無資料可匯出', life: 3000 })
     return
   }
-  const rows = dailyData.value.map(r => {
+  const rows = adData.value.map(r => {
     const row = { 日期: dateFmt(r) }
     customColumns.value.forEach(col => {
       const val = valByField(r, col)
