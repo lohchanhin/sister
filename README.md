@@ -69,11 +69,16 @@ GCS_CORS_ORIGIN=http://localhost:5173
 參數取得下載專用的 URL。
 所有受保護的路由都會檢查使用者是否具有對應權限，
 缺乏權限時伺服器將回傳 `403` 並顯示 `權限不足`。
-3. 執行測試前請先在 `server` 目錄安裝相依套件：
+3. 升級或部署前請先執行資料遷移：
+   \`\`\`bash
+   node server/src/scripts/migrateExtraDataFieldId.js
+   \`\`\`
+   轉換將補齊各平台欄位 ID，並把 `AdDaily` 的 `extraData`、`colors` 鍵改為欄位 ID。
+4. 執行測試前請先在 `server` 目錄安裝相依套件：
    \`\`\`bash
    npm install
    \`\`\`
-4. 進行登入測試：
+5. 進行登入測試：
    \`\`\`bash
    npm test
    \`\`\`

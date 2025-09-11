@@ -36,20 +36,31 @@ const run = async () => {
         let changed = false
         const extra = {}
         for (const [k, v] of Object.entries(doc.extraData || {})) {
-          const fid = nameToId[k] || slugToId[k] || k
-          extra[fid] = v
-          if (fid !== k) changed = true
+          const fid = nameToId[k] || slugToId[k]
+          if (fid) {
+            extra[fid] = v
+            if (fid !== k) changed = true
+          } else {
+            extra[k] = v
+            console.warn(`AdDaily ${doc._id} 欄位 ${k} 無對應 ID`)
+          }
         }
         const colors = {}
         for (const [k, v] of Object.entries(doc.colors || {})) {
-          const fid = nameToId[k] || slugToId[k] || k
-          colors[fid] = v
-          if (fid !== k) changed = true
+          const fid = nameToId[k] || slugToId[k]
+          if (fid) {
+            colors[fid] = v
+            if (fid !== k) changed = true
+          } else {
+            colors[k] = v
+            console.warn(`AdDaily ${doc._id} 色票 ${k} 無對應 ID`)
+          }
         }
         if (changed) {
           doc.extraData = extra
           doc.colors = colors
           await doc.save()
+          console.log(`AdDaily ${doc._id} 已更新欄位鍵`)
         }
       }
     }
