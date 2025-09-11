@@ -744,6 +744,9 @@ onMounted(async () => {
 
   autoBuildAliasesIfNeeded()  // 有需要再自動對應
   loading.value = false
+  console.log('[customColumns]', customColumns.value.map(f => ({ id: f.id, name: f.name, type: f.type })))
+  console.log('[sample row]', adData.value[0])
+
 })
 
 
