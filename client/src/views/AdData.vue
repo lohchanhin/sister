@@ -332,10 +332,12 @@ const saveAliases = () => {
 /**** ---------------------------------------------------- 取值器（支援 alias + 多候選鍵） ---------------------------------------------------- ****/
 /* 從一筆 daily row 中，根據欄位物件嘗試：別名舊鍵 -> id -> slug -> name -> slugify(name) */
 const valByField = (row, f) => {
-  const ed = row?.extraData || {}
+  const ed = row?.extraData || row || {}
+  const isRoot = !row?.extraData
   // 先走別名：找出映射到此新欄位ID的舊 Key
   for (const [oldKey, newId] of Object.entries(fieldAliases.value || {})) {
-    if (newId === f.id && oldKey in ed) return ed[oldKey]
+    const k = isRoot ? oldKey.replace(/^extraData\./, '') : oldKey
+    if (newId === f.id && k in ed) return ed[k]
   }
   // 再走多候選鍵
   const cands = [f?.id, f?.slug, f?.name, slugify(f?.name || '')].filter(Boolean)
@@ -360,7 +362,7 @@ function autoBuildAliasesIfNeeded() {
   const knownNewIds = new Set(customColumns.value.map(f => f.id))
   const unknownCounts = {} // 舊鍵出現次數
   dailyData.value.forEach(r => {
-    Object.keys(r?.extraData || {}).forEach(k => {
+    Object.keys(r?.extraData || r || {}).forEach(k => {
       if (!knownNewIds.has(k)) unknownCounts[k] = (unknownCounts[k] || 0) + 1
     })
   })
@@ -423,7 +425,7 @@ const numericColumns = computed(() => {
 
   const counts = new Map()
   dailyData.value.forEach(row => {
-    const ed = row?.extraData || {}
+    const ed = row?.extraData || row || {}
     Object.keys(ed).forEach(id => {
       const v = ed[id]
       const ok = isStrictNumber(v) || looksNumericString(v)
@@ -472,10 +474,14 @@ watch(nonFormulaData, recalcFormulas)
 /**** ---------------------------------------------------- 排序 / 篩選 ---------------------------------------------------- ****/
 const sortField = ref('')
 const sortOrder = ref(1)
-const sortOptions = computed(() => [
-  { label: '日期', value: 'date' },
-  ...customColumns.value.map(f => ({ label: f.name, value: 'extraData.' + f.id }))
-])
+const sortOptions = computed(() => {
+  const hasExtra = dailyData.value.some(r => r && typeof r === 'object' && 'extraData' in r)
+  const prefix = hasExtra ? 'extraData.' : ''
+  return [
+    { label: '日期', value: 'date' },
+    ...customColumns.value.map(f => ({ label: f.name, value: prefix + f.id }))
+  ]
+})
 const toggleOrder = () => { sortOrder.value = sortOrder.value === 1 ? -1 : 1 }
 
 const startDate = ref('')
