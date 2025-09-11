@@ -112,8 +112,20 @@ export const getAdDaily = async (req, res) => {
     if (f.slug) idMap[f.slug] = f.id
   })
 
-  const list = await AdDaily.find(query).sort(sortObj)
+  let list = await AdDaily.find(query).sort(sortObj)
+  if (!Array.isArray(list) && list && typeof list === 'object') {
+    const keys = Object.keys(list).filter(k => Array.isArray(list[k]))
+    if (keys.length) {
+      const maxLen = Math.max(...keys.map(k => list[k].length))
+      list = Array.from({ length: maxLen }, (_, i) => {
+        const row = {}
+        keys.forEach(k => { row[k] = list[k][i] })
+        return row
+      })
+    } else list = []
+  }
   for (const rec of list) {
+    if (!rec || typeof rec !== 'object') continue
     let updated = false
     const extra = {}
     for (const [k, v] of Object.entries(rec.extraData || {})) {
@@ -135,11 +147,11 @@ export const getAdDaily = async (req, res) => {
         colors[k] = v
       }
     }
-    if (updated) {
+    if (updated && rec._id) {
       await AdDaily.updateOne({ _id: rec._id }, { extraData: extra, colors })
-      rec.extraData = extra
-      rec.colors = colors
     }
+    rec.extraData = extra
+    rec.colors = colors
   }
   await setCache(cacheKey, list)
   res.json(list)
