@@ -47,8 +47,8 @@
                 {{ dateFmt(data) }}
               </template>
             </Column>
-            <Column v-for="field in customColumns" :key="field.id" :field="'extraData.' + field.id"
-              :header="field.name" sortable>
+            <Column v-for="field in customColumns" :key="field.id" :field="'extraData.' + field.id" :header="field.name"
+              sortable>
               <template #body="{ data }">
                 <span v-if="field.type === 'date'" :style="{ backgroundColor: data.colors?.[field.id] }">
                   {{ formatExtraDate(data.extraData?.[field.id]) }}
@@ -71,7 +71,8 @@
       <TabPanel header="週摘要">
         <!-- 指標切換 + 匯出 -->
         <div class="flex justify-between items-center mb-2">
-          <Dropdown v-model="yMetric" :options="numericColumns" optionLabel="name" optionValue="slug" style="width:160px" v-if="numericColumns.length" />
+          <Dropdown v-model="yMetric" :options="numericColumns" optionLabel="name" optionValue="slug"
+            style="width:160px" v-if="numericColumns.length" />
           <Button label="匯出週報" size="small" @click="exportWeekly" />
         </div>
 
@@ -82,7 +83,8 @@
 
         <!-- 週表格 -->
         <div class="sticky-table-wrapper">
-          <DataTable :value="weeklyAgg" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料" scrollable scrollHeight="70vh">
+          <DataTable :value="weeklyAgg" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料" scrollable
+            scrollHeight="70vh">
             <!-- 第一欄 -->
             <Column header="日期" width="200">
               <template #body="{ data }">
@@ -306,9 +308,18 @@ const imgList = ref([])
 const slugify = s => s.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')
 const customColumns = ref([])      // e.g. [{ name:'備註', slug:'note', type:'text' }]
 const platform = ref(null)
-const numericColumns = computed(() =>
-  customColumns.value.filter(f => f.type === 'number' || f.type === 'formula')
-)
+const numericColumns = computed(() => {
+  const meta = customColumns.value.filter(f => f.type === 'number' || f.type === 'formula')
+  if (meta.length) return meta
+  const first = dailyData.value[0]
+  if (!first) return []
+  return Object.keys(first.extraData || {})
+    .filter(id => typeof first.extraData[id] === 'number')
+    .map(id => {
+      const found = customColumns.value.find(f => f.id === id)
+      return found || { id, slug: id, name: id, type: 'number', order: 999 }
+    })
+})
 
 const formulaFields = computed(() => customColumns.value.filter(f => f.type === 'formula'))
 const formulaPattern = /^[0-9+\-*/().\s_a-zA-Z]+$/
@@ -366,11 +377,17 @@ const recordForm = ref({ date: '', extraData: {}, colors: {} })
 const weeklyNotes = ref({})       // { '2025-W25': { week:'2025-W25', text:'...' } }
 
 /**** 週資料（前端彙總） ****/
+const toWeekKey = (date) => {
+  const dt = dayjs(date)
+  const y = dt.isoWeekYear()
+  const w = String(dt.isoWeek()).padStart(2, '0')
+  return `${y}-${w}` // 例如 2025-26
+}
+
 const weeklyAgg = computed(() => {
-  // 以 YYYY-WW 為 Key，彙總每個欄位
   const map = {}
   dailyData.value.forEach(d => {
-    const week = dayjs(d.date).format('YYYY-WW')
+    const week = toWeekKey(d.date)
     if (!map[week]) {
       map[week] = { week }
       customColumns.value.forEach(f => {
@@ -435,8 +452,8 @@ const excelSpec = computed(() => {
       field: f.name,
       type: f.type === 'number' ? '數字'
         : f.type === 'date' ? '日期 (YYYY-MM-DD)'
-        : f.type === 'formula' ? '公式(自動計算)'
-        : '文字',
+          : f.type === 'formula' ? '公式(自動計算)'
+            : '文字',
       sample: f.type === 'date' ? dayjs().format('YYYY-MM-DD') : ''
     }))
   )
@@ -449,13 +466,10 @@ const formatExtraDate = val =>
 
 // 將 "YYYY-WW" 轉為 "YYYY/MM/DD - YYYY/MM/DD"
 const formatWeekRange = (w) => {
-  if (!w) return ''
-  const m = String(w).match(/(\d{4})-W?(\d{1,2})/)
+  const m = String(w).match(/^(\d{4})-W?(\d{1,2})$/)
   if (!m) return ''
   const [, y, wk] = m
-
-  // 依 ISO 8601 規定，1 月 4 日必定落在該年的第 1 週
-  const base = dayjs(`${y}-01-04`).isoWeek(Number(wk))  // ➜ 該 ISO 週的「週四」
+  const base = dayjs().isoWeekYear(Number(y)).isoWeek(Number(wk))
   const start = base.startOf('isoWeek').format('YYYY/MM/DD')
   const end = base.endOf('isoWeek').format('YYYY/MM/DD')
   return `${start} - ${end}`
@@ -505,13 +519,13 @@ const loadPlatform = async () => {
       typeof f === 'string'
         ? { id: slugify(f), name: f, slug: slugify(f), type: 'text', order: 0 }
         : {
-            id: f.id || slugify(f.name),
-            name: f.name,
-            slug: f.slug || slugify(f.name),
-            type: f.type || 'text',
-            order: f.order || 0,
-            formula: f.formula || ''
-          }
+          id: f.id || slugify(f.name),
+          name: f.name,
+          slug: f.slug || slugify(f.name),
+          type: f.type || 'text',
+          order: f.order || 0,
+          formula: f.formula || ''
+        }
     )
     .sort((a, b) => a.order - b.order)
   // 預設 Y 軸選第一個欄位
@@ -524,8 +538,8 @@ const loadPlatform = async () => {
 const loadDaily = async () => {
   loading.value = true
   const params = {}
-  if (startDate.value) params.startDate = startDate.value
-  if (endDate.value) params.endDate = endDate.value
+  if (startDate.value) params.startDate = dayjs(startDate.value).format('YYYY-MM-DD')
+  if (endDate.value) params.endDate = dayjs(endDate.value).format('YYYY-MM-DD')
   if (sortField.value) {
     params.sort = sortField.value
     params.order = sortOrder.value === 1 ? 'asc' : 'desc'
@@ -598,6 +612,9 @@ const drawChart = () => {
 /**** 監聽資料或指標變動即重繪 ****/
 watch([weeklyAgg, yMetric], () => {
   if (activeTab.value === 'weekly') drawChart()
+})
+watch(numericColumns, (cols) => {
+  if (!yMetric.value && cols.length) yMetric.value = cols[0].slug
 })
 
 /**** Tab 切換（避免元件初始化時畫布尺寸不對） ****/
@@ -915,15 +932,17 @@ const previewImages = async imgs => {
   max-height: 70vh;
   overflow-y: auto;
 }
+
 .sticky-table-wrapper :deep(.p-datatable-thead > tr > th) {
   position: sticky;
   top: 0;
   z-index: 1;
   background: #fff;
 }
+
 /* 自行視覺調整 */
-:deep(.p-datatable td){
-  padding-top:0.5rem;
-  padding-bottom:0.5rem;
+:deep(.p-datatable td) {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 </style>
