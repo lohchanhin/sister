@@ -1,8 +1,9 @@
-<!-- src/views/AdData.vue – 動態欄位 + 週折線圖（Y 軸可選） -->
+<!-- src/views/AdData.vue – 動態欄位 + 週折線圖（Y 軸可選、完全動態相容） -->
 <template>
   <section class="p-6 space-y-3 bg-white text-gray-800">
     <Toast />
     <ConfirmDialog />
+
     <!-- ===== 返回上一頁 ===== -->
     <Button @click="router.back()" label="返回上層" />
     <h1 class="text-2xl font-bold">广告数据</h1>
@@ -16,8 +17,14 @@
         <div class="flex justify-between items-center mb-2">
           <!-- 左：匯入 / 格式說明 -->
           <div class="flex items-center gap-2">
-            <FileUpload mode="basic" :auto="true" :customUpload="true" @uploader="importFile"
-              chooseLabel="匯入 CSV / Excel" accept=".xlsx,.csv" />
+            <FileUpload
+              mode="basic"
+              :auto="true"
+              :customUpload="true"
+              @uploader="importFile"
+              chooseLabel="匯入 CSV / Excel"
+              accept=".xlsx,.csv"
+            />
             <Button label="Excel 格式說明" size="small" outlined @click="excelDialog = true" />
           </div>
 
@@ -31,32 +38,57 @@
           </div>
         </div>
 
-        <!-- 排序 -->
+        <!-- 排序（送參數給後端；不依賴欄位點擊排序） -->
         <div class="flex items-center gap-2 mb-2">
-          <Dropdown v-model="sortField" :options="sortOptions" optionLabel="label" optionValue="value"
-            placeholder="排序欄位" class="w-40" showClear />
+          <Dropdown
+            v-model="sortField"
+            :options="sortOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="排序欄位"
+            class="w-40"
+            showClear
+          />
           <Button size="small" @click="toggleOrder" :label="sortOrder === 1 ? '升序' : '降序'" />
         </div>
 
         <!-- 每日表格 -->
         <div class="sticky-table-wrapper">
-          <DataTable :value="dailyData" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料"
-            :sortField="sortField" :sortOrder="sortOrder" scrollable scrollHeight="70vh">
+          <DataTable
+            :value="dailyData"
+            :loading="loading"
+            stripedRows
+            style="width:100%"
+            emptyMessage="尚無資料"
+            :sortField="sortField"
+            :sortOrder="sortOrder"
+            scrollable
+            scrollHeight="70vh"
+          >
             <Column field="date" header="日期" width="140" sortable>
               <template #body="{ data }">
                 {{ dateFmt(data) }}
               </template>
             </Column>
-            <Column v-for="field in customColumns" :key="field.id" :field="'extraData.' + field.id" :header="field.name"
-              sortable>
+
+            <!-- 動態欄：使用安全取值器，避免 'extraData.68c2...' 點語法問題 -->
+            <Column
+              v-for="field in customColumns"
+              :key="keyOf(field)"
+              :header="labelOf(field)"
+            >
               <template #body="{ data }">
-                <span v-if="field.type === 'date'" :style="{ backgroundColor: data.colors?.[field.id] }">
-                  {{ formatExtraDate(data.extraData?.[field.id]) }}
+                <span :style="{ backgroundColor: colorByField(data, field) }">
+                  <template v-if="field.type === 'date'">
+                    {{ formatExtraDate(valByField(data, field)) }}
+                  </template>
+                  <template v-else>
+                    {{ valByField(data, field) ?? '' }}
+                  </template>
                 </span>
-                <span v-else :style="{ backgroundColor: data.colors?.[field.id] }">{{ data.extraData?.[field.id] ?? ''
-                }}</span>
               </template>
             </Column>
+
             <Column header="操作" width="160">
               <template #body="{ data }">
                 <Button link severity="primary" @click="openEdit(data)" label="編輯" />
@@ -71,36 +103,62 @@
       <TabPanel header="週摘要">
         <!-- 指標切換 + 匯出 -->
         <div class="flex justify-between items-center mb-2">
-          <Dropdown v-model="yMetric" :options="numericColumns" optionLabel="name" optionValue="slug"
-            style="width:160px" v-if="numericColumns.length" />
+          <Dropdown
+            v-model="yMetric"
+            :options="numericColumns"
+            :optionLabel="(o) => labelOf(o)"
+            :optionValue="(o) => keyOf(o)"
+            style="width:160px"
+            v-if="numericColumns.length"
+          />
           <Button label="匯出週報" size="small" @click="exportWeekly" />
         </div>
 
-        <!-- 折線圖（如需） -->
+        <!-- 折線圖 -->
         <div style="height:300px;width:100%" class="mb-2">
           <canvas id="weekly-chart" />
         </div>
 
         <!-- 週表格 -->
         <div class="sticky-table-wrapper">
-          <DataTable :value="weeklyAgg" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料" scrollable
-            scrollHeight="70vh">
-            <!-- 第一欄 -->
+          <DataTable
+            :value="weeklyAgg"
+            :loading="loading"
+            stripedRows
+            style="width:100%"
+            emptyMessage="尚無資料"
+            scrollable
+            scrollHeight="70vh"
+          >
             <Column header="日期" width="200">
               <template #body="{ data }">
                 {{ formatWeekRange(data.week) }}
               </template>
             </Column>
+
             <!-- 動態欄位總計 -->
-            <Column v-for="field in numericColumns" :key="field.id" :header="field.name" width="100">
-              <template #body="{ data }">{{ formatNumber(data[field.slug]) }}</template>
+            <Column
+              v-for="field in numericColumns"
+              :key="keyOf(field)"
+              :header="labelOf(field)"
+              width="100"
+            >
+              <template #body="{ data }">
+                {{ formatNumber(data[keyOf(field)]) }}
+              </template>
             </Column>
 
             <!-- 圖片欄 -->
             <Column header="圖片" width="120">
               <template #body="{ data }">
-                <Button v-if="data.hasImage" link severity="primary" size="small" @click="previewImages(data.images)"
-                  label="查看圖片" />
+                <Button
+                  v-if="data.hasImage"
+                  link
+                  severity="primary"
+                  size="small"
+                  @click="previewImages(data.images)"
+                  label="查看圖片"
+                />
               </template>
             </Column>
 
@@ -122,11 +180,13 @@
       </TabPanel>
     </TabView>
 
-
     <!-- ─────────── Dialog：新增/編輯每日 ─────────── -->
-    <Dialog v-model:visible="dialogVisible" :header="editing ? '編輯每日記錄' : '新增每日記錄'" modal
-      style="max-width:480px;width:100%">
-
+    <Dialog
+      v-model:visible="dialogVisible"
+      :header="editing ? '編輯每日記錄' : '新增每日記錄'"
+      modal
+      style="max-width:480px;width:100%"
+    >
       <div class="flex-col gap-4 w-full">
         <!-- 日期欄 -->
         <div class="flex gap-2">
@@ -135,20 +195,32 @@
         </div>
 
         <!-- 動態欄位 -->
-        <div v-for="field in customColumns" :key="field.id" class="flex gap-2">
-          <label :for="field.id" class="w-16 shrink-0 pt-2 text-right">{{ field.name }}</label>
-
-          <!-- ⚠️ 這裡改成 flex-1，並且**不要**再 w-full，也不要 display:none -->
+        <div v-for="field in customColumns" :key="keyOf(field)" class="flex gap-2">
+          <label :for="keyOf(field)" class="w-16 shrink-0 pt-2 text-right">{{ labelOf(field) }}</label>
           <div class="flex gap-2 flex-1">
-            <DatePicker v-if="field.type === 'date'" v-model="recordForm.extraData[field.id]" :inputId="field.id"
-              class="flex-1" />
-
-            <InputText v-else v-model="recordForm.extraData[field.id]" :inputId="field.id" class="flex-1"
-              :readonly="field.type === 'formula'" />
-
+            <DatePicker
+              v-if="field.type === 'date'"
+              v-model="recordForm.extraData[field.id]"
+              :inputId="keyOf(field)"
+              class="flex-1"
+            />
+            <InputText
+              v-else
+              v-model="recordForm.extraData[field.id]"
+              :inputId="keyOf(field)"
+              class="flex-1"
+              :readonly="field.type === 'formula'"
+            />
             <!-- 色票下拉固定 96px -->
-            <Dropdown v-model="recordForm.colors[field.id]" :options="colorOptions" optionLabel="label"
-              optionValue="value" placeholder="顏色" class="w-24" showClear>
+            <Dropdown
+              v-model="recordForm.colors[field.id]"
+              :options="colorOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="顏色"
+              class="w-24"
+              showClear
+            >
               <template #option="{ option }">
                 <div class="flex items-center">
                   <span class="inline-block w-3 h-3 mr-2 rounded-sm" :style="{ backgroundColor: option.value }" />
@@ -197,8 +269,17 @@
       <p class="text-sm text-gray-500 mb-2">週別：{{ formatWeekRange(noteForm.week) }}</p>
       <Textarea v-model="noteForm.text" rows="4" placeholder="輸入文字筆記" style="width: 100%" />
       <!-- 上傳圖片（僅本地暫存） -->
-      <FileUpload name="images" accept="image/*" multiple :auto="false" v-model:files="noteForm.images"
-        @select="onImageSelect" @remove="onImageRemove" :showUploadButton="false" :showCancelButton="false">
+      <FileUpload
+        name="images"
+        accept="image/*"
+        multiple
+        :auto="false"
+        v-model:files="noteForm.images"
+        @select="onImageSelect"
+        @remove="onImageRemove"
+        :showUploadButton="false"
+        :showCancelButton="false"
+      >
         <template #empty>
           <i class="pi pi-plus"></i>
         </template>
@@ -233,32 +314,33 @@ import { useConfirm } from 'primevue/useconfirm'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import Papa from 'papaparse'
-import dayjs from 'dayjs'            // ① 先引入 dayjs
+import dayjs from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
 import advancedFormat from 'dayjs/plugin/advancedFormat'
-dayjs.extend(isoWeek)                // ② 再掛 plug-in
+dayjs.extend(isoWeek)
 dayjs.extend(advancedFormat)
+
 import {
   Chart, LineController, LineElement,
   PointElement, LinearScale, Title, CategoryScale
 } from 'chart.js'
 Chart.register(LineController, LineElement, PointElement, LinearScale, Title, CategoryScale)
 
-import Button from 'primevue/button';
-import TabView from 'primevue/tabview';
-import TabPanel from 'primevue/tabpanel';
-import FileUpload from 'primevue/fileupload';
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
-import Dropdown from 'primevue/dropdown';
-import Dialog from 'primevue/dialog';
-import DatePicker from 'primevue/datepicker';
-import InputText from 'primevue/inputtext';
-import Textarea from 'primevue/textarea';
-import Carousel from 'primevue/carousel';
-import Toast from 'primevue/toast';
-import ConfirmDialog from 'primevue/confirmdialog';
-import ProgressSpinner from 'primevue/progressspinner';
+import Button from 'primevue/button'
+import TabView from 'primevue/tabview'
+import TabPanel from 'primevue/tabpanel'
+import FileUpload from 'primevue/fileupload'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Dropdown from 'primevue/dropdown'
+import Dialog from 'primevue/dialog'
+import DatePicker from 'primevue/datepicker'
+import InputText from 'primevue/inputtext'
+import Textarea from 'primevue/textarea'
+import Carousel from 'primevue/carousel'
+import Toast from 'primevue/toast'
+import ConfirmDialog from 'primevue/confirmdialog'
+import ProgressSpinner from 'primevue/progressspinner'
 
 /**** ------------------ API 服務（依專案實作，可替換為 axios 呼叫） ------------------ ****/
 import {
@@ -268,7 +350,13 @@ import {
   updateDaily,
   deleteDaily
 } from '@/services/adDaily'
-import { fetchWeeklyNote, fetchWeeklyNotes, createWeeklyNote, updateWeeklyNote, getWeeklyNoteImageUrl } from '@/services/weeklyNotes'
+import {
+  fetchWeeklyNote,
+  fetchWeeklyNotes,
+  createWeeklyNote,
+  updateWeeklyNote,
+  getWeeklyNoteImageUrl
+} from '@/services/weeklyNotes'
 import { getPlatform } from '@/services/platforms'
 
 /* ======== 固定 3 色 ======== */
@@ -279,7 +367,8 @@ const colorOptions = [
 ]
 
 /**** ----------------------------- 路由 & 基本狀態 ----------------------------- ****/
-const { clientId, platformId } = useRoute().params
+const route = useRoute()
+const { clientId, platformId } = route.params
 const router = useRouter()
 const toast = useToast()
 const confirm = useConfirm()
@@ -304,23 +393,57 @@ const noteDialog = ref(false)
 const imgPreviewDialog = ref(false)
 const imgList = ref([])
 
-/**** 自訂欄位 ****/
-const slugify = s => s.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')
-const customColumns = ref([])      // e.g. [{ name:'備註', slug:'note', type:'text' }]
+/**** 自訂欄位 + 動態安全取值工具 ****/
+const slugify = s => (s ?? '').toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')
+const keyOf = (f) => (f?.slug && typeof f.slug === 'string' ? f.slug : f?.id)
+const labelOf = (f) => f?.name || f?.slug || f?.id || ''
+
+/** 從一筆 daily row 中，根據欄位物件嘗試多種鍵取得值（id/slug/name/slugify(name)） */
+const valByField = (row, f) => {
+  const ed = row?.extraData || {}
+  const cands = [f?.id, f?.slug, f?.name, slugify(f?.name || '')].filter(Boolean)
+  for (const k of cands) if (k in ed) return ed[k]
+  return ''
+}
+/** 取得顏色，同樣多鍵嘗試 */
+const colorByField = (row, f) => {
+  const cs = row?.colors || {}
+  const cands = [f?.id, f?.slug, f?.name, slugify(f?.name || '')].filter(Boolean)
+  for (const k of cands) if (k in cs) return cs[k]
+  return ''
+}
+
+const customColumns = ref([])      // [{ id, name, slug, type, order, formula }]
 const platform = ref(null)
+
+/** 數字判斷（字串數字也算） */
+const isStrictNumber = (v) => typeof v === 'number' && Number.isFinite(v)
+const looksNumericString = (v) => typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v.trim())
+
+/** 數值欄位（完全動態推斷；若後端有 type 宣告，則優先使用） */
 const numericColumns = computed(() => {
-  const meta = customColumns.value.filter(f => f.type === 'number' || f.type === 'formula')
-  if (meta.length) return meta
-  const first = dailyData.value[0]
-  if (!first) return []
-  return Object.keys(first.extraData || {})
-    .filter(id => typeof first.extraData[id] === 'number')
-    .map(id => {
-      const found = customColumns.value.find(f => f.id === id)
-      return found || { id, slug: id, name: id, type: 'number', order: 999 }
+  const declared = customColumns.value.filter(f => f.type === 'number' || f.type === 'formula')
+  if (declared.length) return declared
+
+  const counts = new Map() // id/slug/name 推斷到的 key 最終都回到 id；這裡用原始 extraData 的 id 統計
+  dailyData.value.forEach(row => {
+    const ed = row?.extraData || {}
+    Object.keys(ed).forEach(id => {
+      const v = ed[id]
+      const ok = isStrictNumber(v) || looksNumericString(v)
+      if (ok) counts.set(id, (counts.get(id) || 0) + 1)
     })
+  })
+  const threshold = Math.max(1, Math.floor(dailyData.value.length * 0.5)) // 過半
+  const ids = [...counts.entries()].filter(([, c]) => c >= threshold).map(([id]) => id)
+
+  return ids.map(id =>
+    customColumns.value.find(f => f.id === id) ||
+    { id, slug: id, name: id, type: 'number', order: 999 }
+  )
 })
 
+/**** 公式欄位（若有） ****/
 const formulaFields = computed(() => customColumns.value.filter(f => f.type === 'formula'))
 const formulaPattern = /^[0-9+\-*/().\s_a-zA-Z]+$/
 const evalFormula = (formula, data) => {
@@ -333,19 +456,15 @@ const evalFormula = (formula, data) => {
     return 0
   }
 }
-
 const recalcFormulas = () => {
   const vars = {}
-  customColumns.value.forEach(f => {
-    vars[f.slug] = recordForm.value.extraData[f.id]
-  })
+  customColumns.value.forEach(f => { vars[f.slug] = recordForm.value.extraData[f.id] })
   formulaFields.value.forEach(f => {
     const val = evalFormula(f.formula, vars)
     recordForm.value.extraData[f.id] = val
     vars[f.slug] = val
   })
 }
-
 const nonFormulaData = computed(() => {
   const obj = {}
   customColumns.value.filter(f => f.type !== 'formula').forEach(f => {
@@ -353,55 +472,63 @@ const nonFormulaData = computed(() => {
   })
   return obj
 })
-
 watch(nonFormulaData, recalcFormulas)
 
-/**** 排序狀態 ****/
+/**** 排序狀態（透過工具列傳給 API） ****/
 const sortField = ref('')
 const sortOrder = ref(1)
 const sortOptions = computed(() => [
   { label: '日期', value: 'date' },
   ...customColumns.value.map(f => ({ label: f.name, value: 'extraData.' + f.id }))
 ])
-const toggleOrder = () => {
-  sortOrder.value = sortOrder.value === 1 ? -1 : 1
-}
+const toggleOrder = () => { sortOrder.value = sortOrder.value === 1 ? -1 : 1 }
 
 /**** 每日資料 ****/
 const startDate = ref('')
 const endDate = ref('')
-const dailyData = ref([])         // [{ date:'2025-06-16', extraData:{ 花費:100, 詢問:5 } }]
+const dailyData = ref([])         // [{ date, extraData, colors, ... }]
 const recordForm = ref({ date: '', extraData: {}, colors: {} })
 
 /* 週備註狀態 */
-const weeklyNotes = ref({})       // { '2025-W25': { week:'2025-W25', text:'...' } }
+const weeklyNotes = ref({})       // { '2025-26': { week:'2025-26', text:'...', images:[] } }
 
-/**** 週資料（前端彙總） ****/
+/**** ISO 週工具 ****/
 const toWeekKey = (date) => {
-  const dt = dayjs(date)
-  const y = dt.isoWeekYear()
-  const w = String(dt.isoWeek()).padStart(2, '0')
-  return `${y}-${w}` // 例如 2025-26
+  const d = dayjs(date)
+  const week = String(d.isoWeek()).padStart(2, '0')
+  const isoYear = d.startOf('isoWeek').year()
+  return `${isoYear}-${week}`
+}
+const formatWeekRange = (w) => {
+  const m = String(w).match(/^(\d{4})-W?(\d{1,2})$/)
+  if (!m) return ''
+  const [, y, wkStr] = m
+  const wk = Number(wkStr)
+  const firstWeekStart = dayjs(`${y}-01-04`).startOf('isoWeek') // ISO 年第一週週一
+  const start = firstWeekStart.add(wk - 1, 'week')
+  const end = start.endOf('isoWeek')
+  return `${start.format('YYYY/MM/DD')} - ${end.format('YYYY/MM/DD')}`
 }
 
+/**** 週資料（前端彙總，完全動態） ****/
 const weeklyAgg = computed(() => {
   const map = {}
+
+  // 初始化 + 加總
   dailyData.value.forEach(d => {
     const week = toWeekKey(d.date)
     if (!map[week]) {
       map[week] = { week }
-      customColumns.value.forEach(f => {
-        if (f.type === 'number' || f.type === 'formula') map[week][f.slug] = 0
-      })
+      numericColumns.value.forEach(f => { map[week][keyOf(f)] = 0 })
     }
-    customColumns.value.forEach(f => {
-      if (f.type === 'number' || f.type === 'formula') {
-        const val = Number(d.extraData[f.id] || 0)
-        map[week][f.slug] += isNaN(val) ? 0 : val
-      }
+    numericColumns.value.forEach(f => {
+      const raw = valByField(d, f)
+      const num = isStrictNumber(raw) ? raw : (looksNumericString(raw) ? Number(raw) : 0)
+      map[week][keyOf(f)] += Number.isFinite(num) ? num : 0
     })
   })
-  // 合併備註資訊
+
+  // 合併備註 / 圖片
   Object.keys(map).forEach(w => {
     const note = weeklyNotes.value[w]
     map[w].note = note?.text || ''
@@ -409,34 +536,32 @@ const weeklyAgg = computed(() => {
     map[w].hasImage = !!(note && note.images && note.images.length)
     map[w].images = note?.images || []
   })
+  // 只有備註沒有每日數據，也要產一筆
   Object.keys(weeklyNotes.value).forEach(w => {
     if (!map[w]) {
       const note = weeklyNotes.value[w]
       map[w] = { week: w }
-      customColumns.value.forEach(f => {
-        if (f.type === 'number' || f.type === 'formula') map[w][f.slug] = 0
-      })
+      numericColumns.value.forEach(f => { map[w][keyOf(f)] = 0 })
       map[w].note = note?.text || ''
       map[w].hasNote = !!(note && note.text)
       map[w].hasImage = !!(note && note.images && note.images.length)
       map[w].images = note?.images || []
     }
   })
-  // 四捨五入至小數點兩位
+
+  // 小數二位
   const arr = Object.values(map)
-  arr.forEach(week => {
-    customColumns.value.forEach(f => {
-      if ((f.type === 'number' || f.type === 'formula') && typeof week[f.slug] === 'number') {
-        week[f.slug] = Number(week[f.slug].toFixed(2))
-      }
+  arr.forEach(weekRow => {
+    numericColumns.value.forEach(f => {
+      const k = keyOf(f)
+      if (typeof weekRow[k] === 'number') weekRow[k] = Number(weekRow[k].toFixed(2))
     })
   })
-  // 轉陣列並按週期排序
   return arr.sort((a, b) => a.week.localeCompare(b.week))
 })
 
 /**** 折線圖狀態 ****/
-const yMetric = ref('')     // 使用者選的欄位
+const yMetric = ref('')     // 使用者選的欄位 key（由 keyOf 產生）
 let chartCtx = null
 let chart = null
 
@@ -452,47 +577,28 @@ const excelSpec = computed(() => {
       field: f.name,
       type: f.type === 'number' ? '數字'
         : f.type === 'date' ? '日期 (YYYY-MM-DD)'
-          : f.type === 'formula' ? '公式(自動計算)'
-            : '文字',
+        : f.type === 'formula' ? '公式(自動計算)'
+        : '文字',
       sample: f.type === 'date' ? dayjs().format('YYYY-MM-DD') : ''
     }))
   )
 })
 
-/**** 日期 formatter ****/
+/**** 日期 / 數值 formatter ****/
 const dateFmt = row => dayjs(row.date).format('YYYY-MM-DD')
-const formatExtraDate = val =>
-  val ? dayjs(val).format('YYYY-MM-DD') : ''
-
-// 將 "YYYY-WW" 轉為 "YYYY/MM/DD - YYYY/MM/DD"
-const formatWeekRange = (w) => {
-  const m = String(w).match(/^(\d{4})-W?(\d{1,2})$/)
-  if (!m) return ''
-  const [, y, wk] = m
-  const base = dayjs().isoWeekYear(Number(y)).isoWeek(Number(wk))
-  const start = base.startOf('isoWeek').format('YYYY/MM/DD')
-  const end = base.endOf('isoWeek').format('YYYY/MM/DD')
-  return `${start} - ${end}`
-}
-
-/* 數值 formatter，保留兩位小數 */
+const formatExtraDate = val => (val ? dayjs(val).format('YYYY-MM-DD') : '')
 const formatNumber = val => {
-  const num = Number(val || 0)
-  return Number.isInteger(num) ? String(num) : num.toFixed(2)
+  if (typeof val === 'number' && Number.isFinite(val)) return Number.isInteger(val) ? String(val) : val.toFixed(2)
+  if (typeof val === 'string' && /^-?\d+(\.\d+)?$/.test(val.trim())) {
+    const n = Number(val); return Number.isInteger(n) ? String(n) : n.toFixed(2)
+  }
+  return String(val ?? '')
 }
 
-
-
-
-/** 格式化筆記文字為 HTML */
+/**** 筆記轉 HTML ****/
 const escapeHtml = str =>
-  str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-
+  str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+     .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 const formatNote = text => {
   if (!text) return ''
   const lines = text.trim().split(/\r?\n/).filter(l => l.trim())
@@ -504,10 +610,7 @@ const formatNote = text => {
   const isOrdered = lines.every(l => numberRE.test(l))
   const tag = isOrdered ? 'ol' : 'ul'
   const itemRE = isOrdered ? numberRE : bulletRE
-  const items = lines
-    .map(l => l.replace(itemRE, ''))
-    .map(l => `<li>${escapeHtml(l)}</li>`)
-    .join('')
+  const items = lines.map(l => l.replace(itemRE, '')).map(l => `<li>${escapeHtml(l)}</li>`).join('')
   return `<${tag}>${items}</${tag}>`
 }
 
@@ -519,27 +622,22 @@ const loadPlatform = async () => {
       typeof f === 'string'
         ? { id: slugify(f), name: f, slug: slugify(f), type: 'text', order: 0 }
         : {
-          id: f.id || slugify(f.name),
-          name: f.name,
-          slug: f.slug || slugify(f.name),
-          type: f.type || 'text',
-          order: f.order || 0,
-          formula: f.formula || ''
-        }
+            id: f.id || slugify(f.name),
+            name: f.name,
+            slug: f.slug || slugify(f.name),
+            type: f.type || 'text',
+            order: f.order || 0,
+            formula: f.formula || ''
+          }
     )
     .sort((a, b) => a.order - b.order)
-  // 預設 Y 軸選第一個欄位
-  if (!yMetric.value) {
-    const first = customColumns.value.find(f => f.type === 'number' || f.type === 'formula')
-    if (first) yMetric.value = first.slug
-  }
 }
 
 const loadDaily = async () => {
   loading.value = true
   const params = {}
   if (startDate.value) params.startDate = dayjs(startDate.value).format('YYYY-MM-DD')
-  if (endDate.value) params.endDate = dayjs(endDate.value).format('YYYY-MM-DD')
+  if (endDate.value)   params.endDate   = dayjs(endDate.value).format('YYYY-MM-DD')
   if (sortField.value) {
     params.sort = sortField.value
     params.order = sortOrder.value === 1 ? 'asc' : 'desc'
@@ -547,13 +645,10 @@ const loadDaily = async () => {
   try {
     const list = await fetchDaily(clientId, platformId, params)
     let data = []
-    if (Array.isArray(list)) {
-      data = list
-    } else if (Array.isArray(list?.data)) {
-      data = list.data
-    } else if (Array.isArray(list?.records)) {
-      data = list.records
-    } else if (list && typeof list === 'object') {
+    if (Array.isArray(list)) data = list
+    else if (Array.isArray(list?.data)) data = list.data
+    else if (Array.isArray(list?.records)) data = list.records
+    else if (list && typeof list === 'object') {
       const firstArray = Object.values(list).find(Array.isArray)
       data = firstArray || []
     }
@@ -561,7 +656,7 @@ const loadDaily = async () => {
   } catch (err) {
     dailyData.value = []
     console.error('取得每日資料失敗', err)
-    toast.add({ severity: 'error', summary: '錯誤', detail: err.message || '取得每日資料失敗', life: 3000 })
+    toast.add({ severity: 'error', summary: '錯誤', detail: err?.message || '取得每日資料失敗', life: 3000 })
   } finally {
     loading.value = false
   }
@@ -569,18 +664,11 @@ const loadDaily = async () => {
 
 const loadWeeklyNotes = async () => {
   const list = await fetchWeeklyNotes(clientId, platformId)
-  weeklyNotes.value = list.reduce((acc, n) => {
-    acc[n.week] = n
-    return acc
-  }, {})
+  weeklyNotes.value = list.reduce((acc, n) => { acc[n.week] = n; return acc }, {})
 }
 
-
-watch([sortField, sortOrder], () => {
-  loadDaily()
-
-})
-
+/**** 監聽重新載入 ****/
+watch([sortField, sortOrder], () => { loadDaily() })
 watch([startDate, endDate], loadDaily)
 
 /**** --------------------------------------------------- 折線圖繪製 --------------------------------------------------- ****/
@@ -588,50 +676,51 @@ const drawChart = () => {
   if (!chartCtx) chartCtx = document.getElementById('weekly-chart')
   if (!chartCtx || !yMetric.value) return
   const labels = weeklyAgg.value.map(r => formatWeekRange(r.week))
-  const data = weeklyAgg.value.map(r => r[yMetric.value] ?? 0)
-  const metric = customColumns.value.find(f => f.slug === yMetric.value)
+  const dataKey = yMetric.value
+  const data = weeklyAgg.value.map(r => r[dataKey] ?? 0)
+  const metric = numericColumns.value.find(f => keyOf(f) === dataKey)
   chart && chart.destroy()
   chart = new Chart(chartCtx, {
     type: 'line',
     data: {
       labels,
       datasets: [{
-        label: metric?.name || yMetric.value,
+        label: labelOf(metric) || dataKey,
         data,
         borderColor: '#409EFF',
         tension: 0.35
       }]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false
-    }
+    options: { responsive: true, maintainAspectRatio: false }
   })
 }
 
 /**** 監聽資料或指標變動即重繪 ****/
-watch([weeklyAgg, yMetric], () => {
-  if (activeTab.value === 'weekly') drawChart()
-})
+watch([weeklyAgg, yMetric], () => { if (activeTab.value === 'weekly') drawChart() })
 watch(numericColumns, (cols) => {
-  if (!yMetric.value && cols.length) yMetric.value = cols[0].slug
+  if (!cols.length) {
+    yMetric.value = ''
+    if (chart) { chart.destroy(); chart = null }
+    return
+  }
+  if (!cols.find(c => keyOf(c) === yMetric.value)) yMetric.value = keyOf(cols[0])
 })
 
 /**** Tab 切換（避免元件初始化時畫布尺寸不對） ****/
-watch(activeTab, tab => {
-  if (tab === 'weekly') drawChart()
-})
+watch(activeTab, tab => { if (tab === 'weekly') drawChart() })
 
 /**** --------------------------------------------------- 生命週期 --------------------------------------------------- ****/
 onMounted(async () => {
   loading.value = true
   await loadPlatform()
-  // 初始化 recordForm.extraData
+
+  // 初始化 recordForm.extraData/colors
   customColumns.value.forEach(f => {
     recordForm.value.extraData[f.id] = ''
     recordForm.value.colors[f.id] = ''
   })
   recalcFormulas()
+
   await loadDaily()
   await loadWeeklyNotes()
   loading.value = false
@@ -651,12 +740,13 @@ const openCreateDialog = () => {
 }
 
 const handleConfirm = async () => {
-  if (!recordForm.value.date) return toast.add({ severity: 'warn', summary: '警告', detail: '請選擇日期', life: 3000 })
+  if (!recordForm.value.date) {
+    toast.add({ severity: 'warn', summary: '警告', detail: '請選擇日期', life: 3000 })
+    return
+  }
   try {
     if (editing.value) {
-      await updateDaily(clientId, platformId, editingId.value, {
-        ...recordForm.value
-      })
+      await updateDaily(clientId, platformId, editingId.value, { ...recordForm.value })
       toast.add({ severity: 'success', summary: '成功', detail: '已更新記錄', life: 3000 })
     } else {
       await createDaily(clientId, platformId, { ...recordForm.value })
@@ -665,7 +755,7 @@ const handleConfirm = async () => {
     dialogVisible.value = false
     await loadDaily()
   } catch (err) {
-    toast.add({ severity: 'error', summary: '錯誤', detail: err.message || (editing.value ? '更新失敗' : '新增失敗'), life: 3000 })
+    toast.add({ severity: 'error', summary: '錯誤', detail: err?.message || (editing.value ? '更新失敗' : '新增失敗'), life: 3000 })
   }
 }
 
@@ -705,7 +795,7 @@ const importFile = async (event) => {
     toast.add({ severity: 'success', summary: '成功', detail: `匯入完成，共 ${rows.length} 筆`, life: 3000 })
     await loadDaily()
   } catch (err) {
-    toast.add({ severity: 'error', summary: '錯誤', detail: err.message || '匯入失敗', life: 3000 })
+    toast.add({ severity: 'error', summary: '錯誤', detail: err?.message || '匯入失敗', life: 3000 })
   }
   return false
 }
@@ -721,25 +811,16 @@ const parseExcel = file => new Promise((res, rej) => {
   fr.onerror = rej
   fr.readAsArrayBuffer(file)
 })
-
 const parseCSV = file => new Promise((res, rej) => {
-  Papa.parse(file, {
-    header: true,
-    skipEmptyLines: true,
-    complete: r => res(normalize(r.data)),
-    error: rej
-  })
+  Papa.parse(file, { header: true, skipEmptyLines: true, complete: r => res(normalize(r.data)), error: rej })
 })
-
-const sanitizeNumber = val =>
-  parseFloat(String(val).replace(/[^\d.]/g, '')) || 0
-
+const sanitizeNumber = val => parseFloat(String(val).replace(/[^\d.]/g, '')) || 0
 const normalize = arr => {
   return arr.map(r => {
     const extraData = {}
     const colors = {}
     customColumns.value.forEach(col => {
-      const val = r[col.name] || ''
+      const val = r[col.name] ?? ''
       if (col.type === 'number') extraData[col.id] = sanitizeNumber(val)
       else extraData[col.id] = val
       if (r[`color_${col.name}`]) colors[col.id] = r[`color_${col.name}`]
@@ -752,15 +833,17 @@ const normalize = arr => {
 
 /**** ------------------------------------------------------- 匯出 ------------------------------------------------------- ****/
 const exportDaily = () => {
-  if (!dailyData.value.length) return toast.add({ severity: 'warn', summary: '警告', detail: '無資料可匯出', life: 3000 })
+  if (!dailyData.value.length) {
+    toast.add({ severity: 'warn', summary: '警告', detail: '無資料可匯出', life: 3000 })
+    return
+  }
   const rows = dailyData.value.map(r => {
     const row = { 日期: dateFmt(r) }
     customColumns.value.forEach(col => {
-      const val = r.extraData[col.id]
+      const val = valByField(r, col)
       row[col.name] = col.type === 'date' ? formatExtraDate(val) : (val ?? '')
-      if (r.colors && r.colors[col.id]) {
-        row[`color_${col.name}`] = r.colors[col.id]
-      }
+      const color = colorByField(r, col)
+      if (color) row[`color_${col.name}`] = color
     })
     return row
   })
@@ -770,13 +853,16 @@ const exportDaily = () => {
 
 /* ------------------------------------------------ 匯出週報 ------------------------------------------------ */
 async function exportWeekly() {
-  if (!weeklyAgg.value.length) return toast.add({ severity: 'warn', summary: '警告', detail: '無資料可匯出', life: 3000 })
+  if (!weeklyAgg.value.length) {
+    toast.add({ severity: 'warn', summary: '警告', detail: '無資料可匯出', life: 3000 })
+    return
+  }
   const ExcelJS = (await import('exceljs')).default
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet('weekly')
 
   /* 標頭 */
-  const headers = ['日期', ...numericColumns.value.map(f => f.name), '筆記', '圖片']
+  const headers = ['日期', ...numericColumns.value.map(f => labelOf(f)), '筆記', '圖片']
   ws.addRow(headers)
   ws.getRow(1).font = { bold: true }
 
@@ -784,7 +870,7 @@ async function exportWeekly() {
   for (const row of weeklyAgg.value) {
     const data = [
       formatWeekRange(row.week),
-      ...numericColumns.value.map(c => row[c.slug] || 0),
+      ...numericColumns.value.map(c => row[keyOf(c)] || 0),
       row.note || '',
       ''
     ]
@@ -800,14 +886,11 @@ async function exportWeekly() {
         const buf = await res.arrayBuffer()
         const ext = imgPath.split('.').pop().replace('jpg', 'jpeg')   // exceljs 要用 jpeg / png
         const imgId = wb.addImage({ buffer: buf, extension: ext })
-        const rIdx = wsRow.number - 1           // zero-based
-        const cIdx = headers.length - 1         // 「圖片」欄
-        ws.addImage(imgId, {
-          tl: { col: cIdx, row: rIdx },
-          ext: { width: 80, height: 80 }
-        })
-        wsRow.height = 60                        // 調高列高
-        ws.getColumn(cIdx + 1).width = 15          // 調寬圖片欄
+        const rIdx = wsRow.number - 1
+        const cIdx = headers.length - 1
+        ws.addImage(imgId, { tl: { col: cIdx, row: rIdx }, ext: { width: 80, height: 80 } })
+        wsRow.height = 60
+        ws.getColumn(cIdx + 1).width = 15
       } catch { /* 圖片失敗就跳過 */ }
     }
   }
@@ -834,34 +917,22 @@ const downloadTemplate = () => {
 const noteForm = ref({ week: '', text: '', images: [] })
 const keepImages = ref([])
 
-/* 上傳時：為每個 File 加上 preview（objectURL），並以 *展開運算子* 重新指派，
-   確保 Vue 能追蹤到陣列變動 → FileUpload 與 noteForm.images 同步 */
 const onImageSelect = e => {
-  e.files.forEach(f => {
-    if (!f.objectURL) f.objectURL = URL.createObjectURL(f)
-  })
-  /* ★ 關鍵：重新複製陣列 (trigger reactivity) */
-  noteForm.value.images = [...e.files]
-  console.log('[onImageSelect] noteForm.images', noteForm.value.images)
+  e.files.forEach(f => { if (!f.objectURL) f.objectURL = URL.createObjectURL(f) })
+  noteForm.value.images = [...e.files] // 觸發 reactivity
 }
-
-/* 移除時：先由 FileUpload 本身把檔案移除後，再手動同步 keepImages */
 const onImageRemove = e => {
-  /* ★ e.files 是移除後的最新檔案陣列，直接覆寫即可 */
   noteForm.value.images = [...e.files]
   const removed = e.originalEvent?.files || []
   removed.forEach(file => {
     if (file.path) keepImages.value = keepImages.value.filter(p => p !== file.path)
   })
-  console.log('[onImageRemove] noteForm.images', noteForm.value.images)
 }
-
 
 const openNote = async row => {
   const week = row.week
   let note = null
-  try { note = await fetchWeeklyNote(clientId, platformId, week) }
-  catch { /* ignore */ }
+  try { note = await fetchWeeklyNote(clientId, platformId, week) } catch { /* ignore */ }
   if (note) weeklyNotes.value[week] = note
   let images = []
   if (note?.images && note.images.length) {
@@ -869,9 +940,7 @@ const openNote = async row => {
       try {
         const url = await getWeeklyNoteImageUrl(clientId, platformId, p)
         return { name: p, objectURL: url, path: p }
-      } catch {
-        return null
-      }
+      } catch { return null }
     })
     images = (await Promise.all(promises)).filter(Boolean)
   }
@@ -882,45 +951,23 @@ const openNote = async row => {
 
 const saveNote = async () => {
   const { week, text, images } = noteForm.value
-  /* ★ newImages = 新增的 File 物件 */
-  const newImages = images.filter(i => !i.path)
-  console.log('[saveNote] week =', week)
-  console.log('[saveNote] keepImages =', keepImages.value)
-  console.log('[saveNote] newImages (to upload) =', newImages)
-
+  const newImages = images.filter(i => !i.path) // 新增的 File
   let note
   try {
-    note = await updateWeeklyNote(
-      clientId,
-      platformId,
-      week,
-      { text, images: newImages, keepImages: keepImages.value }
-    )
-    console.log('[saveNote] updateWeeklyNote → 成功')
+    note = await updateWeeklyNote(clientId, platformId, week, { text, images: newImages, keepImages: keepImages.value })
   } catch (err) {
-    console.warn('[saveNote] updateWeeklyNote 404 / 失敗，改用 createWeeklyNote', err?.message)
-    note = await createWeeklyNote(
-      clientId,
-      platformId,
-      { week, text, images: newImages }
-    )
-    console.log('[saveNote] createWeeklyNote → 成功')
+    note = await createWeeklyNote(clientId, platformId, { week, text, images: newImages })
   }
-
   weeklyNotes.value[week] = note
   toast.add({ severity: 'success', summary: '成功', detail: '已儲存備註', life: 3000 })
   noteDialog.value = false
 }
 
-
 const previewImages = async imgs => {
   if (!imgs || !imgs.length) return
-  if (imgs[0].url) {
-    imgList.value = imgs.map(i => i.url)
-  } else {
-    const urls = await Promise.all(
-      imgs.map(p => getWeeklyNoteImageUrl(clientId, platformId, p))
-    )
+  if (imgs[0].url) imgList.value = imgs.map(i => i.url)
+  else {
+    const urls = await Promise.all(imgs.map(p => getWeeklyNoteImageUrl(clientId, platformId, p)))
     imgList.value = urls
   }
   imgPreviewDialog.value = true
@@ -932,17 +979,15 @@ const previewImages = async imgs => {
   max-height: 70vh;
   overflow-y: auto;
 }
-
 .sticky-table-wrapper :deep(.p-datatable-thead > tr > th) {
   position: sticky;
   top: 0;
   z-index: 1;
   background: #fff;
 }
-
 /* 自行視覺調整 */
-:deep(.p-datatable td) {
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
+:deep(.p-datatable td){
+  padding-top:0.5rem;
+  padding-bottom:0.5rem;
 }
 </style>
