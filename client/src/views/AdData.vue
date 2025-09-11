@@ -49,19 +49,24 @@
               </template>
             </Column>
 
-            <!-- 動態欄：使用安全取值器，避免 'extraData.68c2...' 點語法問題 -->
-            <Column v-for="field in customColumns" :key="keyOf(field)" :header="labelOf(field)">
+            <!-- 動態欄：提供 field/columnKey，避免 Column 未被註冊 -->
+            <Column v-for="col in customColumns" :key="keyOf(col)" :field="keyOf(col)" :columnKey="keyOf(col)"
+              :header="labelOf(col)">
               <template #body="{ data }">
-                <span :style="{ backgroundColor: colorByField(data, field) }">
-                  <template v-if="field.type === 'date'">
-                    {{ formatExtraDate(valByField(data, field)) }}
+                <span :style="{ backgroundColor: colorByField(data, col) || undefined }">
+                  <template v-if="col.type === 'date'">
+                    {{ formatExtraDate(valByField(data, col)) }}
+                  </template>
+                  <template v-else-if="col.type === 'number' || col.type === 'formula'">
+                    {{ formatNumber(valByField(data, col)) }}
                   </template>
                   <template v-else>
-                    {{ valByField(data, field) ?? '' }}
+                    {{ valByField(data, col) ?? '' }}
                   </template>
                 </span>
               </template>
             </Column>
+
 
             <Column header="操作" width="160">
               <template #body="{ data }">
@@ -726,8 +731,8 @@ const colorOptions = [
 onMounted(async () => {
   loading.value = true
   await loadPlatform()
-
-  // 初始化 recordForm.extraData/colors
+  loadAliases()               // 先讀本地別名
+  // 初始化表單模型
   customColumns.value.forEach(f => {
     recordForm.value.extraData[f.id] = ''
     recordForm.value.colors[f.id] = ''
@@ -737,12 +742,10 @@ onMounted(async () => {
   await loadDaily()
   await loadWeeklyNotes()
 
-  // 讀取既有別名，若沒有就嘗試自動推斷一次
-  loadAliases()
-  autoBuildAliasesIfNeeded()
-
+  autoBuildAliasesIfNeeded()  // 有需要再自動對應
   loading.value = false
 })
+
 
 /**** ---------------------------------------------------- CRUD：每日 ---------------------------------------------------- ****/
 const openCreateDialog = () => {
