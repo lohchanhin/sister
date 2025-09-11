@@ -21,12 +21,14 @@ export const migratePlatform = async (p, mismatches = []) => {
   const nameToId = {}
   const slugToId = {}
   const aliasToId = {}
+  const idSet = new Set()
   let platformUpdated = false
   p.fields.forEach(f => {
     if (!f.id) {
       f.id = new mongoose.Types.ObjectId().toString()
       platformUpdated = true
     }
+    idSet.add(f.id)
     nameToId[f.name] = f.id
     slugToId[f.slug] = f.id
   })
@@ -50,7 +52,8 @@ export const migratePlatform = async (p, mismatches = []) => {
     let changed = false
     const extra = {}
     for (const [k, v] of Object.entries(doc.extraData || {})) {
-      const fid = nameToId[k] || slugToId[k] || aliasToId[k]
+      let fid = nameToId[k] || slugToId[k] || aliasToId[k]
+      if (!fid && idSet.has(k)) fid = k
       if (fid) {
         extra[fid] = v
         successCount += 1
@@ -64,7 +67,8 @@ export const migratePlatform = async (p, mismatches = []) => {
     }
     const colors = {}
     for (const [k, v] of Object.entries(doc.colors || {})) {
-      const fid = nameToId[k] || slugToId[k] || aliasToId[k]
+      let fid = nameToId[k] || slugToId[k] || aliasToId[k]
+      if (!fid && idSet.has(k)) fid = k
       if (fid) {
         colors[fid] = v
         successCount += 1
