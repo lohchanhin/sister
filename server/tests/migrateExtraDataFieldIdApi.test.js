@@ -10,7 +10,7 @@ import User from '../src/models/user.model.js'
 import Role from '../src/models/role.model.js'
 import AdDaily from '../src/models/adDaily.model.js'
 import Platform from '../src/models/platform.model.js'
-import { migratePlatform } from '../src/scripts/migrateExtraDataFieldId.js'
+import { migratePlatform, oldFieldMappings } from '../src/scripts/migrateExtraDataFieldId.js'
 import dotenv from 'dotenv'
 
 dotenv.config({ override: true })
@@ -82,5 +82,49 @@ describe('migrate old adDaily data and ensure API returns field id', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
     expect(list.body[0].extraData).toEqual({ f1: 5 })
+  })
+
+  it('migrates name, slug, id and old id keys to field id in extraData and colors', async () => {
+    oldFieldMappings.Meta2 = { oldF4: 'slug4' }
+
+    const clientRes = await request(app)
+      .post('/api/clients')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'ClientB' })
+      .expect(201)
+    const clientId = clientRes.body._id
+
+    const platformRes = await request(app)
+      .post(`/api/clients/${clientId}/platforms`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Meta2',
+        fields: [
+          { id: 'f1', name: 'Name1', slug: 'slug1', type: 'number' },
+          { id: 'f2', name: 'Name2', slug: 'slug2', type: 'number' },
+          { id: 'f3', name: 'Name3', slug: 'slug3', type: 'number' },
+          { id: 'f4', name: 'Name4', slug: 'slug4', type: 'number' }
+        ]
+      })
+      .expect(201)
+    const platformId = platformRes.body._id
+
+    await AdDaily.create({
+      clientId,
+      platformId,
+      date,
+      extraData: { Name1: 1, slug2: 2, f3: 3, oldF4: 4 },
+      colors: { Name1: '#111', slug2: '#222', f3: '#333', oldF4: '#444' }
+    })
+
+    const platformDoc = await Platform.findById(platformId)
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    await migratePlatform(platformDoc)
+    expect(warnSpy).not.toHaveBeenCalled()
+    warnSpy.mockRestore()
+
+    const doc = await AdDaily.findOne({ platformId })
+    expect(doc.extraData).toEqual({ f1: 1, f2: 2, f3: 3, f4: 4 })
+    expect(doc.colors).toEqual({ f1: '#111', f2: '#222', f3: '#333', f4: '#444' })
   })
 })
