@@ -72,8 +72,9 @@ GCS_CORS_ORIGIN=http://localhost:5173
 3. 升級或部署前請先執行資料遷移：
    \`\`\`bash
    node server/src/scripts/migrateExtraDataFieldId.js
+   node server/src/scripts/migrateAdDailyExtraData.js
    \`\`\`
-   轉換將補齊各平台欄位 ID，並把 `AdDaily` 的 `extraData`、`colors` 鍵改為欄位 ID。
+   這會補齊各平台欄位 ID，並將 `AdDaily` 的 `extraData`、`colors` 鍵統一為欄位 ID。
 4. 執行測試前請先在 `server` 目錄安裝相依套件：
    \`\`\`bash
    npm install
