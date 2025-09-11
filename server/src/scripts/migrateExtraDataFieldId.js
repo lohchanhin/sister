@@ -6,11 +6,12 @@ import { fileURLToPath } from 'node:url'
 import Platform from '../models/platform.model.js'
 import AdDaily from '../models/adDaily.model.js'
 
-// 舊名稱或舊 slug 對應現有欄位 slug 的表
+// 舊欄位名稱、slug 或 id 對應現有欄位 slug 或 id 的表
 export const oldFieldMappings = {
-  // 範例：Meta 平台的舊欄位 old 對應到現有欄位 new
+  // 範例：Meta 平台的舊欄位 old 或舊欄位 ID old-id 對應到現有欄位 new
   Meta: {
-    old: 'new'
+    old: 'new',
+    'old-id': 'new'
   }
 }
 
@@ -18,8 +19,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
 export const migratePlatform = async (p, mismatches = []) => {
-  const nameToId = {}
-  const slugToId = {}
   const aliasToId = {}
   const idSet = new Set()
   let platformUpdated = false
@@ -29,13 +28,15 @@ export const migratePlatform = async (p, mismatches = []) => {
       platformUpdated = true
     }
     idSet.add(f.id)
-    nameToId[f.name] = f.id
-    slugToId[f.slug] = f.id
+    aliasToId[f.id] = f.id
+    aliasToId[f.name] = f.id
+    aliasToId[f.slug] = f.id
   })
 
   const mapping = oldFieldMappings[p.name] || {}
   for (const [oldKey, target] of Object.entries(mapping)) {
-    aliasToId[oldKey] = nameToId[target] || slugToId[target]
+    const targetId = aliasToId[target] || target
+    aliasToId[oldKey] = targetId
   }
 
   if (platformUpdated) {
@@ -52,7 +53,7 @@ export const migratePlatform = async (p, mismatches = []) => {
     let changed = false
     const extra = {}
     for (const [k, v] of Object.entries(doc.extraData || {})) {
-      let fid = nameToId[k] || slugToId[k] || aliasToId[k]
+      let fid = aliasToId[k]
       if (!fid && idSet.has(k)) fid = k
       if (fid) {
         extra[fid] = v
@@ -67,7 +68,7 @@ export const migratePlatform = async (p, mismatches = []) => {
     }
     const colors = {}
     for (const [k, v] of Object.entries(doc.colors || {})) {
-      let fid = nameToId[k] || slugToId[k] || aliasToId[k]
+      let fid = aliasToId[k]
       if (!fid && idSet.has(k)) fid = k
       if (fid) {
         colors[fid] = v
