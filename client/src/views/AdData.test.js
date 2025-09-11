@@ -55,4 +55,39 @@ describe('AdData.vue', () => {
     expect(rows[0].text()).toContain('2024-01-01')
     expect(rows[0].text()).toContain('10')
   })
+
+  it('自動推斷舊欄位別名後顯示資料', async () => {
+    const sample = [
+      { date: '2024-01-01', extraData: { 點擊: 5 } }
+    ]
+
+    const { fetchDaily } = await import('@/services/adDaily')
+    const { getPlatform } = await import('@/services/platforms')
+    const { fetchWeeklyNotes } = await import('@/services/weeklyNotes')
+
+    fetchDaily.mockResolvedValue({ records: sample })
+    getPlatform.mockResolvedValue({ fields: [
+      { id: 'f_click', name: '點擊', order: 1 },
+      { id: 'f_view', name: '曝光', order: 2 }
+    ] })
+    fetchWeeklyNotes.mockResolvedValue([])
+
+    const wrapper = shallowMount(AdData, {
+      global: {
+        stubs: {
+          DataTable: {
+            props: ['value'],
+            template: `<div><div v-for="row in value" class="row">{{$parent.valByField(row, $parent.customColumns[0])}}</div></div>`
+          }
+        }
+      }
+    })
+
+    await flushPromises()
+
+    expect(wrapper.vm.fieldAliases).toEqual({ 點擊: 'f_click' })
+    const rows = wrapper.findAll('.row')
+    expect(rows).toHaveLength(1)
+    expect(rows[0].text()).toBe('5')
+  })
 })
