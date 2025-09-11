@@ -23,6 +23,32 @@ vi.mock('@/services/platforms', () => ({
 }))
 
 describe('AdData.vue', () => {
+  it('載入後更新 adData', async () => {
+    const sample = [
+      { date: '2024-01-01', extraData: { clicks: 10 } },
+      { date: '2024-01-02', extraData: { clicks: 20 } }
+    ]
+
+    const { fetchDaily } = await import('@/services/adDaily')
+    const { getPlatform } = await import('@/services/platforms')
+    const { fetchWeeklyNotes } = await import('@/services/weeklyNotes')
+
+    fetchDaily.mockResolvedValue({ records: sample })
+    getPlatform.mockResolvedValue({ fields: [] })
+    fetchWeeklyNotes.mockResolvedValue([])
+
+    const wrapper = shallowMount(AdData, {
+      global: {
+        stubs: {
+          DataTable: { template: '<div />' }
+        }
+      }
+    })
+
+    await flushPromises()
+
+    expect(wrapper.vm.adData).toEqual(sample)
+  })
   it('渲染每日資料', async () => {
     const sample = [
       { date: '2024-01-01', extraData: { clicks: 10 } },
