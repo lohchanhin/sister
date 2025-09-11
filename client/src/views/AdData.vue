@@ -731,7 +731,10 @@ const colorOptions = [
 onMounted(async () => {
   loading.value = true
   await loadPlatform()
-  loadAliases()               // 先讀本地別名
+
+  // 先讀本地別名（若有）
+  loadAliases()
+
   // 初始化表單模型
   customColumns.value.forEach(f => {
     recordForm.value.extraData[f.id] = ''
@@ -742,7 +745,8 @@ onMounted(async () => {
   await loadDaily()
   await loadWeeklyNotes()
 
-  autoBuildAliasesIfNeeded()  // 有需要再自動對應
+  // 強制檢查並建立舊→新別名（必要時）
+  autoBuildAliasesIfNeeded()
   loading.value = false
   console.log('[customColumns]', customColumns.value.map(f => ({ id: f.id, name: f.name, type: f.type })))
   console.log('[sample row]', adData.value[0])
