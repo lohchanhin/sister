@@ -82,6 +82,44 @@ describe('AdData.vue', () => {
     expect(rows[0].text()).toContain('10')
   })
 
+  it('物件多陣列欄位轉換並渲染', async () => {
+    const sample = {
+      date: ['2024-01-01', '2024-01-02'],
+      clicks: [5, 10]
+    }
+
+    const { fetchDaily } = await import('@/services/adDaily')
+    const { getPlatform } = await import('@/services/platforms')
+    const { fetchWeeklyNotes } = await import('@/services/weeklyNotes')
+
+    fetchDaily.mockResolvedValue(sample)
+    getPlatform.mockResolvedValue({ fields: [] })
+    fetchWeeklyNotes.mockResolvedValue([])
+
+    const wrapper = shallowMount(AdData, {
+      global: {
+        stubs: {
+          DataTable: {
+            props: ['value'],
+            template: '<div><div v-for="item in value" class="row">{{ item.date }} {{ item.clicks }}</div></div>'
+          }
+        }
+      }
+    })
+
+    await flushPromises()
+
+    expect(wrapper.vm.adData).toEqual([
+      { date: '2024-01-01', clicks: 5 },
+      { date: '2024-01-02', clicks: 10 }
+    ])
+
+    const rows = wrapper.findAll('.row')
+    expect(rows).toHaveLength(2)
+    expect(rows[0].text()).toContain('2024-01-01')
+    expect(rows[0].text()).toContain('5')
+  })
+
   it('自動推斷舊欄位別名後顯示資料', async () => {
     const sample = [
       { date: '2024-01-01', extraData: { 點擊: 5 } }
