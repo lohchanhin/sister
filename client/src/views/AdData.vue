@@ -353,7 +353,7 @@ const colorByField = (row, f) => {
 }
 
 /* 嘗試自動建立「舊ID -> 新ID」映射：
-   條件：未知鍵數量 == 數值欄位數量，方才依序對應（避免誤對）。映射結果寫入 localStorage 持久化。 */
+   先比對所有欄位；若數量不符，依欄位 name 或 order 嘗試對應，仍失敗則提示手動設定。 */
 function autoBuildAliasesIfNeeded() {
   if (Object.keys(fieldAliases.value).length) return // 已有映射就不動
 
@@ -367,18 +367,45 @@ function autoBuildAliasesIfNeeded() {
   const unknownKeys = Object.keys(unknownCounts)
   if (!unknownKeys.length) return
 
-  const fields = [...numericColumns.value]
-  if (!fields.length || unknownKeys.length !== fields.length) {
-    console.warn('[AdData] 偵測到舊欄位鍵，但無法自動一一對應：', {
-      unknownKeys, numericFields: fields.map(f => f.id)
-    })
+  const fields = [...customColumns.value]
+  if (!fields.length) {
+    console.warn('[AdData] 偵測到舊欄位鍵，但無可供對應的新欄位：', { unknownKeys })
     return
   }
 
-  unknownKeys.sort()                                   // 舊鍵按字典序
-  fields.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))// 新欄位按 order
-  const alias = {}
-  unknownKeys.forEach((oldKey, i) => { alias[oldKey] = fields[i].id })
+  unknownKeys.sort() // 舊鍵按字典序
+  let alias = {}
+
+  if (unknownKeys.length === fields.length) {
+    // 數量一致：依 order 對應
+    const sortedFields = fields.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    unknownKeys.forEach((oldKey, i) => { alias[oldKey] = sortedFields[i].id })
+  } else {
+    // 先嘗試 name 對應
+    const nameMap = new Map(fields.map(f => [f.name, f.id]))
+    unknownKeys.forEach(k => {
+      if (nameMap.has(k)) alias[k] = nameMap.get(k)
+    })
+
+    // 剩餘依 order 對應
+    const remainingKeys = unknownKeys.filter(k => !(k in alias))
+    const usedIds = new Set(Object.values(alias))
+    const remainingFields = fields
+      .filter(f => !usedIds.has(f.id))
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    remainingKeys.forEach((oldKey, i) => {
+      if (remainingFields[i]) alias[oldKey] = remainingFields[i].id
+    })
+
+    if (Object.keys(alias).length !== unknownKeys.length) {
+      console.warn('[AdData] 偵測到舊欄位鍵，但無法自動一一對應：', {
+        unknownKeys, fields: fields.map(f => f.id)
+      })
+      toast.add({ severity: 'warn', summary: '警告', detail: '偵測到舊欄位，請手動設定別名', life: 3000 })
+      return
+    }
+  }
+
   fieldAliases.value = alias
   saveAliases()
   console.info('[AdData] 已自動建立舊→新欄位對應：', alias)
