@@ -14,8 +14,10 @@ npm start                 # 啟動伺服器
 `.env` 中的 `UPLOAD_DIR` 可指定暫存上傳檔案的資料夾，預設值為 `/tmp/uploads`。
 
 執行 `npm run seed` 可建立預設帳號，方便初次測試。
-若舊有廣告資料含有 "RM" 前綴的數字字串，可執行
-`npm run sanitize-ad-daily` 將其批次轉為數字。
+若升級 adData 後資料結構有調整，請先以 `mongodump` 備份資料庫，並執行
+`npm run migrate-extra-data` 轉換舊有資料；如資料欄位含有數字字串（例如帶幣別前綴），
+可額外執行 `npm run sanitize-ad-daily` 進行清理。若腳本執行過程發生錯誤，請依錯誤訊息
+檢查並修正資料後重新執行，必要時可還原備份。
 
 預設登入資訊如下：
 
