@@ -17,3 +17,6 @@ export const getPlatform = (clientId, id) =>
 
 export const transferPlatform = (id, clientId) =>
   api.put(`/platforms/${id}/transfer`, { clientId }).then(r => r.data)
+
+export const renamePlatformField = (clientId, platformId, data) =>
+  api.put(`/clients/${clientId}/platforms/${platformId}/rename-field`, data).then(r => r.data)

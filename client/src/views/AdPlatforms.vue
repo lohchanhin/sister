@@ -55,7 +55,9 @@
             <template #header>欄位列表</template>
             <template #item="slotProps">
                 <div class="flex justify-content-between align-items-center w-full gap-2">
-                    <span>{{slotProps.item.name}} ({{slotProps.item.slug}} / {{slotProps.item.type}})</span>
+                    <InputText v-model="slotProps.item.name" placeholder="欄位名稱" class="w-20rem" />
+                    <InputText v-model="slotProps.item.slug" placeholder="slug" class="w-12rem" />
+                    <Dropdown v-model="slotProps.item.type" :options="fieldTypeOptions" optionLabel="label" optionValue="value" class="w-12rem" />
                     <FormulaBuilder v-if="slotProps.item.type === 'formula'" v-model="slotProps.item.formula" :fields="fieldSlugs" class="flex-1" />
                     <Button icon="pi pi-times" class="p-button-danger p-button-text" @click="removeField(slotProps.index)" />
                 </div>
@@ -93,7 +95,7 @@ import { ref, onMounted, watch, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-import { fetchPlatforms, createPlatform, updatePlatform, deletePlatform, transferPlatform } from '../services/platforms'
+import { fetchPlatforms, createPlatform, updatePlatform, deletePlatform, transferPlatform, renamePlatformField } from '../services/platforms'
 import { fetchClients } from '../services/clients'
 
 // PrimeVue Components
@@ -161,7 +163,7 @@ const addField = () => {
   const name = newFieldName.value.trim()
   const slug = (newFieldSlug.value.trim() || slugify(name))
   if (name && slug && !form.value.fields.find(f => f.slug === slug)) {
-    const field = { name, slug, type: newFieldType.value, order: form.value.fields.length + 1 }
+    const field = { name, slug, originalSlug: slug, type: newFieldType.value, order: form.value.fields.length + 1 }
     if (newFieldType.value === 'formula') field.formula = newFieldFormula.value.trim()
     form.value.fields.push(field)
     newFieldName.value = ''
@@ -172,6 +174,14 @@ const addField = () => {
 
 const removeField = (index) => {
     form.value.fields.splice(index, 1)
+}
+
+const renameField = async (field) => {
+  if (!editing.value || !field.id) return
+  if (field.slug !== field.originalSlug) {
+    await renamePlatformField(clientId, form.value._id, { id: field.id, name: field.name, slug: field.slug })
+    field.originalSlug = field.slug
+  }
 }
 
 const loadPlatforms = async () => {
@@ -204,8 +214,8 @@ const openEdit = (platform) => {
     ...platform,
     fields: platform.fields.map(f =>
       typeof f === 'string'
-        ? { name: f, slug: slugify(f), type: 'text', order: 0 }
-        : { name: f.name, slug: f.slug || slugify(f.name), type: f.type, order: f.order, formula: f.formula || '' }
+        ? { name: f, slug: slugify(f), originalSlug: slugify(f), type: 'text', order: 0 }
+        : { id: f.id, name: f.name, slug: f.slug || slugify(f.name), originalSlug: f.slug || slugify(f.name), type: f.type, order: f.order, formula: f.formula || '' }
     )
   }
   newFieldFormula.value = ''
@@ -223,7 +233,13 @@ const submit = async () => {
   }
 
   try {
+    // 先確保欄位排序同步
+    form.value.fields.forEach((f, i) => (f.order = i + 1))
+
     if (editing.value) {
+      for (const f of form.value.fields) {
+        await renameField(f)
+      }
       await updatePlatform(clientId, form.value._id, form.value)
       toast.add({ severity: 'success', summary: 'Success', detail: 'Platform updated', life: 3000 })
     } else {
