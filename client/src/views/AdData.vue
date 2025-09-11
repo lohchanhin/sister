@@ -17,8 +17,14 @@
         <div class="flex justify-between items-center mb-2">
           <!-- 左：匯入 / 格式說明 -->
           <div class="flex items-center gap-2">
-            <FileUpload mode="basic" :auto="true" :customUpload="true" @uploader="importFile"
-              chooseLabel="匯入 CSV / Excel" accept=".xlsx,.csv" />
+            <FileUpload
+              mode="basic"
+              :auto="true"
+              :customUpload="true"
+              @uploader="importFile"
+              chooseLabel="匯入 CSV / Excel"
+              accept=".xlsx,.csv"
+            />
             <Button label="Excel 格式說明" size="small" outlined @click="excelDialog = true" />
           </div>
 
@@ -34,15 +40,32 @@
 
         <!-- 排序（送參數給後端；不依賴欄位點擊排序） -->
         <div class="flex items-center gap-2 mb-2">
-          <Dropdown v-model="sortField" :options="sortOptions" optionLabel="label" optionValue="value"
-            placeholder="排序欄位" class="w-40" showClear />
+          <Dropdown
+            v-model="sortField"
+            :options="sortOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="排序欄位"
+            class="w-40"
+            showClear
+          />
           <Button size="small" @click="toggleOrder" :label="sortOrder === 1 ? '升序' : '降序'" />
         </div>
 
         <!-- 每日表格 -->
         <div class="sticky-table-wrapper">
-          <DataTable :value="adData" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料"
-            :sortField="sortField" :sortOrder="sortOrder" scrollable scrollHeight="70vh">
+          <DataTable
+            :value="adData"
+            :rowKey="'_id'"
+            :loading="loading"
+            stripedRows
+            style="width:100%"
+            emptyMessage="尚無資料"
+            :sortField="sortField"
+            :sortOrder="sortOrder"
+            scrollable
+            scrollHeight="70vh"
+          >
             <Column field="date" header="日期" width="140" sortable>
               <template #body="{ data }">
                 {{ dateFmt(data) }}
@@ -50,14 +73,22 @@
             </Column>
 
             <!-- 動態欄：提供 field/columnKey，避免 Column 未被註冊 -->
-            <Column v-for="col in customColumns" :key="keyOf(col)" :field="keyOf(col)" :columnKey="keyOf(col)"
-              :header="labelOf(col)">
+            <Column
+              v-for="col in customColumns"
+              :key="keyOf(col)"
+              :field="keyOf(col)"
+              :columnKey="keyOf(col)"
+              :header="labelOf(col)"
+            >
               <template #body="{ data }">
                 <span :style="{ backgroundColor: colorByField(data, col) || undefined }">
                   <template v-if="col.type === 'date'">
                     {{ formatExtraDate(valByField(data, col)) }}
                   </template>
-                  <template v-else-if="col.type === 'number' || col.type === 'formula'">
+                  <template v-else-if="col.type === 'formula'">
+                    {{ formatNumber(valByFieldWithFormula(data, col)) }}
+                  </template>
+                  <template v-else-if="col.type === 'number'">
                     {{ formatNumber(valByField(data, col)) }}
                   </template>
                   <template v-else>
@@ -67,11 +98,12 @@
               </template>
             </Column>
 
-
-            <Column header="操作" width="160">
+            <Column header="操作" width="220">
               <template #body="{ data }">
                 <Button link severity="primary" @click="openEdit(data)" label="編輯" />
                 <Button link severity="danger" @click="removeDaily(data)" label="刪除" />
+                <!-- 手動觸發：以當前第一筆樣本開啟匹配（若需要） -->
+                <Button link severity="secondary" @click="openMappingDialogFromFirstRow" label="字段匹配" />
               </template>
             </Column>
           </DataTable>
@@ -82,8 +114,14 @@
       <TabPanel header="週摘要">
         <!-- 指標切換 + 匯出 -->
         <div class="flex justify-between items-center mb-2">
-          <Dropdown v-model="yMetric" :options="numericColumns" :optionLabel="(o) => labelOf(o)"
-            :optionValue="(o) => keyOf(o)" style="width:160px" v-if="numericColumns.length" />
+          <Dropdown
+            v-model="yMetric"
+            :options="numericColumns"
+            :optionLabel="(o) => labelOf(o)"
+            :optionValue="(o) => keyOf(o)"
+            style="width:160px"
+            v-if="numericColumns.length"
+          />
           <Button label="匯出週報" size="small" @click="exportWeekly" />
         </div>
 
@@ -94,8 +132,15 @@
 
         <!-- 週表格 -->
         <div class="sticky-table-wrapper">
-          <DataTable :value="weeklyAgg" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料" scrollable
-            scrollHeight="70vh">
+          <DataTable
+            :value="weeklyAgg"
+            :loading="loading"
+            stripedRows
+            style="width:100%"
+            emptyMessage="尚無資料"
+            scrollable
+            scrollHeight="70vh"
+          >
             <Column header="日期" width="200">
               <template #body="{ data }">
                 {{ formatWeekRange(data.week) }}
@@ -112,8 +157,14 @@
             <!-- 圖片欄 -->
             <Column header="圖片" width="120">
               <template #body="{ data }">
-                <Button v-if="data.hasImage" link severity="primary" size="small" @click="previewImages(data.images)"
-                  label="查看圖片" />
+                <Button
+                  v-if="data.hasImage"
+                  link
+                  severity="primary"
+                  size="small"
+                  @click="previewImages(data.images)"
+                  label="查看圖片"
+                />
               </template>
             </Column>
 
@@ -136,8 +187,7 @@
     </TabView>
 
     <!-- ─────────── Dialog：新增/編輯每日 ─────────── -->
-    <Dialog v-model:visible="dialogVisible" :header="editing ? '編輯每日記錄' : '新增每日記錄'" modal
-      style="max-width:480px;width:100%">
+    <Dialog v-model:visible="dialogVisible" :header="editing ? '編輯每日記錄' : '新增每日記錄'" modal style="max-width:480px;width:100%">
       <div class="flex-col gap-4 w-full">
         <!-- 日期欄 -->
         <div class="flex gap-2">
@@ -149,13 +199,29 @@
         <div v-for="field in customColumns" :key="keyOf(field)" class="flex gap-2">
           <label :for="keyOf(field)" class="w-16 shrink-0 pt-2 text-right">{{ labelOf(field) }}</label>
           <div class="flex gap-2 flex-1">
-            <DatePicker v-if="field.type === 'date'" v-model="recordForm.extraData[field.id]" :inputId="keyOf(field)"
-              class="flex-1" />
-            <InputText v-else v-model="recordForm.extraData[field.id]" :inputId="keyOf(field)" class="flex-1"
-              :readonly="field.type === 'formula'" />
+            <DatePicker
+              v-if="field.type === 'date'"
+              v-model="recordForm.extraData[field.id]"
+              :inputId="keyOf(field)"
+              class="flex-1"
+            />
+            <InputText
+              v-else
+              v-model="recordForm.extraData[field.id]"
+              :inputId="keyOf(field)"
+              class="flex-1"
+              :readonly="field.type === 'formula'"
+            />
             <!-- 色票下拉固定 96px -->
-            <Dropdown v-model="recordForm.colors[field.id]" :options="colorOptions" optionLabel="label"
-              optionValue="value" placeholder="顏色" class="w-24" showClear>
+            <Dropdown
+              v-model="recordForm.colors[field.id]"
+              :options="colorOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="顏色"
+              class="w-24"
+              showClear
+            >
               <template #option="{ option }">
                 <div class="flex items-center">
                   <span class="inline-block w-3 h-3 mr-2 rounded-sm" :style="{ backgroundColor: option.value }" />
@@ -204,8 +270,17 @@
       <p class="text-sm text-gray-500 mb-2">週別：{{ formatWeekRange(noteForm.week) }}</p>
       <Textarea v-model="noteForm.text" rows="4" placeholder="輸入文字筆記" style="width: 100%" />
       <!-- 上傳圖片（僅本地暫存） -->
-      <FileUpload name="images" accept="image/*" multiple :auto="false" v-model:files="noteForm.images"
-        @select="onImageSelect" @remove="onImageRemove" :showUploadButton="false" :showCancelButton="false">
+      <FileUpload
+        name="images"
+        accept="image/*"
+        multiple
+        :auto="false"
+        v-model:files="noteForm.images"
+        @select="onImageSelect"
+        @remove="onImageRemove"
+        :showUploadButton="false"
+        :showCancelButton="false"
+      >
         <template #empty>
           <i class="pi pi-plus"></i>
         </template>
@@ -229,50 +304,51 @@
       </template>
     </Dialog>
 
-    <!-- ─────────── Dialog：字段匹配（旧鍵 → 新字段） ─────────── -->
+    <!-- ─────────── Dialog：字段匹配（以第一筆樣本建立 alias，保存後一次性更新所有資料） ─────────── -->
     <Dialog v-model:visible="mapDialogVisible" header="字段匹配" modal style="width: 640px">
       <p class="text-sm text-gray-500 mb-3">
-        侦测到资料中的 <b>旧键</b> 无法与平台字段自动对应。请将每个旧键指向一个新的字段。
+        偵測到資料中的 <b>舊鍵</b> 無法與平台字段自動對應。請用第一筆資料作為樣本，將舊鍵對應到新字段。
       </p>
 
       <DataTable :value="mapRows" size="small">
-        <Column header="旧键 (extraData.*)">
+        <Column header="舊鍵 (extraData.*)">
           <template #body="{ data }">
             <code class="text-xs">{{ data.oldKey }}</code>
           </template>
         </Column>
-        <Column header="样本值" style="width:160px">
+        <Column header="樣本值" style="width:160px">
           <template #body="{ data }">
-            <span class="text-xs">{{ data.sample }}</span>
+            <span class="text-xs truncate block max-w-[150px]" :title="String(data.sample)">{{ data.sample }}</span>
           </template>
         </Column>
-        <Column header="映射至新字段" style="width:240px">
+        <Column header="映射至新字段" style="width:260px">
           <template #body="{ data }">
-            <Dropdown v-model="data.mappedId" :options="customColumns" optionLabel="name" optionValue="id"
-              placeholder="选择字段" class="w-full" :showClear="true" />
+            <Dropdown
+              v-model="data.mappedId"
+              :options="customColumns"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="選擇字段"
+              class="w-full"
+              :showClear="true"
+            />
           </template>
         </Column>
       </DataTable>
 
-      <div class="mt-3 flex items-center gap-2">
-        <input id="applyHistory" type="checkbox" v-model="applyToHistory" />
-        <label for="applyHistory" class="text-sm">将映射应用到所有历史资料（写回后端）</label>
-      </div>
-
       <template #footer>
         <div class="w-full flex items-center justify-between">
           <div v-if="applying" class="text-sm text-gray-600">
-            正在迁移：{{ progress.done }} / {{ progress.total }}
+            正在寫回：{{ progress.done }} / {{ progress.total }}
           </div>
           <div class="flex gap-2">
-            <Button label="取消" severity="secondary" :disabled="applying" @click="mapDialogVisible = false" />
-            <Button label="保存映射" :disabled="applying" @click="saveMapping(false)" />
-            <Button label="保存并迁移" :loading="applying" @click="saveMapping(true)" />
+            <Button label="取消" severity="secondary" :disabled="applying" @click="mapDialogVisible=false" />
+            <Button label="保存映射（不寫回）" :disabled="applying" @click="saveMappingFromFirstRow(false)" />
+            <Button label="保存並一次性更新所有資料" :loading="applying" @click="saveMappingFromFirstRow(true)" />
           </div>
         </div>
       </template>
     </Dialog>
-
   </section>
 </template>
 
@@ -367,140 +443,6 @@ const looksNumericString = (v) => typeof v === 'string' && /^-?\d+(\.\d+)?$/.tes
 /* 目的：當資料舊筆記錄使用舊欄位ID，而 getPlatform() 回傳新欄位ID 時，透過此映射仍能正確顯示 */
 const aliasStoreKey = (pid) => `addata_alias_${pid}`
 const fieldAliases = ref({})  // 形如：{ 'oldFieldIdA': 'newFieldIdX', ... }
-
-/**** ---------------------------------------------------- 字段匹配對話框：狀態 ---------------------------------------------------- ****/
-const mapDialogVisible = ref(false)
-const mapRows = ref([]) // [{ oldKey, sample, mappedId }]
-const applying = ref(false)
-const applyToHistory = ref(true)
-const progress = ref({ total: 0, done: 0 })
-
-/** 取得未知舊鍵（存在於 row.extraData 但不在目前 customColumns 的 id 集合） */
-const getUnknownOldKeys = () => {
-  const knownIds = new Set(customColumns.value.map(f => f.id))
-  const counts = {}
-  const sampleVal = {}
-  adData.value.forEach(r => {
-    const ed = r?.extraData || {}
-    Object.keys(ed).forEach(k => {
-      if (!knownIds.has(k)) {
-        counts[k] = (counts[k] || 0) + 1
-        if (!(k in sampleVal)) sampleVal[k] = ed[k]
-      }
-    })
-  })
-  // 排序讓最常出現的在前
-  return Object.keys(counts)
-    .sort((a, b) => counts[b] - counts[a])
-    .map(k => ({ oldKey: k, sample: sampleVal[k] }))
-}
-
-/** 打開對話框：預先嘗試用名稱/順序給出建議 */
-const openMappingDialog = () => {
-  const unknown = getUnknownOldKeys()
-  if (!unknown.length) return
-  const suggested = unknown.map((u, idx) => {
-    // 嘗試依序對應
-    const fallback = customColumns.value[idx]?.id || ''
-    return { oldKey: u.oldKey, sample: u.sample, mappedId: '' || fallback }
-  })
-  mapRows.value = suggested
-  mapDialogVisible.value = true
-}
-
-/** 保存映射；若 doMigrate=true 則改寫歷史資料並呼叫 updateDaily */
-const saveMapping = async (doMigrate = false) => {
-  // 1) 組裝 alias（舊鍵 -> 新ID），僅保留映射完整的行
-  const alias = {}
-  for (const r of mapRows.value) {
-    if (r.mappedId && r.oldKey) alias[r.oldKey] = r.mappedId
-  }
-  if (!Object.keys(alias).length) {
-    toast.add({ severity: 'warn', summary: '提醒', detail: '請至少完成 1 條映射', life: 2500 })
-    return
-  }
-
-  // 2) 寫入本地別名（立刻生效於 valByField）
-  fieldAliases.value = { ...(fieldAliases.value || {}), ...alias }
-  saveAliases()
-
-  // 3) 如需遷移：把所有 adData 的 extraData/colors 由舊鍵搬到新鍵，逐筆 updateDaily
-  if (doMigrate && applyToHistory.value) {
-    applying.value = true
-    try {
-      // 需要搬遷的紀錄（至少有一個舊鍵存在）
-      const need = adData.value.filter(r => {
-        const ed = r?.extraData || {}
-        return Object.keys(alias).some(oldKey => oldKey in ed)
-      })
-      progress.value = { total: need.length, done: 0 }
-
-      for (const row of need) {
-        const ed = { ...(row.extraData || {}) }
-        const cs = { ...(row.colors || {}) }
-        let touched = false
-
-        for (const [oldKey, newId] of Object.entries(alias)) {
-          if (oldKey in ed) {
-            // 若新鍵無值，直接覆蓋；若已有值，可選擇策略：相加/覆蓋/保留原值
-            if (!(newId in ed)) ed[newId] = ed[oldKey]
-            delete ed[oldKey]
-            touched = true
-          }
-          if (oldKey in cs) {
-            if (!(newId in cs)) cs[newId] = cs[oldKey]
-            delete cs[oldKey]
-            touched = true
-          }
-        }
-
-        if (touched) {
-          // 注意：保留其他原始欄位；只更新 extraData/colors
-          try {
-            await updateDaily(clientId, platformId, row._id, {
-              date: row.date,
-              extraData: ed,
-              colors: cs
-            })
-          } catch (err) {
-            console.error('更新失敗：', row._id, err)
-          }
-        }
-        progress.value.done += 1
-      }
-
-      toast.add({ severity: 'success', summary: '完成', detail: '映射已保存並寫回歷史資料', life: 3000 })
-      mapDialogVisible.value = false
-      await loadDaily() // 重新載入
-    } finally {
-      applying.value = false
-    }
-  } else {
-    toast.add({ severity: 'success', summary: '已保存', detail: '映射已保存（未改寫歷史資料）', life: 2500 })
-    mapDialogVisible.value = false
-  }
-}
-
-/** 強化：當自動建立別名失敗時，自動彈窗讓使用者手動對應 */
-function autoBuildAliasesOrAskUser() {
-  // 已有別名就不處理
-  if (Object.keys(fieldAliases.value || {}).length) return
-  // 先嘗試自動
-  const before = JSON.stringify(fieldAliases.value || {})
-  autoBuildAliasesIfNeeded()
-  const after = JSON.stringify(fieldAliases.value || {})
-  if (before === after) {
-    // 自動沒有新增任何映射，檢查是否有未知舊鍵
-    const unknown = getUnknownOldKeys()
-    if (unknown.length) {
-      // 提醒 + 打開手動映射窗
-      toast.add({ severity: 'warn', summary: '需要字段匹配', detail: '偵測到舊鍵無法自動對應，請手動完成映射', life: 3000 })
-      openMappingDialog()
-    }
-  }
-}
-
-
 const loadAliases = () => {
   if (typeof window === 'undefined') { fieldAliases.value = {}; return }
   try { fieldAliases.value = JSON.parse(localStorage.getItem(aliasStoreKey(platformId)) || '{}') }
@@ -512,7 +454,7 @@ const saveAliases = () => {
   }
 }
 
-/**** ---------------------------------------------------- 取值器（支援 alias + 多候選鍵） ---------------------------------------------------- ****/
+/**** ---------------------------------------------------- 取值器（支援 alias + 多候選鍵 + 公式顯示） ---------------------------------------------------- ****/
 /* 從一筆 daily row 中，根據欄位物件嘗試：別名舊鍵 -> id -> slug -> name -> slugify(name) */
 const valByField = (row, f) => {
   const ed = row?.extraData || row || {}
@@ -527,6 +469,7 @@ const valByField = (row, f) => {
   for (const k of cands) if (k in ed) return ed[k]
   return ''
 }
+
 const colorByField = (row, f) => {
   const cs = row?.colors || {}
   for (const [oldKey, newId] of Object.entries(fieldAliases.value || {})) {
@@ -537,63 +480,25 @@ const colorByField = (row, f) => {
   return ''
 }
 
-/* 嘗試自動建立「舊ID -> 新ID」映射：
-   先比對所有欄位；若數量不符，依欄位 name 或 order 嘗試對應，仍失敗則提示手動設定。 */
-function autoBuildAliasesIfNeeded() {
-  if (Object.keys(fieldAliases.value).length) return // 已有映射就不動
-
-  const knownNewIds = new Set(customColumns.value.map(f => f.id))
-  const unknownCounts = {} // 舊鍵出現次數
-  adData.value.forEach(r => {
-    Object.keys(r?.extraData || r || {}).forEach(k => {
-      if (!knownNewIds.has(k)) unknownCounts[k] = (unknownCounts[k] || 0) + 1
-    })
+/* 公式顯示（按行即時計算，不依賴資料已存入的值） */
+const formulaPattern = /^[0-9+\-*/().\s_a-zA-Z]+$/
+const evalFormula = (formula, data) => {
+  if (!formula || !formulaPattern.test(formula)) return 0
+  try {
+    const fn = new Function('data', `with (data) { return ${formula}; }`)
+    const res = fn(data)
+    return typeof res === 'number' && Number.isFinite(res) ? res : 0
+  } catch { return 0 }
+}
+const valByFieldWithFormula = (row, f) => {
+  if (f.type !== 'formula') return valByField(row, f)
+  const vars = {}
+  customColumns.value.forEach(col => {
+    const v = valByField(row, col)
+    const n = Number(v)
+    vars[col.slug || col.name || col.id] = Number.isFinite(n) ? n : (looksNumericString(v) ? Number(v) : 0)
   })
-  const unknownKeys = Object.keys(unknownCounts)
-  if (!unknownKeys.length) return
-
-  const fields = [...customColumns.value]
-  if (!fields.length) {
-    console.warn('[AdData] 偵測到舊欄位鍵，但無可供對應的新欄位：', { unknownKeys })
-    return
-  }
-
-  unknownKeys.sort() // 舊鍵按字典序
-  let alias = {}
-
-  if (unknownKeys.length === fields.length) {
-    // 數量一致：依 order 對應
-    const sortedFields = fields.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-    unknownKeys.forEach((oldKey, i) => { alias[oldKey] = sortedFields[i].id })
-  } else {
-    // 先嘗試 name 對應
-    const nameMap = new Map(fields.map(f => [f.name, f.id]))
-    unknownKeys.forEach(k => {
-      if (nameMap.has(k)) alias[k] = nameMap.get(k)
-    })
-
-    // 剩餘依 order 對應
-    const remainingKeys = unknownKeys.filter(k => !(k in alias))
-    const usedIds = new Set(Object.values(alias))
-    const remainingFields = fields
-      .filter(f => !usedIds.has(f.id))
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-    remainingKeys.forEach((oldKey, i) => {
-      if (remainingFields[i]) alias[oldKey] = remainingFields[i].id
-    })
-
-    if (Object.keys(alias).length !== unknownKeys.length) {
-      console.warn('[AdData] 偵測到舊欄位鍵，但無法自動一一對應：', {
-        unknownKeys, fields: fields.map(f => f.id)
-      })
-      toast.add({ severity: 'warn', summary: '警告', detail: '偵測到舊欄位，請手動設定別名', life: 3000 })
-      return
-    }
-  }
-
-  fieldAliases.value = alias
-  saveAliases()
-  console.info('[AdData] 已自動建立舊→新欄位對應：', alias)
+  return evalFormula(f.formula, vars)
 }
 
 /**** ---------------------------------------------------- 自訂欄位 / 數值欄位 ---------------------------------------------------- ****/
@@ -624,19 +529,8 @@ const numericColumns = computed(() => {
   )
 })
 
-/**** ---------------------------------------------------- 公式欄位（如有） ---------------------------------------------------- ****/
+/**** ---------------------------------------------------- 公式欄位（寫表單時自動回填） ---------------------------------------------------- ****/
 const formulaFields = computed(() => customColumns.value.filter(f => f.type === 'formula'))
-const formulaPattern = /^[0-9+\-*/().\s_a-zA-Z]+$/
-const evalFormula = (formula, data) => {
-  if (!formula || !formulaPattern.test(formula)) return 0
-  try {
-    const fn = new Function('data', `with (data) { return ${formula}; }`)
-    const res = fn(data)
-    return typeof res === 'number' && !isNaN(res) ? res : 0
-  } catch {
-    return 0
-  }
-}
 const recordForm = ref({ date: '', extraData: {}, colors: {} }) // 用於新增/編輯
 const recalcFormulas = () => {
   const vars = {}
@@ -702,7 +596,7 @@ const weeklyAgg = computed(() => {
       numericColumns.value.forEach(f => { map[week][keyOf(f)] = 0 })
     }
     numericColumns.value.forEach(f => {
-      const raw = valByField(d, f)
+      const raw = f.type === 'formula' ? valByFieldWithFormula(d, f) : valByField(d, f)
       const num = isStrictNumber(raw) ? raw : (looksNumericString(raw) ? Number(raw) : 0)
       map[week][keyOf(f)] += Number.isFinite(num) ? num : 0
     })
@@ -769,7 +663,7 @@ const drawChart = () => {
   })
 }
 
-/**** ---------------------------------------------------- Excel 說明 / 格式化 ---------------------------------------------------- ****/
+/**** ---------------------------------------------------- Excel 說明 / 格式化 / 範例下載 ---------------------------------------------------- ****/
 const excelSpec = computed(() => {
   const base = [{
     field: '日期',
@@ -796,6 +690,19 @@ const formatNumber = val => {
     const n = Number(val); return Number.isInteger(n) ? String(n) : n.toFixed(2)
   }
   return String(val ?? '')
+}
+
+const downloadTemplate = () => {
+  const headers = ['日期', ...customColumns.value.map(c => c.name), ...customColumns.value.map(c => `color_${c.name}`)]
+  const sample = {
+    日期: dayjs().format('YYYY-MM-DD')
+  }
+  customColumns.value.forEach(c => {
+    sample[c.name] = c.type === 'date' ? dayjs().format('YYYY-MM-DD') : (c.type === 'number' ? 0 : '')
+    sample[`color_${c.name}`] = ''
+  })
+  const csv = '\uFEFF' + Papa.unparse([sample], { columns: headers })
+  saveAs(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), 'ad_daily_template.csv')
 }
 
 /**** ---------------------------------------------------- 筆記轉 HTML ---------------------------------------------------- ****/
@@ -857,9 +764,7 @@ const loadDaily = async () => {
         const maxLen = Math.max(...keys.map(k => list[k].length))
         data = Array.from({ length: maxLen }, (_, i) => {
           const row = {}
-          keys.forEach(k => {
-            row[k] = list[k][i]
-          })
+          keys.forEach(k => { row[k] = list[k][i] })
           return row
         })
       }
@@ -879,15 +784,170 @@ const loadWeeklyNotes = async () => {
   weeklyNotes.value = list.reduce((acc, n) => { acc[n.week] = n; return acc }, {})
 }
 
+/**** ---------------------------------------------------- 自動/手動映射：以第一筆樣本匹配，並可一口氣寫回 ---------------------------------------------------- ****/
+const mapDialogVisible = ref(false)
+const mapRows = ref([])           // [{ oldKey, sample, mappedId }]
+const applying = ref(false)
+const progress = ref({ total: 0, done: 0 })
+
+function getUnknownOldKeysFromRow(row) {
+  const ed = row?.extraData || {}
+  const knownNewIds = new Set(customColumns.value.map(f => f.id))
+  const unknown = []
+  Object.keys(ed).forEach(k => {
+    const alreadyMapped = Object.prototype.hasOwnProperty.call(fieldAliases.value || {}, k)
+    if (!knownNewIds.has(k) && !alreadyMapped) {
+      unknown.push({ oldKey: k, sample: ed[k] })
+    }
+  })
+  return unknown
+}
+
+function openMappingDialogFromFirstRow() {
+  if (!adData.value.length) return
+  const first = adData.value[0]
+  const unknown = getUnknownOldKeysFromRow(first)
+  if (!unknown.length) {
+    toast.add({ severity: 'info', summary: '提示', detail: '目前無需字段匹配', life: 2200 })
+    return
+  }
+  mapRows.value = unknown.map(u => ({ oldKey: u.oldKey, sample: u.sample, mappedId: '' }))
+  mapDialogVisible.value = true
+}
+
+async function saveMappingFromFirstRow(writeBackAll = true) {
+  // 1) 組裝 alias
+  const alias = {}
+  for (const r of mapRows.value) {
+    if (r.oldKey && r.mappedId) alias[r.oldKey] = r.mappedId
+  }
+  if (!Object.keys(alias).length) {
+    toast.add({ severity: 'warn', summary: '提醒', detail: '請至少設定 1 條映射', life: 2200 })
+    return
+  }
+  // 2) 寫入本地別名
+  fieldAliases.value = { ...(fieldAliases.value || {}), ...alias }
+  saveAliases()
+
+  if (!writeBackAll) {
+    mapDialogVisible.value = false
+    toast.add({ severity: 'success', summary: '已保存', detail: '映射已生效（未寫回後端）', life: 2200 })
+    return
+  }
+
+  // 3) 一次性寫回所有資料（舊鍵 -> 新鍵）
+  applying.value = true
+  try {
+    const need = adData.value.filter(r => {
+      const ed = r?.extraData || {}
+      return Object.keys(alias).some(oldKey => oldKey in ed)
+    })
+    progress.value = { total: need.length, done: 0 }
+
+    for (const row of need) {
+      const ed = { ...(row.extraData || {}) }
+      const cs = { ...(row.colors || {}) }
+      let touched = false
+
+      for (const [oldKey, newId] of Object.entries(alias)) {
+        if (oldKey in ed) {
+          // 策略：新鍵無值才覆蓋；如需「總是覆蓋」，改成：ed[newId] = ed[oldKey]
+          if (!(newId in ed)) ed[newId] = ed[oldKey]
+          delete ed[oldKey]
+          touched = true
+        }
+        if (oldKey in cs) {
+          if (!(newId in cs)) cs[newId] = cs[oldKey]
+          delete cs[oldKey]
+          touched = true
+        }
+      }
+
+      if (touched) {
+        try {
+          await updateDaily(clientId, platformId, row._id, {
+            date: row.date,
+            extraData: ed,
+            colors: cs
+          })
+        } catch (err) {
+          console.error('更新失敗：', row._id, err)
+        }
+      }
+      progress.value.done += 1
+    }
+
+    toast.add({ severity: 'success', summary: '完成', detail: '映射已保存並一口氣更新所有資料', life: 3000 })
+    mapDialogVisible.value = false
+    await loadDaily()
+  } finally {
+    applying.value = false
+  }
+}
+
+/* 先嘗試自動；若第一筆樣本仍有未知舊鍵，就彈窗（只需匹配一次） */
+function bootMappingFromFirstRow() {
+  if (Object.keys(fieldAliases.value || {}).length) return
+  autoBuildAliasesIfNeeded()
+  if (adData.value.length) {
+    const unknown = getUnknownOldKeysFromRow(adData.value[0])
+    if (unknown.length) {
+      toast.add({ severity: 'warn', summary: '需要字段匹配', detail: '首次載入偵測到舊鍵無法自動對應，請完成映射', life: 3000 })
+      openMappingDialogFromFirstRow()
+    }
+  }
+}
+
+/**** ---------------------------------------------------- 自動建立「舊ID -> 新ID」映射（盡力而為） ---------------------------------------------------- ****/
+function autoBuildAliasesIfNeeded() {
+  if (Object.keys(fieldAliases.value).length) return // 已有映射就不動
+  const knownNewIds = new Set(customColumns.value.map(f => f.id))
+  const unknownCounts = {}
+  adData.value.forEach(r => {
+    Object.keys(r?.extraData || {}).forEach(k => {
+      if (!knownNewIds.has(k)) unknownCounts[k] = (unknownCounts[k] || 0) + 1
+    })
+  })
+  const unknownKeys = Object.keys(unknownCounts)
+  if (!unknownKeys.length) return
+
+  const fields = [...customColumns.value]
+  if (!fields.length) {
+    console.warn('[AdData] 偵測到舊欄位鍵，但無可供對應的新欄位：', { unknownKeys })
+    return
+  }
+
+  unknownKeys.sort()
+  let alias = {}
+
+  if (unknownKeys.length === fields.length) {
+    const sortedFields = fields.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    unknownKeys.forEach((oldKey, i) => { alias[oldKey] = sortedFields[i].id })
+  } else {
+    const nameMap = new Map(fields.map(f => [f.name, f.id]))
+    unknownKeys.forEach(k => {
+      if (nameMap.has(k)) alias[k] = nameMap.get(k)
+    })
+    const remainingKeys = unknownKeys.filter(k => !(k in alias))
+    const usedIds = new Set(Object.values(alias))
+    const remainingFields = fields.filter(f => !usedIds.has(f.id)).sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    remainingKeys.forEach((oldKey, i) => {
+      if (remainingFields[i]) alias[oldKey] = remainingFields[i].id
+    })
+    if (Object.keys(alias).length !== unknownKeys.length) {
+      console.warn('[AdData] 自動對應不完整：', { unknownKeys, mapped: alias })
+      return
+    }
+  }
+
+  fieldAliases.value = alias
+  saveAliases()
+  console.info('[AdData] 已自動建立舊→新欄位對應：', alias)
+}
+
 /**** ---------------------------------------------------- 監聽重新載入 / 繪圖 ---------------------------------------------------- ****/
 watch([sortField, sortOrder], () => { loadDaily() })
 watch([startDate, endDate], loadDaily)
-
-// 若日資料或欄位變動，再嘗試自動建立 alias（只在沒有別名時）
-watch([adData, customColumns], () => {
-  if (!Object.keys(fieldAliases.value).length) autoBuildAliasesIfNeeded()
-})
-
 watch([weeklyAgg, yMetric], () => { if (activeTab.value === 'weekly') drawChart() })
 watch(numericColumns, (cols) => {
   if (!cols.length) {
@@ -898,8 +958,6 @@ watch(numericColumns, (cols) => {
   if (!cols.find(c => keyOf(c) === yMetric.value)) yMetric.value = keyOf(cols[0])
 })
 watch(activeTab, tab => { if (tab === 'weekly') drawChart() })
-
-
 
 /**** ---------------------------------------------------- 生命週期 ---------------------------------------------------- ****/
 const colorOptions = [
@@ -925,14 +983,15 @@ onMounted(async () => {
   await loadDaily()
   await loadWeeklyNotes()
 
-  // 先嘗試自動建立；若自動失敗而且真的有未知舊鍵，則彈出對話框
-  autoBuildAliasesOrAskUser()
+  // 首次：嘗試自動；仍有未知舊鍵則以第一筆樣本彈窗，完成後可「一口氣」寫回全部
+  bootMappingFromFirstRow()
+
   loading.value = false
+
+  // 調試資訊
   console.log('[customColumns]', customColumns.value.map(f => ({ id: f.id, name: f.name, type: f.type })))
   console.log('[sample row]', adData.value[0])
-
 })
-
 
 /**** ---------------------------------------------------- CRUD：每日 ---------------------------------------------------- ****/
 const openCreateDialog = () => {
@@ -1047,7 +1106,7 @@ const exportDaily = () => {
   const rows = adData.value.map(r => {
     const row = { 日期: dateFmt(r) }
     customColumns.value.forEach(col => {
-      const val = valByField(r, col)
+      const val = col.type === 'formula' ? valByFieldWithFormula(r, col) : valByField(r, col)
       row[col.name] = col.type === 'date' ? formatExtraDate(val) : (val ?? '')
       const color = colorByField(r, col)
       if (color) row[`color_${col.name}`] = color
@@ -1164,7 +1223,6 @@ const previewImages = async imgs => {
   imgPreviewDialog.value = true
 }
 </script>
-
 
 <style scoped>
 .sticky-table-wrapper {
