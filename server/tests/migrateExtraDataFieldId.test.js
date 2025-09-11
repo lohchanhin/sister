@@ -42,4 +42,30 @@ describe('migrateExtraDataFieldId 舊名稱映射', () => {
     expect(doc.extraData).toEqual({ f1: 5 })
     expect(doc.colors).toEqual({ f1: '#fff' })
   })
+
+  it('欄位 id 已存在時應保持不變', async () => {
+    oldFieldMappings.Meta = {}
+    const client = await Client.create({ name: 'C2' })
+    const platform = await Platform.create({
+      clientId: client._id,
+      name: 'Meta',
+      fields: [{ id: 'f1', name: 'New', slug: 'new', type: 'number' }]
+    })
+    await AdDaily.create({
+      clientId: client._id,
+      platformId: platform._id,
+      date: new Date(),
+      extraData: { f1: 5 },
+      colors: { f1: '#fff' }
+    })
+
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    await migratePlatform(platform)
+    expect(warnSpy).not.toHaveBeenCalled()
+    warnSpy.mockRestore()
+
+    const doc = await AdDaily.findOne({ platformId: platform._id })
+    expect(doc.extraData).toEqual({ f1: 5 })
+    expect(doc.colors).toEqual({ f1: '#fff' })
+  })
 })
