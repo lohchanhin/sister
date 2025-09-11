@@ -228,6 +228,51 @@
         <Button label="關閉" @click="imgPreviewDialog = false" />
       </template>
     </Dialog>
+
+    <!-- ─────────── Dialog：字段匹配（旧鍵 → 新字段） ─────────── -->
+    <Dialog v-model:visible="mapDialogVisible" header="字段匹配" modal style="width: 640px">
+      <p class="text-sm text-gray-500 mb-3">
+        侦测到资料中的 <b>旧键</b> 无法与平台字段自动对应。请将每个旧键指向一个新的字段。
+      </p>
+
+      <DataTable :value="mapRows" size="small">
+        <Column header="旧键 (extraData.*)">
+          <template #body="{ data }">
+            <code class="text-xs">{{ data.oldKey }}</code>
+          </template>
+        </Column>
+        <Column header="样本值" style="width:160px">
+          <template #body="{ data }">
+            <span class="text-xs">{{ data.sample }}</span>
+          </template>
+        </Column>
+        <Column header="映射至新字段" style="width:240px">
+          <template #body="{ data }">
+            <Dropdown v-model="data.mappedId" :options="customColumns" optionLabel="name" optionValue="id"
+              placeholder="选择字段" class="w-full" :showClear="true" />
+          </template>
+        </Column>
+      </DataTable>
+
+      <div class="mt-3 flex items-center gap-2">
+        <input id="applyHistory" type="checkbox" v-model="applyToHistory" />
+        <label for="applyHistory" class="text-sm">将映射应用到所有历史资料（写回后端）</label>
+      </div>
+
+      <template #footer>
+        <div class="w-full flex items-center justify-between">
+          <div v-if="applying" class="text-sm text-gray-600">
+            正在迁移：{{ progress.done }} / {{ progress.total }}
+          </div>
+          <div class="flex gap-2">
+            <Button label="取消" severity="secondary" :disabled="applying" @click="mapDialogVisible = false" />
+            <Button label="保存映射" :disabled="applying" @click="saveMapping(false)" />
+            <Button label="保存并迁移" :loading="applying" @click="saveMapping(true)" />
+          </div>
+        </div>
+      </template>
+    </Dialog>
+
   </section>
 </template>
 
@@ -322,6 +367,139 @@ const looksNumericString = (v) => typeof v === 'string' && /^-?\d+(\.\d+)?$/.tes
 /* 目的：當資料舊筆記錄使用舊欄位ID，而 getPlatform() 回傳新欄位ID 時，透過此映射仍能正確顯示 */
 const aliasStoreKey = (pid) => `addata_alias_${pid}`
 const fieldAliases = ref({})  // 形如：{ 'oldFieldIdA': 'newFieldIdX', ... }
+
+/**** ---------------------------------------------------- 字段匹配對話框：狀態 ---------------------------------------------------- ****/
+const mapDialogVisible = ref(false)
+const mapRows = ref([]) // [{ oldKey, sample, mappedId }]
+const applying = ref(false)
+const applyToHistory = ref(true)
+const progress = ref({ total: 0, done: 0 })
+
+/** 取得未知舊鍵（存在於 row.extraData 但不在目前 customColumns 的 id 集合） */
+const getUnknownOldKeys = () => {
+  const knownIds = new Set(customColumns.value.map(f => f.id))
+  const counts = {}
+  const sampleVal = {}
+  adData.value.forEach(r => {
+    const ed = r?.extraData || {}
+    Object.keys(ed).forEach(k => {
+      if (!knownIds.has(k)) {
+        counts[k] = (counts[k] || 0) + 1
+        if (!(k in sampleVal)) sampleVal[k] = ed[k]
+      }
+    })
+  })
+  // 排序讓最常出現的在前
+  return Object.keys(counts)
+    .sort((a, b) => counts[b] - counts[a])
+    .map(k => ({ oldKey: k, sample: sampleVal[k] }))
+}
+
+/** 打開對話框：預先嘗試用名稱/順序給出建議 */
+const openMappingDialog = () => {
+  const unknown = getUnknownOldKeys()
+  if (!unknown.length) return
+  const suggested = unknown.map((u, idx) => {
+    // 嘗試依序對應
+    const fallback = customColumns.value[idx]?.id || ''
+    return { oldKey: u.oldKey, sample: u.sample, mappedId: '' || fallback }
+  })
+  mapRows.value = suggested
+  mapDialogVisible.value = true
+}
+
+/** 保存映射；若 doMigrate=true 則改寫歷史資料並呼叫 updateDaily */
+const saveMapping = async (doMigrate = false) => {
+  // 1) 組裝 alias（舊鍵 -> 新ID），僅保留映射完整的行
+  const alias = {}
+  for (const r of mapRows.value) {
+    if (r.mappedId && r.oldKey) alias[r.oldKey] = r.mappedId
+  }
+  if (!Object.keys(alias).length) {
+    toast.add({ severity: 'warn', summary: '提醒', detail: '請至少完成 1 條映射', life: 2500 })
+    return
+  }
+
+  // 2) 寫入本地別名（立刻生效於 valByField）
+  fieldAliases.value = { ...(fieldAliases.value || {}), ...alias }
+  saveAliases()
+
+  // 3) 如需遷移：把所有 adData 的 extraData/colors 由舊鍵搬到新鍵，逐筆 updateDaily
+  if (doMigrate && applyToHistory.value) {
+    applying.value = true
+    try {
+      // 需要搬遷的紀錄（至少有一個舊鍵存在）
+      const need = adData.value.filter(r => {
+        const ed = r?.extraData || {}
+        return Object.keys(alias).some(oldKey => oldKey in ed)
+      })
+      progress.value = { total: need.length, done: 0 }
+
+      for (const row of need) {
+        const ed = { ...(row.extraData || {}) }
+        const cs = { ...(row.colors || {}) }
+        let touched = false
+
+        for (const [oldKey, newId] of Object.entries(alias)) {
+          if (oldKey in ed) {
+            // 若新鍵無值，直接覆蓋；若已有值，可選擇策略：相加/覆蓋/保留原值
+            if (!(newId in ed)) ed[newId] = ed[oldKey]
+            delete ed[oldKey]
+            touched = true
+          }
+          if (oldKey in cs) {
+            if (!(newId in cs)) cs[newId] = cs[oldKey]
+            delete cs[oldKey]
+            touched = true
+          }
+        }
+
+        if (touched) {
+          // 注意：保留其他原始欄位；只更新 extraData/colors
+          try {
+            await updateDaily(clientId, platformId, row._id, {
+              date: row.date,
+              extraData: ed,
+              colors: cs
+            })
+          } catch (err) {
+            console.error('更新失敗：', row._id, err)
+          }
+        }
+        progress.value.done += 1
+      }
+
+      toast.add({ severity: 'success', summary: '完成', detail: '映射已保存並寫回歷史資料', life: 3000 })
+      mapDialogVisible.value = false
+      await loadDaily() // 重新載入
+    } finally {
+      applying.value = false
+    }
+  } else {
+    toast.add({ severity: 'success', summary: '已保存', detail: '映射已保存（未改寫歷史資料）', life: 2500 })
+    mapDialogVisible.value = false
+  }
+}
+
+/** 強化：當自動建立別名失敗時，自動彈窗讓使用者手動對應 */
+function autoBuildAliasesOrAskUser() {
+  // 已有別名就不處理
+  if (Object.keys(fieldAliases.value || {}).length) return
+  // 先嘗試自動
+  const before = JSON.stringify(fieldAliases.value || {})
+  autoBuildAliasesIfNeeded()
+  const after = JSON.stringify(fieldAliases.value || {})
+  if (before === after) {
+    // 自動沒有新增任何映射，檢查是否有未知舊鍵
+    const unknown = getUnknownOldKeys()
+    if (unknown.length) {
+      // 提醒 + 打開手動映射窗
+      toast.add({ severity: 'warn', summary: '需要字段匹配', detail: '偵測到舊鍵無法自動對應，請手動完成映射', life: 3000 })
+      openMappingDialog()
+    }
+  }
+}
+
 
 const loadAliases = () => {
   if (typeof window === 'undefined') { fieldAliases.value = {}; return }
@@ -721,6 +899,8 @@ watch(numericColumns, (cols) => {
 })
 watch(activeTab, tab => { if (tab === 'weekly') drawChart() })
 
+
+
 /**** ---------------------------------------------------- 生命週期 ---------------------------------------------------- ****/
 const colorOptions = [
   { label: '淺青', value: '#CCF2F4' },
@@ -745,8 +925,8 @@ onMounted(async () => {
   await loadDaily()
   await loadWeeklyNotes()
 
-  // 強制檢查並建立舊→新別名（必要時）
-  autoBuildAliasesIfNeeded()
+  // 先嘗試自動建立；若自動失敗而且真的有未知舊鍵，則彈出對話框
+  autoBuildAliasesOrAskUser()
   loading.value = false
   console.log('[customColumns]', customColumns.value.map(f => ({ id: f.id, name: f.name, type: f.type })))
   console.log('[sample row]', adData.value[0])
