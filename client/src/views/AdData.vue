@@ -650,8 +650,8 @@ const loadPlatform = async () => {
 const loadDaily = async () => {
   loading.value = true
   const params = {}
-  if (startDate.value) params.startDate = dayjs(startDate.value).format('YYYY-MM-DD')
-  if (endDate.value) params.endDate = dayjs(endDate.value).format('YYYY-MM-DD')
+  if (startDate.value) params.start = dayjs(startDate.value).format('YYYY-MM-DD')
+  if (endDate.value) params.end = dayjs(endDate.value).format('YYYY-MM-DD')
   if (sortField.value) {
     params.sort = sortField.value
     params.order = sortOrder.value === 1 ? 'asc' : 'desc'

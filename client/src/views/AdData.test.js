@@ -90,4 +90,34 @@ describe('AdData.vue', () => {
     expect(rows).toHaveLength(1)
     expect(rows[0].text()).toBe('5')
   })
+
+  it('傳入日期範圍時使用正確參數呼叫 fetchDaily', async () => {
+    const { fetchDaily } = await import('@/services/adDaily')
+    const { getPlatform } = await import('@/services/platforms')
+    const { fetchWeeklyNotes } = await import('@/services/weeklyNotes')
+
+    fetchDaily.mockResolvedValue({ records: [] })
+    getPlatform.mockResolvedValue({ fields: [] })
+    fetchWeeklyNotes.mockResolvedValue([])
+
+    const wrapper = shallowMount(AdData, {
+      global: {
+        stubs: {
+          DataTable: { template: '<div />' }
+        }
+      }
+    })
+
+    await flushPromises()
+
+    fetchDaily.mockClear()
+
+    wrapper.vm.startDate = '2024-01-01'
+    wrapper.vm.endDate = '2024-01-31'
+    await flushPromises()
+
+    expect(fetchDaily).toHaveBeenCalledTimes(1)
+    const params = fetchDaily.mock.calls[0][2]
+    expect(params).toEqual({ start: '2024-01-01', end: '2024-01-31' })
+  })
 })
