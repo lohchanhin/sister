@@ -669,8 +669,17 @@ const loadDaily = async () => {
     else if (Array.isArray(list?.data)) data = list.data
     else if (Array.isArray(list?.records)) data = list.records
     else if (list && typeof list === 'object') {
-      const firstArray = Object.values(list).find(Array.isArray)
-      data = firstArray || []
+      const keys = Object.keys(list).filter(k => Array.isArray(list[k]))
+      if (keys.length) {
+        const maxLen = Math.max(...keys.map(k => list[k].length))
+        data = Array.from({ length: maxLen }, (_, i) => {
+          const row = {}
+          keys.forEach(k => {
+            row[k] = list[k][i]
+          })
+          return row
+        })
+      }
     }
     adData.value = data
   } catch (err) {
