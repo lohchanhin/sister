@@ -17,14 +17,8 @@
         <div class="flex justify-between items-center mb-2">
           <!-- 左：匯入 / 格式說明 -->
           <div class="flex items-center gap-2">
-            <FileUpload
-              mode="basic"
-              :auto="true"
-              :customUpload="true"
-              @uploader="importFile"
-              chooseLabel="匯入 CSV / Excel"
-              accept=".xlsx,.csv"
-            />
+            <FileUpload mode="basic" :auto="true" :customUpload="true" @uploader="importFile"
+              chooseLabel="匯入 CSV / Excel" accept=".xlsx,.csv" />
             <Button label="Excel 格式說明" size="small" outlined @click="excelDialog = true" />
           </div>
 
@@ -40,31 +34,15 @@
 
         <!-- 排序（送參數給後端；不依賴欄位點擊排序） -->
         <div class="flex items-center gap-2 mb-2">
-          <Dropdown
-            v-model="sortField"
-            :options="sortOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="排序欄位"
-            class="w-40"
-            showClear
-          />
+          <Dropdown v-model="sortField" :options="sortOptions" optionLabel="label" optionValue="value"
+            placeholder="排序欄位" class="w-40" showClear />
           <Button size="small" @click="toggleOrder" :label="sortOrder === 1 ? '升序' : '降序'" />
         </div>
 
         <!-- 每日表格 -->
         <div class="sticky-table-wrapper">
-          <DataTable
-            :value="dailyData"
-            :loading="loading"
-            stripedRows
-            style="width:100%"
-            emptyMessage="尚無資料"
-            :sortField="sortField"
-            :sortOrder="sortOrder"
-            scrollable
-            scrollHeight="70vh"
-          >
+          <DataTable :value="dailyData" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料"
+            :sortField="sortField" :sortOrder="sortOrder" scrollable scrollHeight="70vh">
             <Column field="date" header="日期" width="140" sortable>
               <template #body="{ data }">
                 {{ dateFmt(data) }}
@@ -72,11 +50,7 @@
             </Column>
 
             <!-- 動態欄：使用安全取值器，避免 'extraData.68c2...' 點語法問題 -->
-            <Column
-              v-for="field in customColumns"
-              :key="keyOf(field)"
-              :header="labelOf(field)"
-            >
+            <Column v-for="field in customColumns" :key="keyOf(field)" :header="labelOf(field)">
               <template #body="{ data }">
                 <span :style="{ backgroundColor: colorByField(data, field) }">
                   <template v-if="field.type === 'date'">
@@ -103,14 +77,8 @@
       <TabPanel header="週摘要">
         <!-- 指標切換 + 匯出 -->
         <div class="flex justify-between items-center mb-2">
-          <Dropdown
-            v-model="yMetric"
-            :options="numericColumns"
-            :optionLabel="(o) => labelOf(o)"
-            :optionValue="(o) => keyOf(o)"
-            style="width:160px"
-            v-if="numericColumns.length"
-          />
+          <Dropdown v-model="yMetric" :options="numericColumns" :optionLabel="(o) => labelOf(o)"
+            :optionValue="(o) => keyOf(o)" style="width:160px" v-if="numericColumns.length" />
           <Button label="匯出週報" size="small" @click="exportWeekly" />
         </div>
 
@@ -121,15 +89,8 @@
 
         <!-- 週表格 -->
         <div class="sticky-table-wrapper">
-          <DataTable
-            :value="weeklyAgg"
-            :loading="loading"
-            stripedRows
-            style="width:100%"
-            emptyMessage="尚無資料"
-            scrollable
-            scrollHeight="70vh"
-          >
+          <DataTable :value="weeklyAgg" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料" scrollable
+            scrollHeight="70vh">
             <Column header="日期" width="200">
               <template #body="{ data }">
                 {{ formatWeekRange(data.week) }}
@@ -137,12 +98,7 @@
             </Column>
 
             <!-- 動態欄位總計 -->
-            <Column
-              v-for="field in numericColumns"
-              :key="keyOf(field)"
-              :header="labelOf(field)"
-              width="100"
-            >
+            <Column v-for="field in numericColumns" :key="keyOf(field)" :header="labelOf(field)" width="100">
               <template #body="{ data }">
                 {{ formatNumber(data[keyOf(field)]) }}
               </template>
@@ -151,14 +107,8 @@
             <!-- 圖片欄 -->
             <Column header="圖片" width="120">
               <template #body="{ data }">
-                <Button
-                  v-if="data.hasImage"
-                  link
-                  severity="primary"
-                  size="small"
-                  @click="previewImages(data.images)"
-                  label="查看圖片"
-                />
+                <Button v-if="data.hasImage" link severity="primary" size="small" @click="previewImages(data.images)"
+                  label="查看圖片" />
               </template>
             </Column>
 
@@ -181,12 +131,8 @@
     </TabView>
 
     <!-- ─────────── Dialog：新增/編輯每日 ─────────── -->
-    <Dialog
-      v-model:visible="dialogVisible"
-      :header="editing ? '編輯每日記錄' : '新增每日記錄'"
-      modal
-      style="max-width:480px;width:100%"
-    >
+    <Dialog v-model:visible="dialogVisible" :header="editing ? '編輯每日記錄' : '新增每日記錄'" modal
+      style="max-width:480px;width:100%">
       <div class="flex-col gap-4 w-full">
         <!-- 日期欄 -->
         <div class="flex gap-2">
@@ -198,29 +144,13 @@
         <div v-for="field in customColumns" :key="keyOf(field)" class="flex gap-2">
           <label :for="keyOf(field)" class="w-16 shrink-0 pt-2 text-right">{{ labelOf(field) }}</label>
           <div class="flex gap-2 flex-1">
-            <DatePicker
-              v-if="field.type === 'date'"
-              v-model="recordForm.extraData[field.id]"
-              :inputId="keyOf(field)"
-              class="flex-1"
-            />
-            <InputText
-              v-else
-              v-model="recordForm.extraData[field.id]"
-              :inputId="keyOf(field)"
-              class="flex-1"
-              :readonly="field.type === 'formula'"
-            />
+            <DatePicker v-if="field.type === 'date'" v-model="recordForm.extraData[field.id]" :inputId="keyOf(field)"
+              class="flex-1" />
+            <InputText v-else v-model="recordForm.extraData[field.id]" :inputId="keyOf(field)" class="flex-1"
+              :readonly="field.type === 'formula'" />
             <!-- 色票下拉固定 96px -->
-            <Dropdown
-              v-model="recordForm.colors[field.id]"
-              :options="colorOptions"
-              optionLabel="label"
-              optionValue="value"
-              placeholder="顏色"
-              class="w-24"
-              showClear
-            >
+            <Dropdown v-model="recordForm.colors[field.id]" :options="colorOptions" optionLabel="label"
+              optionValue="value" placeholder="顏色" class="w-24" showClear>
               <template #option="{ option }">
                 <div class="flex items-center">
                   <span class="inline-block w-3 h-3 mr-2 rounded-sm" :style="{ backgroundColor: option.value }" />
@@ -269,17 +199,8 @@
       <p class="text-sm text-gray-500 mb-2">週別：{{ formatWeekRange(noteForm.week) }}</p>
       <Textarea v-model="noteForm.text" rows="4" placeholder="輸入文字筆記" style="width: 100%" />
       <!-- 上傳圖片（僅本地暫存） -->
-      <FileUpload
-        name="images"
-        accept="image/*"
-        multiple
-        :auto="false"
-        v-model:files="noteForm.images"
-        @select="onImageSelect"
-        @remove="onImageRemove"
-        :showUploadButton="false"
-        :showCancelButton="false"
-      >
+      <FileUpload name="images" accept="image/*" multiple :auto="false" v-model:files="noteForm.images"
+        @select="onImageSelect" @remove="onImageRemove" :showUploadButton="false" :showCancelButton="false">
         <template #empty>
           <i class="pi pi-plus"></i>
         </template>
@@ -306,7 +227,7 @@
 </template>
 
 <script setup>
-/**** ---------------------------------------------------- 套件 ---------------------------------------------------- ****/
+/**** ---------------------------------------------------- 套件（全部放最上面，避免 TDZ/未定義） ---------------------------------------------------- ****/
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
@@ -359,14 +280,7 @@ import {
 } from '@/services/weeklyNotes'
 import { getPlatform } from '@/services/platforms'
 
-/* ======== 固定 3 色 ======== */
-const colorOptions = [
-  { label: '淺青', value: '#CCF2F4' },
-  { label: '淺黃', value: '#FFF9C4' },
-  { label: '淺紅', value: '#FFCDD2' }
-]
-
-/**** ----------------------------- 路由 & 基本狀態 ----------------------------- ****/
+/**** ---------------------------------------------------- 路由 / 狀態 ---------------------------------------------------- ****/
 const route = useRoute()
 const { clientId, platformId } = route.params
 const router = useRouter()
@@ -379,9 +293,7 @@ const activeTab = ref('daily')
 const tabMap = { daily: 0, weekly: 1 }
 const activeTabIndex = computed({
   get: () => tabMap[activeTab.value],
-  set: val => {
-    activeTab.value = Object.keys(tabMap).find(key => tabMap[key] === val)
-  }
+  set: val => { activeTab.value = Object.keys(tabMap).find(key => tabMap[key] === val) }
 })
 
 const dialogVisible = ref(false)
@@ -393,39 +305,96 @@ const noteDialog = ref(false)
 const imgPreviewDialog = ref(false)
 const imgList = ref([])
 
-/**** 自訂欄位 + 動態安全取值工具 ****/
+/**** ---------------------------------------------------- 共用工具 ---------------------------------------------------- ****/
 const slugify = s => (s ?? '').toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')
 const keyOf = (f) => (f?.slug && typeof f.slug === 'string' ? f.slug : f?.id)
 const labelOf = (f) => f?.name || f?.slug || f?.id || ''
 
-/** 從一筆 daily row 中，根據欄位物件嘗試多種鍵取得值（id/slug/name/slugify(name)） */
+const isStrictNumber = (v) => typeof v === 'number' && Number.isFinite(v)
+const looksNumericString = (v) => typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v.trim())
+
+/**** ---------------------------------------------------- 欄位別名映射（舊ID -> 新ID） ---------------------------------------------------- ****/
+/* 目的：當資料舊筆記錄使用舊欄位ID，而 getPlatform() 回傳新欄位ID 時，透過此映射仍能正確顯示 */
+const aliasStoreKey = (pid) => `addata_alias_${pid}`
+const fieldAliases = ref({})  // 形如：{ 'oldFieldIdA': 'newFieldIdX', ... }
+
+const loadAliases = () => {
+  if (typeof window === 'undefined') { fieldAliases.value = {}; return }
+  try { fieldAliases.value = JSON.parse(localStorage.getItem(aliasStoreKey(platformId)) || '{}') }
+  catch { fieldAliases.value = {} }
+}
+const saveAliases = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(aliasStoreKey(platformId), JSON.stringify(fieldAliases.value))
+  }
+}
+
+/**** ---------------------------------------------------- 取值器（支援 alias + 多候選鍵） ---------------------------------------------------- ****/
+/* 從一筆 daily row 中，根據欄位物件嘗試：別名舊鍵 -> id -> slug -> name -> slugify(name) */
 const valByField = (row, f) => {
   const ed = row?.extraData || {}
+  // 先走別名：找出映射到此新欄位ID的舊 Key
+  for (const [oldKey, newId] of Object.entries(fieldAliases.value || {})) {
+    if (newId === f.id && oldKey in ed) return ed[oldKey]
+  }
+  // 再走多候選鍵
   const cands = [f?.id, f?.slug, f?.name, slugify(f?.name || '')].filter(Boolean)
   for (const k of cands) if (k in ed) return ed[k]
   return ''
 }
-/** 取得顏色，同樣多鍵嘗試 */
 const colorByField = (row, f) => {
   const cs = row?.colors || {}
+  for (const [oldKey, newId] of Object.entries(fieldAliases.value || {})) {
+    if (newId === f.id && oldKey in cs) return cs[oldKey]
+  }
   const cands = [f?.id, f?.slug, f?.name, slugify(f?.name || '')].filter(Boolean)
   for (const k of cands) if (k in cs) return cs[k]
   return ''
 }
 
+/* 嘗試自動建立「舊ID -> 新ID」映射：
+   條件：未知鍵數量 == 數值欄位數量，方才依序對應（避免誤對）。映射結果寫入 localStorage 持久化。 */
+function autoBuildAliasesIfNeeded() {
+  if (Object.keys(fieldAliases.value).length) return // 已有映射就不動
+
+  const knownNewIds = new Set(customColumns.value.map(f => f.id))
+  const unknownCounts = {} // 舊鍵出現次數
+  dailyData.value.forEach(r => {
+    Object.keys(r?.extraData || {}).forEach(k => {
+      if (!knownNewIds.has(k)) unknownCounts[k] = (unknownCounts[k] || 0) + 1
+    })
+  })
+  const unknownKeys = Object.keys(unknownCounts)
+  if (!unknownKeys.length) return
+
+  const fields = [...numericColumns.value]
+  if (!fields.length || unknownKeys.length !== fields.length) {
+    console.warn('[AdData] 偵測到舊欄位鍵，但無法自動一一對應：', {
+      unknownKeys, numericFields: fields.map(f => f.id)
+    })
+    return
+  }
+
+  unknownKeys.sort()                                   // 舊鍵按字典序
+  fields.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))// 新欄位按 order
+  const alias = {}
+  unknownKeys.forEach((oldKey, i) => { alias[oldKey] = fields[i].id })
+  fieldAliases.value = alias
+  saveAliases()
+  console.info('[AdData] 已自動建立舊→新欄位對應：', alias)
+}
+
+/**** ---------------------------------------------------- 自訂欄位 / 數值欄位 ---------------------------------------------------- ****/
 const customColumns = ref([])      // [{ id, name, slug, type, order, formula }]
 const platform = ref(null)
 
-/** 數字判斷（字串數字也算） */
-const isStrictNumber = (v) => typeof v === 'number' && Number.isFinite(v)
-const looksNumericString = (v) => typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v.trim())
-
-/** 數值欄位（完全動態推斷；若後端有 type 宣告，則優先使用） */
+/* 優先使用後端宣告 type==='number' / 'formula' 的欄；否則動態從資料推斷「數值欄」。 */
+const dailyData = ref([])         // 先宣告，供 numericColumns / watch 使用
 const numericColumns = computed(() => {
   const declared = customColumns.value.filter(f => f.type === 'number' || f.type === 'formula')
   if (declared.length) return declared
 
-  const counts = new Map() // id/slug/name 推斷到的 key 最終都回到 id；這裡用原始 extraData 的 id 統計
+  const counts = new Map()
   dailyData.value.forEach(row => {
     const ed = row?.extraData || {}
     Object.keys(ed).forEach(id => {
@@ -443,7 +412,7 @@ const numericColumns = computed(() => {
   )
 })
 
-/**** 公式欄位（若有） ****/
+/**** ---------------------------------------------------- 公式欄位（如有） ---------------------------------------------------- ****/
 const formulaFields = computed(() => customColumns.value.filter(f => f.type === 'formula'))
 const formulaPattern = /^[0-9+\-*/().\s_a-zA-Z]+$/
 const evalFormula = (formula, data) => {
@@ -456,6 +425,7 @@ const evalFormula = (formula, data) => {
     return 0
   }
 }
+const recordForm = ref({ date: '', extraData: {}, colors: {} }) // 用於新增/編輯
 const recalcFormulas = () => {
   const vars = {}
   customColumns.value.forEach(f => { vars[f.slug] = recordForm.value.extraData[f.id] })
@@ -467,14 +437,12 @@ const recalcFormulas = () => {
 }
 const nonFormulaData = computed(() => {
   const obj = {}
-  customColumns.value.filter(f => f.type !== 'formula').forEach(f => {
-    obj[f.id] = recordForm.value.extraData[f.id]
-  })
+  customColumns.value.filter(f => f.type !== 'formula').forEach(f => { obj[f.id] = recordForm.value.extraData[f.id] })
   return obj
 })
 watch(nonFormulaData, recalcFormulas)
 
-/**** 排序狀態（透過工具列傳給 API） ****/
+/**** ---------------------------------------------------- 排序 / 篩選 ---------------------------------------------------- ****/
 const sortField = ref('')
 const sortOrder = ref(1)
 const sortOptions = computed(() => [
@@ -483,20 +451,17 @@ const sortOptions = computed(() => [
 ])
 const toggleOrder = () => { sortOrder.value = sortOrder.value === 1 ? -1 : 1 }
 
-/**** 每日資料 ****/
 const startDate = ref('')
 const endDate = ref('')
-const dailyData = ref([])         // [{ date, extraData, colors, ... }]
-const recordForm = ref({ date: '', extraData: {}, colors: {} })
 
-/* 週備註狀態 */
-const weeklyNotes = ref({})       // { '2025-26': { week:'2025-26', text:'...', images:[] } }
+/**** ---------------------------------------------------- 週備註 ---------------------------------------------------- ****/
+const weeklyNotes = ref({})       // { '2025-26': { week, text, images } }
 
-/**** ISO 週工具 ****/
+/**** ---------------------------------------------------- ISO 週工具 ---------------------------------------------------- ****/
 const toWeekKey = (date) => {
   const d = dayjs(date)
   const week = String(d.isoWeek()).padStart(2, '0')
-  const isoYear = d.startOf('isoWeek').year()
+  const isoYear = d.startOf('isoWeek').year() // 該週的週一所屬年
   return `${isoYear}-${week}`
 }
 const formatWeekRange = (w) => {
@@ -510,11 +475,10 @@ const formatWeekRange = (w) => {
   return `${start.format('YYYY/MM/DD')} - ${end.format('YYYY/MM/DD')}`
 }
 
-/**** 週資料（前端彙總，完全動態） ****/
+/**** ---------------------------------------------------- 週彙總（完全動態） ---------------------------------------------------- ****/
 const weeklyAgg = computed(() => {
   const map = {}
 
-  // 初始化 + 加總
   dailyData.value.forEach(d => {
     const week = toWeekKey(d.date)
     if (!map[week]) {
@@ -536,6 +500,7 @@ const weeklyAgg = computed(() => {
     map[w].hasImage = !!(note && note.images && note.images.length)
     map[w].images = note?.images || []
   })
+
   // 只有備註沒有每日數據，也要產一筆
   Object.keys(weeklyNotes.value).forEach(w => {
     if (!map[w]) {
@@ -560,12 +525,35 @@ const weeklyAgg = computed(() => {
   return arr.sort((a, b) => a.week.localeCompare(b.week))
 })
 
-/**** 折線圖狀態 ****/
+/**** ---------------------------------------------------- 折線圖 ---------------------------------------------------- ****/
 const yMetric = ref('')     // 使用者選的欄位 key（由 keyOf 產生）
 let chartCtx = null
 let chart = null
 
-/**** --------------------------------------------------- 動態 Excel 說明 --------------------------------------------------- ****/
+const drawChart = () => {
+  if (!chartCtx) chartCtx = document.getElementById('weekly-chart')
+  if (!chartCtx || !yMetric.value) return
+  const labels = weeklyAgg.value.map(r => formatWeekRange(r.week))
+  const dataKey = yMetric.value
+  const data = weeklyAgg.value.map(r => r[dataKey] ?? 0)
+  const metric = numericColumns.value.find(f => keyOf(f) === dataKey)
+  chart && chart.destroy()
+  chart = new Chart(chartCtx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: labelOf(metric) || dataKey,
+        data,
+        borderColor: '#409EFF',
+        tension: 0.35
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  })
+}
+
+/**** ---------------------------------------------------- Excel 說明 / 格式化 ---------------------------------------------------- ****/
 const excelSpec = computed(() => {
   const base = [{
     field: '日期',
@@ -577,14 +565,13 @@ const excelSpec = computed(() => {
       field: f.name,
       type: f.type === 'number' ? '數字'
         : f.type === 'date' ? '日期 (YYYY-MM-DD)'
-        : f.type === 'formula' ? '公式(自動計算)'
-        : '文字',
+          : f.type === 'formula' ? '公式(自動計算)'
+            : '文字',
       sample: f.type === 'date' ? dayjs().format('YYYY-MM-DD') : ''
     }))
   )
 })
 
-/**** 日期 / 數值 formatter ****/
 const dateFmt = row => dayjs(row.date).format('YYYY-MM-DD')
 const formatExtraDate = val => (val ? dayjs(val).format('YYYY-MM-DD') : '')
 const formatNumber = val => {
@@ -595,10 +582,10 @@ const formatNumber = val => {
   return String(val ?? '')
 }
 
-/**** 筆記轉 HTML ****/
+/**** ---------------------------------------------------- 筆記轉 HTML ---------------------------------------------------- ****/
 const escapeHtml = str =>
   str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-     .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 const formatNote = text => {
   if (!text) return ''
   const lines = text.trim().split(/\r?\n/).filter(l => l.trim())
@@ -614,7 +601,7 @@ const formatNote = text => {
   return `<${tag}>${items}</${tag}>`
 }
 
-/**** --------------------------------------------------- 資料載入 --------------------------------------------------- ****/
+/**** ---------------------------------------------------- 載入資料 ---------------------------------------------------- ****/
 const loadPlatform = async () => {
   platform.value = await getPlatform(clientId, platformId)
   customColumns.value = (platform.value?.fields || [])
@@ -622,13 +609,13 @@ const loadPlatform = async () => {
       typeof f === 'string'
         ? { id: slugify(f), name: f, slug: slugify(f), type: 'text', order: 0 }
         : {
-            id: f.id || slugify(f.name),
-            name: f.name,
-            slug: f.slug || slugify(f.name),
-            type: f.type || 'text',
-            order: f.order || 0,
-            formula: f.formula || ''
-          }
+          id: f.id || slugify(f.name),
+          name: f.name,
+          slug: f.slug || slugify(f.name),
+          type: f.type || 'text',
+          order: f.order || 0,
+          formula: f.formula || ''
+        }
     )
     .sort((a, b) => a.order - b.order)
 }
@@ -637,7 +624,7 @@ const loadDaily = async () => {
   loading.value = true
   const params = {}
   if (startDate.value) params.startDate = dayjs(startDate.value).format('YYYY-MM-DD')
-  if (endDate.value)   params.endDate   = dayjs(endDate.value).format('YYYY-MM-DD')
+  if (endDate.value) params.endDate = dayjs(endDate.value).format('YYYY-MM-DD')
   if (sortField.value) {
     params.sort = sortField.value
     params.order = sortOrder.value === 1 ? 'asc' : 'desc'
@@ -667,35 +654,15 @@ const loadWeeklyNotes = async () => {
   weeklyNotes.value = list.reduce((acc, n) => { acc[n.week] = n; return acc }, {})
 }
 
-/**** 監聽重新載入 ****/
+/**** ---------------------------------------------------- 監聽重新載入 / 繪圖 ---------------------------------------------------- ****/
 watch([sortField, sortOrder], () => { loadDaily() })
 watch([startDate, endDate], loadDaily)
 
-/**** --------------------------------------------------- 折線圖繪製 --------------------------------------------------- ****/
-const drawChart = () => {
-  if (!chartCtx) chartCtx = document.getElementById('weekly-chart')
-  if (!chartCtx || !yMetric.value) return
-  const labels = weeklyAgg.value.map(r => formatWeekRange(r.week))
-  const dataKey = yMetric.value
-  const data = weeklyAgg.value.map(r => r[dataKey] ?? 0)
-  const metric = numericColumns.value.find(f => keyOf(f) === dataKey)
-  chart && chart.destroy()
-  chart = new Chart(chartCtx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: labelOf(metric) || dataKey,
-        data,
-        borderColor: '#409EFF',
-        tension: 0.35
-      }]
-    },
-    options: { responsive: true, maintainAspectRatio: false }
-  })
-}
+// 若日資料或欄位變動，再嘗試自動建立 alias（只在沒有別名時）
+watch([dailyData, customColumns], () => {
+  if (!Object.keys(fieldAliases.value).length) autoBuildAliasesIfNeeded()
+})
 
-/**** 監聽資料或指標變動即重繪 ****/
 watch([weeklyAgg, yMetric], () => { if (activeTab.value === 'weekly') drawChart() })
 watch(numericColumns, (cols) => {
   if (!cols.length) {
@@ -705,11 +672,15 @@ watch(numericColumns, (cols) => {
   }
   if (!cols.find(c => keyOf(c) === yMetric.value)) yMetric.value = keyOf(cols[0])
 })
-
-/**** Tab 切換（避免元件初始化時畫布尺寸不對） ****/
 watch(activeTab, tab => { if (tab === 'weekly') drawChart() })
 
-/**** --------------------------------------------------- 生命週期 --------------------------------------------------- ****/
+/**** ---------------------------------------------------- 生命週期 ---------------------------------------------------- ****/
+const colorOptions = [
+  { label: '淺青', value: '#CCF2F4' },
+  { label: '淺黃', value: '#FFF9C4' },
+  { label: '淺紅', value: '#FFCDD2' }
+]
+
 onMounted(async () => {
   loading.value = true
   await loadPlatform()
@@ -723,10 +694,15 @@ onMounted(async () => {
 
   await loadDaily()
   await loadWeeklyNotes()
+
+  // 讀取既有別名，若沒有就嘗試自動推斷一次
+  loadAliases()
+  autoBuildAliasesIfNeeded()
+
   loading.value = false
 })
 
-/**** --------------------------------------------------- CRUD：每日 --------------------------------------------------- ****/
+/**** ---------------------------------------------------- CRUD：每日 ---------------------------------------------------- ****/
 const openCreateDialog = () => {
   editing.value = false
   editingId.value = ''
@@ -784,7 +760,7 @@ const removeDaily = async row => {
   })
 }
 
-/**** ------------------------------------------------------- 匯入 ------------------------------------------------------- ****/
+/**** ---------------------------------------------------- 匯入 ---------------------------------------------------- ****/
 const importFile = async (event) => {
   const file = event.files[0]
   try {
@@ -800,7 +776,6 @@ const importFile = async (event) => {
   return false
 }
 
-/* ---- Excel / CSV 解析 + Normalize ---- */
 const parseExcel = file => new Promise((res, rej) => {
   const fr = new FileReader()
   fr.onload = e => {
@@ -831,7 +806,7 @@ const normalize = arr => {
   }).filter(r => r.date)
 }
 
-/**** ------------------------------------------------------- 匯出 ------------------------------------------------------- ****/
+/**** ---------------------------------------------------- 匯出 ---------------------------------------------------- ****/
 const exportDaily = () => {
   if (!dailyData.value.length) {
     toast.add({ severity: 'warn', summary: '警告', detail: '無資料可匯出', life: 3000 })
@@ -851,7 +826,6 @@ const exportDaily = () => {
   saveAs(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), 'daily.csv')
 }
 
-/* ------------------------------------------------ 匯出週報 ------------------------------------------------ */
 async function exportWeekly() {
   if (!weeklyAgg.value.length) {
     toast.add({ severity: 'warn', summary: '警告', detail: '無資料可匯出', life: 3000 })
@@ -861,12 +835,10 @@ async function exportWeekly() {
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet('weekly')
 
-  /* 標頭 */
   const headers = ['日期', ...numericColumns.value.map(f => labelOf(f)), '筆記', '圖片']
   ws.addRow(headers)
   ws.getRow(1).font = { bold: true }
 
-  /* 每列資料 + 圖片 */
   for (const row of weeklyAgg.value) {
     const data = [
       formatWeekRange(row.week),
@@ -876,7 +848,6 @@ async function exportWeekly() {
     ]
     const wsRow = ws.addRow(data)
 
-    /* 第一張圖片嵌入 */
     if (row.hasImage && row.images[0]) {
       try {
         const firstImg = row.images[0]
@@ -884,7 +855,7 @@ async function exportWeekly() {
         const signedUrl = await getWeeklyNoteImageUrl(clientId, platformId, imgPath)
         const res = await fetch(signedUrl)
         const buf = await res.arrayBuffer()
-        const ext = imgPath.split('.').pop().replace('jpg', 'jpeg')   // exceljs 要用 jpeg / png
+        const ext = imgPath.split('.').pop().replace('jpg', 'jpeg')   // exceljs 需 jpeg / png
         const imgId = wb.addImage({ buffer: buf, extension: ext })
         const rIdx = wsRow.number - 1
         const cIdx = headers.length - 1
@@ -895,25 +866,13 @@ async function exportWeekly() {
     }
   }
 
-  /* 匯出 */
   const buf = await wb.xlsx.writeBuffer()
   saveAs(new Blob([buf], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   }), 'weekly.xlsx')
 }
 
-/* 下載 Excel 範例（日期 + 自訂欄位） */
-const downloadTemplate = () => {
-  const sample = { 日期: dayjs().format('YYYY-MM-DD') }
-  customColumns.value.forEach(col => { sample[col.name] = '' })
-  const ws = XLSX.utils.json_to_sheet([sample])
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Template')
-  const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
-  saveAs(new Blob([buf], { type: 'application/octet-stream' }), 'ad-data-template.xlsx')
-}
-
-/**** ------------------------------------------------------- 週備註 ------------------------------------------------------- ****/
+/**** ---------------------------------------------------- 週備註（圖片預覽/上傳） ---------------------------------------------------- ****/
 const noteForm = ref({ week: '', text: '', images: [] })
 const keepImages = ref([])
 
@@ -974,20 +933,23 @@ const previewImages = async imgs => {
 }
 </script>
 
+
 <style scoped>
 .sticky-table-wrapper {
   max-height: 70vh;
   overflow-y: auto;
 }
+
 .sticky-table-wrapper :deep(.p-datatable-thead > tr > th) {
   position: sticky;
   top: 0;
   z-index: 1;
   background: #fff;
 }
+
 /* 自行視覺調整 */
-:deep(.p-datatable td){
-  padding-top:0.5rem;
-  padding-bottom:0.5rem;
+:deep(.p-datatable td) {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 </style>
