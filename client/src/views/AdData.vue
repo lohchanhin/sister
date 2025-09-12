@@ -17,14 +17,8 @@
         <div class="flex justify-between items-center mb-2">
           <!-- 左：匯入 / 格式說明 -->
           <div class="flex items-center gap-2">
-            <FileUpload
-              mode="basic"
-              :auto="true"
-              :customUpload="true"
-              @uploader="importFile"
-              chooseLabel="匯入 CSV / Excel"
-              accept=".xlsx,.csv"
-            />
+            <FileUpload mode="basic" :auto="true" :customUpload="true" @uploader="importFile"
+              chooseLabel="匯入 CSV / Excel" accept=".xlsx,.csv" />
             <Button label="Excel 格式說明" size="small" outlined @click="excelDialog = true" />
           </div>
 
@@ -42,32 +36,15 @@
 
         <!-- 排序（送參數給後端；不依賴欄位點擊排序） -->
         <div class="flex items-center gap-2 mb-2">
-          <Dropdown
-            v-model="sortField"
-            :options="sortOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="排序欄位"
-            class="w-40"
-            showClear
-          />
+          <Dropdown v-model="sortField" :options="sortOptions" optionLabel="label" optionValue="value"
+            placeholder="排序欄位" class="w-40" showClear />
           <Button size="small" @click="toggleOrder" :label="sortOrder === 1 ? '升序' : '降序'" />
         </div>
 
         <!-- 每日表格 -->
         <div class="sticky-table-wrapper">
-          <DataTable
-            :value="adData"
-            :rowKey="'_id'"
-            :loading="loading"
-            stripedRows
-            style="width:100%"
-            emptyMessage="尚無資料"
-            :sortField="sortField"
-            :sortOrder="sortOrder"
-            scrollable
-            scrollHeight="70vh"
-          >
+          <DataTable :value="adData" :rowKey="'_id'" :loading="loading" stripedRows style="width:100%"
+            emptyMessage="尚無資料" :sortField="sortField" :sortOrder="sortOrder" scrollable scrollHeight="70vh">
             <Column field="date" header="日期" width="140" sortable>
               <template #body="{ data }">
                 {{ dateFmt(data) }}
@@ -75,13 +52,8 @@
             </Column>
 
             <!-- 動態欄：提供 field/columnKey，避免 Column 未被註冊 -->
-            <Column
-              v-for="col in customColumns"
-              :key="keyOf(col)"
-              :field="keyOf(col)"
-              :columnKey="keyOf(col)"
-              :header="labelOf(col)"
-            >
+            <Column v-for="col in customColumns" :key="keyOf(col)" :field="keyOf(col)" :columnKey="keyOf(col)"
+              :header="labelOf(col)">
               <template #body="{ data }">
                 <span :style="{ backgroundColor: colorByField(data, col) || undefined }">
                   <template v-if="col.type === 'date'">
@@ -116,14 +88,8 @@
       <TabPanel header="週摘要">
         <!-- 指標切換 + 匯出 -->
         <div class="flex justify-between items-center mb-2">
-          <Dropdown
-            v-model="yMetric"
-            :options="numericColumns"
-            :optionLabel="(o) => labelOf(o)"
-            :optionValue="(o) => keyOf(o)"
-            style="width:160px"
-            v-if="numericColumns.length"
-          />
+          <Dropdown v-model="yMetric" :options="numericColumns" :optionLabel="(o) => labelOf(o)"
+            :optionValue="(o) => keyOf(o)" style="width:160px" v-if="numericColumns.length" />
           <Button label="匯出週報" size="small" @click="exportWeekly" />
         </div>
 
@@ -134,15 +100,8 @@
 
         <!-- 週表格 -->
         <div class="sticky-table-wrapper">
-          <DataTable
-            :value="weeklyAgg"
-            :loading="loading"
-            stripedRows
-            style="width:100%"
-            emptyMessage="尚無資料"
-            scrollable
-            scrollHeight="70vh"
-          >
+          <DataTable :value="weeklyAgg" :loading="loading" stripedRows style="width:100%" emptyMessage="尚無資料" scrollable
+            scrollHeight="70vh">
             <Column header="日期" width="200">
               <template #body="{ data }">
                 {{ formatWeekRange(data.week) }}
@@ -159,14 +118,8 @@
             <!-- 圖片欄 -->
             <Column header="圖片" width="120">
               <template #body="{ data }">
-                <Button
-                  v-if="data.hasImage"
-                  link
-                  severity="primary"
-                  size="small"
-                  @click="previewImages(data.images)"
-                  label="查看圖片"
-                />
+                <Button v-if="data.hasImage" link severity="primary" size="small" @click="previewImages(data.images)"
+                  label="查看圖片" />
               </template>
             </Column>
 
@@ -189,7 +142,8 @@
     </TabView>
 
     <!-- ─────────── Dialog：新增/編輯每日 ─────────── -->
-    <Dialog v-model:visible="dialogVisible" :header="editing ? '編輯每日記錄' : '新增每日記錄'" modal style="max-width:480px;width:100%">
+    <Dialog v-model:visible="dialogVisible" :header="editing ? '編輯每日記錄' : '新增每日記錄'" modal
+      style="max-width:480px;width:100%">
       <div class="flex-col gap-4 w-full">
         <!-- 日期欄 -->
         <div class="flex gap-2">
@@ -201,29 +155,13 @@
         <div v-for="field in customColumns" :key="keyOf(field)" class="flex gap-2">
           <label :for="keyOf(field)" class="w-16 shrink-0 pt-2 text-right">{{ labelOf(field) }}</label>
           <div class="flex gap-2 flex-1">
-            <DatePicker
-              v-if="field.type === 'date'"
-              v-model="recordForm.extraData[field.id]"
-              :inputId="keyOf(field)"
-              class="flex-1"
-            />
-            <InputText
-              v-else
-              v-model="recordForm.extraData[field.id]"
-              :inputId="keyOf(field)"
-              class="flex-1"
-              :readonly="field.type === 'formula'"
-            />
+            <DatePicker v-if="field.type === 'date'" v-model="recordForm.extraData[field.id]" :inputId="keyOf(field)"
+              class="flex-1" />
+            <InputText v-else v-model="recordForm.extraData[field.id]" :inputId="keyOf(field)" class="flex-1"
+              :readonly="field.type === 'formula'" />
             <!-- 色票下拉固定 96px -->
-            <Dropdown
-              v-model="recordForm.colors[field.id]"
-              :options="colorOptions"
-              optionLabel="label"
-              optionValue="value"
-              placeholder="顏色"
-              class="w-24"
-              showClear
-            >
+            <Dropdown v-model="recordForm.colors[field.id]" :options="colorOptions" optionLabel="label"
+              optionValue="value" placeholder="顏色" class="w-24" showClear>
               <template #option="{ option }">
                 <div class="flex items-center">
                   <span class="inline-block w-3 h-3 mr-2 rounded-sm" :style="{ backgroundColor: option.value }" />
@@ -272,17 +210,8 @@
       <p class="text-sm text-gray-500 mb-2">週別：{{ formatWeekRange(noteForm.week) }}</p>
       <Textarea v-model="noteForm.text" rows="4" placeholder="輸入文字筆記" style="width: 100%" />
       <!-- 上傳圖片（僅本地暫存） -->
-      <FileUpload
-        name="images"
-        accept="image/*"
-        multiple
-        :auto="false"
-        v-model:files="noteForm.images"
-        @select="onImageSelect"
-        @remove="onImageRemove"
-        :showUploadButton="false"
-        :showCancelButton="false"
-      >
+      <FileUpload name="images" accept="image/*" multiple :auto="false" v-model:files="noteForm.images"
+        @select="onImageSelect" @remove="onImageRemove" :showUploadButton="false" :showCancelButton="false">
         <template #empty>
           <i class="pi pi-plus"></i>
         </template>
@@ -325,15 +254,8 @@
         </Column>
         <Column header="映射至新字段" style="width:260px">
           <template #body="{ data }">
-            <Dropdown
-              v-model="data.mappedId"
-              :options="customColumns"
-              optionLabel="name"
-              optionValue="id"
-              placeholder="選擇字段"
-              class="w-full"
-              :showClear="true"
-            />
+            <Dropdown v-model="data.mappedId" :options="customColumns" optionLabel="name" optionValue="id"
+              placeholder="選擇字段" class="w-full" :showClear="true" />
           </template>
         </Column>
       </DataTable>
@@ -344,7 +266,7 @@
             正在寫回：{{ progress.done }} / {{ progress.total }}
           </div>
           <div class="flex gap-2">
-            <Button label="取消" severity="secondary" :disabled="applying" @click="mapDialogVisible=false" />
+            <Button label="取消" severity="secondary" :disabled="applying" @click="mapDialogVisible = false" />
             <Button label="保存映射（不寫回）" :disabled="applying" @click="saveMappingFromFirstRow(false)" />
             <Button label="保存並一次性更新所有資料" :loading="applying" @click="saveMappingFromFirstRow(true)" />
           </div>
@@ -409,40 +331,39 @@ import {
 import { getPlatform } from '@/services/platforms'
 
 
-/** 強制重新匹配：不論目前是否已有 alias，都彈窗讓你重選。
- * 會以「第一筆 row 的 extraData」與「當前已保存的 alias」做聯集，帶出所有可改的舊鍵。
+/** 嚴格以「第一筆資料」為準的重新匹配：
+ * 只列出第一筆的 extraData/colors 中「不是當前新ID」的鍵（即舊鍵），
+ * 即使這些鍵已經在 alias 中也會顯示，方便重新指定。
  */
 function openRemapDialog() {
-  // 取得第一筆資料（若沒有資料也允許只用 alias 重配）
-  const first = adData.value?.[0] || {}
+  if (!adData.value.length) {
+    toast.add({ severity: 'info', summary: '提示', detail: '目前没有资料可用于匹配', life: 2200 })
+    return
+  }
+  const first = adData.value[0]
   const ed = first?.extraData || {}
-
-  // 新ID集合（平台字段）
+  const cs = first?.colors || {}
   const newIds = new Set(customColumns.value.map(f => f.id))
 
-  // 來自當前資料的舊鍵（第一筆 row 中，在 extraData 里但不屬於新ID）
-  const oldKeysFromRow = Object.keys(ed).filter(k => !newIds.has(k))
+  // 只取「第一筆」出現過的鍵（含顏色鍵），且排除當前新ID（避免把已是新ID的鍵拿來匹配）
+  const keysInFirst = Array.from(new Set([...Object.keys(ed), ...Object.keys(cs)]))
+  const oldKeysOnly = keysInFirst.filter(k => !newIds.has(k))
 
-  // 來自既有別名的舊鍵（已經映射過的也允許改）
-  const aliasKeys = Object.keys(fieldAliases.value || {})
-
-  // 聯集（保持順序：先以資料中出現的舊鍵，再補既有 alias 中的舊鍵）
-  const allOldKeys = Array.from(new Set([...oldKeysFromRow, ...aliasKeys]))
-
-  if (!allOldKeys.length) {
-    toast.add({ severity: 'info', summary: '提示', detail: '沒有可重新匹配的舊鍵（本行已全部使用新ID）', life: 2200 })
+  if (!oldKeysOnly.length) {
+    toast.add({ severity: 'info', summary: '提示', detail: '第一笔资料没有需要匹配的旧键', life: 2200 })
     return
   }
 
-  // 構建對話窗 rows：預設 mappedId 用現有 alias；樣本值取第一筆的值（沒有則空字串）
-  mapRows.value = allOldKeys.map(oldKey => ({
+  // 帶入目前 alias 的預設對應（如果有），但列表只限於第一筆的鍵
+  mapRows.value = oldKeysOnly.map(oldKey => ({
     oldKey,
-    sample: ed[oldKey] ?? '',
-    mappedId: (fieldAliases.value || {})[oldKey] || ''
+    sample: ed[oldKey] ?? '',                         // 以 extraData 的值當樣本
+    mappedId: (fieldAliases.value || {})[oldKey] || '' // 若之前配過就帶出，沒有就空
   }))
 
   mapDialogVisible.value = true
 }
+
 
 
 /**** ---------------------------------------------------- 路由 / 狀態 ---------------------------------------------------- ****/
