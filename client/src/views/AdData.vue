@@ -335,36 +335,24 @@ import { getPlatform } from '@/services/platforms'
  * 只列出第一筆 extraData 裡「不是當前新鍵（id/slug）」的鍵（= 舊鍵）。
  * 不看 colors，不合併 alias，避免無關鍵亂入。
  */
-function openRemapDialog() {
-  if (!adData.value.length) {
-    toast.add({ severity: 'info', summary: '提示', detail: '目前没有资料可用于匹配', life: 2200 })
+async function openRemapDialog() {
+  await purgeEmptyRows({ silent: true })     // ⬅ 先清空空記錄
+  const row = findFirstRowNeedingMapping()
+  if (!row) {
+    toast.add({ severity: 'info', summary: '提示', detail: '目前沒有需要匹配的舊鍵', life: 2200 })
     return
   }
-  const first = adData.value[0]
-  const ed = first?.extraData || {}
-
-  // 允許集合：現有 id + slug（只要是這兩類都視為“新鍵”）
-  const idSet = new Set(customColumns.value.map(f => f.id))
-  const slugSet = new Set(customColumns.value.map(f => f.slug).filter(Boolean))
-  const allowed = new Set([...idSet, ...slugSet])
-
-  // 只拿第一筆 extraData 中，不屬於 allowed 的鍵（就是舊鍵）
-  const oldKeysOnly = Object.keys(ed).filter(k => !allowed.has(k))
-
-  if (!oldKeysOnly.length) {
-    toast.add({ severity: 'info', summary: '提示', detail: '第一笔资料没有需要匹配的旧键', life: 2200 })
-    return
-  }
-
-  // 帶出 alias 中已有的預設對應（若有）
+  const allowed = allowedNowSet()
+  const ed = row.extraData || {}
+  const oldKeysOnly = Object.keys(ed).filter(k => !allowed.has(k) && isOpaqueId(k))
   mapRows.value = oldKeysOnly.map(oldKey => ({
     oldKey,
     sample: ed[oldKey],
     mappedId: (fieldAliases.value || {})[oldKey] || ''
   }))
-
   mapDialogVisible.value = true
 }
+
 
 
 
@@ -402,11 +390,71 @@ const labelOf = (f) => f?.name || f?.slug || f?.id || ''
 const isStrictNumber = (v) => typeof v === 'number' && Number.isFinite(v)
 const looksNumericString = (v) => typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v.trim())
 
-// 24位十六进制（老版本欄位ID特征）
-const isOpaqueId = (k) => typeof k === 'string' && /^[0-9a-f]{24}$/i.test(k)
 
 // 僅接受後端提供且穩定的 slug（避免中文被 slugify 成 "_"）
 const isSafeSlug = (s) => typeof s === 'string' && /^[a-z][a-z0-9_]{2,}$/.test(s)
+
+// 後端當前允許的鍵：新 id + 合法 slug
+const allowedNowSet = () => new Set([
+  ...customColumns.value.map(c => c.id),
+  ...customColumns.value.map(c => c.slug).filter(isSafeSlug)
+])
+
+// 什麼叫「沒有資料的記錄」：沒有 extraData、也沒有 colors，且根層統計也全為 0/空
+const isTrulyEmptyRow = (row) => {
+  const ed = row?.extraData
+  const cs = row?.colors
+  const hasED = ed && Object.keys(ed).length > 0
+  const hasCS = cs && Object.keys(cs).length > 0
+  if (hasED || hasCS) return false
+  const roots = ['clicks','enquiries','impressions','reach','spent']
+  const hasRoot = roots.some(k => Number(row?.[k] || 0) > 0)
+  return !hasRoot
+}
+
+// 在整個列表中，找第一筆「真的需要匹配」的 row（有 extraData 且存在不在 allowed 的 24HEX 舊鍵）
+const isOpaqueId = (k) => typeof k === 'string' && /^[0-9a-f]{24}$/i.test(k)
+function findFirstRowNeedingMapping() {
+  const allowed = allowedNowSet()
+  for (const r of adData.value) {
+    const ed = r?.extraData || {}
+    const keys = Object.keys(ed)
+    if (!keys.length) continue
+    const unknown = keys.filter(k => !allowed.has(k) && isOpaqueId(k))
+    if (unknown.length) return r
+  }
+  return null
+}
+
+// 自動清空「沒有資料的記錄」
+async function purgeEmptyRows({ silent = true } = {}) {
+  const trash = adData.value.filter(isTrulyEmptyRow)
+  if (!trash.length) return
+
+  const run = async () => {
+    for (const r of trash) {
+      try { await deleteDaily(clientId, platformId, r._id) }
+      catch (e) { console.error('刪除空記錄失敗：', r._id, e) }
+    }
+    await loadDaily()
+    if (silent) {
+      toast.add({ severity: 'info', summary: '已清空', detail: `移除 ${trash.length} 筆空記錄`, life: 2200 })
+    }
+  }
+
+  if (silent) {
+    await run()
+  } else {
+    confirm.require({
+      message: `偵測到 ${trash.length} 筆空記錄，是否刪除？`,
+      header: '清空空記錄',
+      icon: 'pi pi-trash',
+      acceptLabel: '刪除',
+      rejectLabel: '取消',
+      accept: run
+    })
+  }
+}
 
 
 /**** ---------------------------------------------------- 欄位別名映射（舊ID -> 新ID） ---------------------------------------------------- ****/
@@ -1042,6 +1090,10 @@ onMounted(async () => {
   bootMappingFromFirstRow()
 
   loading.value = false
+
+  await purgeEmptyRows({ silent: true })   // ⬅ 先清空沒有資料的那幾筆
+bootMappingFromFirstRow()
+
 
   // 調試資訊
   console.log('[customColumns]', customColumns.value.map(f => ({ id: f.id, name: f.name, type: f.type })))
