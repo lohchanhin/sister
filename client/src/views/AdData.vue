@@ -402,6 +402,13 @@ const labelOf = (f) => f?.name || f?.slug || f?.id || ''
 const isStrictNumber = (v) => typeof v === 'number' && Number.isFinite(v)
 const looksNumericString = (v) => typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v.trim())
 
+// 24位十六进制（老版本欄位ID特征）
+const isOpaqueId = (k) => typeof k === 'string' && /^[0-9a-f]{24}$/i.test(k)
+
+// 僅接受後端提供且穩定的 slug（避免中文被 slugify 成 "_"）
+const isSafeSlug = (s) => typeof s === 'string' && /^[a-z][a-z0-9_]{2,}$/.test(s)
+
+
 /**** ---------------------------------------------------- 欄位別名映射（舊ID -> 新ID） ---------------------------------------------------- ****/
 /* 目的：當資料舊筆記錄使用舊欄位ID，而 getPlatform() 回傳新欄位ID 時，透過此映射仍能正確顯示 */
 const aliasStoreKey = (pid) => `addata_alias_${pid}`
@@ -418,33 +425,29 @@ const saveAliases = () => {
 }
 
 /**** ---------------------------------------------------- 取值器（支援 alias + 多候選鍵 + 公式顯示） ---------------------------------------------------- ****/
-const isPlainKey = (k) => typeof k === 'string' && /^[a-z0-9_]{3,}$/i.test(k)
-
 const valByField = (row, f) => {
   const ed = row?.extraData || {}
-  // ✅ 先用當前「新ID」取值，避免 alias 污染
+  // 1) 先讀「新ID」
   if (f?.id && f.id in ed) return ed[f.id]
-
-  // 再用 alias 兜底
+  // 2) 再用 alias 兜底
   for (const [oldKey, newId] of Object.entries(fieldAliases.value || {})) {
     if (newId === f.id && oldKey in ed) return ed[oldKey]
   }
-
-  // 其餘候選（如安全 slug / 英文名），保持原狀或簡化為只看 id
+  // 3) 可選：安全 slug 作為候選
+  if (isSafeSlug(f?.slug) && f.slug in ed) return ed[f.slug]
   return ''
 }
 
 const colorByField = (row, f) => {
   const cs = row?.colors || {}
-  // ✅ 先讀新ID
   if (f?.id && f.id in cs) return cs[f.id]
-
-  // 再 alias 兜底
   for (const [oldKey, newId] of Object.entries(fieldAliases.value || {})) {
     if (newId === f.id && oldKey in cs) return cs[oldKey]
   }
+  if (isSafeSlug(f?.slug) && f.slug in cs) return cs[f.slug]
   return ''
 }
+
 
 
 
@@ -693,7 +696,6 @@ const formatNote = text => {
 }
 
 /**** ---------------------------------------------------- 載入資料 ---------------------------------------------------- ****/
-const isSafeSlug = (s) => typeof s === 'string' && /^[a-z][a-z0-9_]{2,}$/.test(s)
 
 const loadPlatform = async () => {
 
@@ -807,6 +809,7 @@ function openMappingDialogFromFirstRow() {
 }
 
 async function saveMappingFromFirstRow(writeBackAll = true) {
+  // 1) 收集使用者在第一筆上選出的映射
   const alias = {}
   for (const r of mapRows.value) if (r.oldKey && r.mappedId) alias[r.oldKey] = r.mappedId
   if (!Object.keys(alias).length) {
@@ -814,32 +817,49 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
     return
   }
 
+  // 2) 先讓畫面即時能讀（但我們會在成功寫回後清空 alias）
   fieldAliases.value = { ...(fieldAliases.value || {}), ...alias }
   saveAliases()
-  if (!writeBackAll) { mapDialogVisible.value = false; toast.add({ severity: 'success', summary: '已保存', detail: '映射已生效（未寫回後端）', life: 2200 }); return }
 
-  const colById = new Map(customColumns.value.map(c => [c.id, c]))
-  const allowedSet = new Set([
+  if (!writeBackAll) {
+    mapDialogVisible.value = false
+    toast.add({ severity: 'success', summary: '已保存', detail: '映射已生效（未寫回後端）', life: 2200 })
+    return
+  }
+
+  // 3) 以第一筆的「不屬於當前新鍵」且為 24HEX 的舊鍵，建立“位置基準”
+  const first = adData.value[0] || {}
+  const ed0 = first?.extraData || {}
+  const allowedNow = new Set([
     ...customColumns.value.map(c => c.id),
-    ...customColumns.value.map(c => c.slug).filter(isSafeSlug) // 只接受安全 slug
+    ...customColumns.value.map(c => c.slug).filter(isSafeSlug)
   ])
-  const aliasOldKeys = new Set(Object.keys(alias))
+  const baseOldOpaque = Object.keys(ed0)
+    .filter(k => !allowedNow.has(k) && isOpaqueId(k))
+    .sort()
+
+  // 把使用者選的對應也按上面的排序對齊成序列，供其它“版本”套用
+  const targetIdsByOrder = baseOldOpaque.map(k => alias[k]).filter(Boolean)
+  // 若使用者沒給齊（例如他只映了幾個），我們只對齊有選到的那幾位
+  const effectiveLen = targetIdsByOrder.length
+
+  // 4) 準備查表
+  const colById = new Map(customColumns.value.map(c => [c.id, c]))
 
   applying.value = true
   try {
-    const need = adData.value.filter(r => Object.keys(alias).some(k => k in (r?.extraData || {})))
-    progress.value = { total: need.length, done: 0 }
+    progress.value = { total: adData.value.length, done: 0 }
 
-    for (const row of need) {
+    for (const row of adData.value) {
       const ed = { ...(row.extraData || {}) }
       const cs = { ...(row.colors || {}) }
       let touched = false
 
-      // 映射：覆蓋新 id；slug 只有在安全時才雙寫；刪除舊鍵
+      // 4.1 先套用使用者顯式選的 alias（第一套“版本”的舊鍵）
       for (const [oldKey, newId] of Object.entries(alias)) {
         if (!(oldKey in ed) && !(oldKey in cs)) continue
         const col = colById.get(newId) || {}
-        const slug = isSafeSlug(col.slug) ? col.slug : null
+        const slug = isSafeSlug(col?.slug) ? col.slug : null
 
         if (oldKey in ed) {
           const v = ed[oldKey]
@@ -857,31 +877,65 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
         }
       }
 
-      // 清理：刪掉所有“不是 id/安全 slug、也不是本次處理的舊鍵”的殘留（例如 "_"）
+      // 4.2 再把“其它版本”的舊鍵（同為 24HEX）按“排序位置”對齊到同一批新ID
+      //    思路：把本行未知的 24HEX 舊鍵排序，與 baseOldOpaque 的順序對位
+      const rowUnknown = Object.keys(ed).filter(k => !allowedNow.has(k))
+      const rowOpaque = rowUnknown.filter(isOpaqueId).sort()
+      if (effectiveLen && rowOpaque.length >= effectiveLen) {
+        for (let i = 0; i < effectiveLen; i++) {
+          const oldKey = rowOpaque[i]
+          const newId = targetIdsByOrder[i]
+          if (!newId) continue
+          const col = colById.get(newId) || {}
+          const slug = isSafeSlug(col?.slug) ? col.slug : null
+
+          const v = ed[oldKey]
+          if (v !== undefined) {
+            ed[newId] = v
+            if (slug) ed[slug] = v
+            delete ed[oldKey]
+            touched = true
+          }
+          const c = cs[oldKey]
+          if (c !== undefined) {
+            cs[newId] = c
+            if (slug) cs[slug] = c
+            delete cs[oldKey]
+            touched = true
+          }
+        }
+      }
+
+      // 4.3 清理：把非「新ID/安全slug」的殘留鍵全部移除（含 "_"、英文別名等）
       for (const k of Object.keys(ed)) {
-        if (!allowedSet.has(k) && !aliasOldKeys.has(k)) { delete ed[k]; touched = true }
+        if (!allowedNow.has(k)) { delete ed[k]; touched = true }
       }
       for (const k of Object.keys(cs)) {
-        if (!allowedSet.has(k) && !aliasOldKeys.has(k)) { delete cs[k]; touched = true }
+        if (!allowedNow.has(k)) { delete cs[k]; touched = true }
       }
 
       if (touched) {
         try {
           await updateDaily(clientId, platformId, row._id, { date: row.date, extraData: ed, colors: cs })
-        } catch (err) { console.error('更新失敗：', row._id, err) }
+        } catch (err) {
+          console.error('更新失敗：', row._id, err)
+        }
       }
       progress.value.done += 1
     }
 
-    toast.add({ severity: 'success', summary: '完成', detail: '映射已批量寫回（僅安全 slug 雙寫，並清除 "_" 等非法鍵）', life: 3000 })
-    mapDialogVisible.value = false
-    await loadDaily()
-
-    // 批量遷移完成後，alias 已無必要，清空以免下次覆蓋新ID
+    // 5) 批量遷移成功：清空 alias（以後只靠新ID/安全slug）
     fieldAliases.value = {}
     saveAliases()
-  } finally { applying.value = false }
+
+    toast.add({ severity: 'success', summary: '完成', detail: '已按第一筆模板對齊所有版本舊鍵，並清理殘留鍵', life: 3000 })
+    mapDialogVisible.value = false
+    await loadDaily()
+  } finally {
+    applying.value = false
+  }
 }
+
 
 
 
