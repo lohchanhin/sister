@@ -76,8 +76,8 @@
               <template #body="{ data }">
                 <Button link severity="primary" @click="openEdit(data)" label="編輯" />
                 <Button link severity="danger" @click="removeDaily(data)" label="刪除" />
-                <!-- 手動觸發：以當前第一筆樣本開啟匹配（若需要） -->
-                <Button link severity="secondary" @click="openMappingDialogFromFirstRow" label="字段匹配" />
+                <Button link severity="secondary" @click="openRemapDialogForRow(data)" label="字段匹配" />
+
               </template>
             </Column>
           </DataTable>
@@ -332,8 +332,8 @@ import { getPlatform } from '@/services/platforms'
 
 
 /** 嚴格以「第一筆資料」為準的重新匹配：
- * 只列出第一筆的 extraData/colors 中「不是當前新ID」的鍵（即舊鍵），
- * 即使這些鍵已經在 alias 中也會顯示，方便重新指定。
+ * 只列出第一筆 extraData 裡「不是當前新鍵（id/slug）」的鍵（= 舊鍵）。
+ * 不看 colors，不合併 alias，避免無關鍵亂入。
  */
 function openRemapDialog() {
   if (!adData.value.length) {
@@ -342,27 +342,30 @@ function openRemapDialog() {
   }
   const first = adData.value[0]
   const ed = first?.extraData || {}
-  const cs = first?.colors || {}
-  const newIds = new Set(customColumns.value.map(f => f.id))
 
-  // 只取「第一筆」出現過的鍵（含顏色鍵），且排除當前新ID（避免把已是新ID的鍵拿來匹配）
-  const keysInFirst = Array.from(new Set([...Object.keys(ed), ...Object.keys(cs)]))
-  const oldKeysOnly = keysInFirst.filter(k => !newIds.has(k))
+  // 允許集合：現有 id + slug（只要是這兩類都視為“新鍵”）
+  const idSet = new Set(customColumns.value.map(f => f.id))
+  const slugSet = new Set(customColumns.value.map(f => f.slug).filter(Boolean))
+  const allowed = new Set([...idSet, ...slugSet])
+
+  // 只拿第一筆 extraData 中，不屬於 allowed 的鍵（就是舊鍵）
+  const oldKeysOnly = Object.keys(ed).filter(k => !allowed.has(k))
 
   if (!oldKeysOnly.length) {
     toast.add({ severity: 'info', summary: '提示', detail: '第一笔资料没有需要匹配的旧键', life: 2200 })
     return
   }
 
-  // 帶入目前 alias 的預設對應（如果有），但列表只限於第一筆的鍵
+  // 帶出 alias 中已有的預設對應（若有）
   mapRows.value = oldKeysOnly.map(oldKey => ({
     oldKey,
-    sample: ed[oldKey] ?? '',                         // 以 extraData 的值當樣本
-    mappedId: (fieldAliases.value || {})[oldKey] || '' // 若之前配過就帶出，沒有就空
+    sample: ed[oldKey],
+    mappedId: (fieldAliases.value || {})[oldKey] || ''
   }))
 
   mapDialogVisible.value = true
 }
+
 
 
 
@@ -763,6 +766,26 @@ function getUnknownOldKeysFromRow(row) {
   return unknown
 }
 
+function openRemapDialogForRow(row) {
+  const ed = row?.extraData || {}
+  const idSet = new Set(customColumns.value.map(f => f.id))
+  const slugSet = new Set(customColumns.value.map(f => f.slug).filter(Boolean))
+  const allowed = new Set([...idSet, ...slugSet])
+
+  const oldKeysOnly = Object.keys(ed).filter(k => !allowed.has(k))
+  if (!oldKeysOnly.length) {
+    toast.add({ severity: 'info', summary: '提示', detail: '這筆資料沒有需要匹配的舊鍵', life: 2200 })
+    return
+  }
+  mapRows.value = oldKeysOnly.map(oldKey => ({
+    oldKey,
+    sample: ed[oldKey],
+    mappedId: (fieldAliases.value || {})[oldKey] || ''
+  }))
+  mapDialogVisible.value = true
+}
+
+
 function openMappingDialogFromFirstRow() {
   if (!adData.value.length) return
   const first = adData.value[0]
@@ -776,7 +799,7 @@ function openMappingDialogFromFirstRow() {
 }
 
 async function saveMappingFromFirstRow(writeBackAll = true) {
-  // 1) 組裝 alias
+  // 1) 收集映射
   const alias = {}
   for (const r of mapRows.value) {
     if (r.oldKey && r.mappedId) alias[r.oldKey] = r.mappedId
@@ -786,7 +809,7 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
     return
   }
 
-  // 2) 寫入本地別名（讓當前畫面立刻生效）
+  // 2) 本地 alias 立即生效（只為了當前畫面即時取值）
   fieldAliases.value = { ...(fieldAliases.value || {}), ...alias }
   saveAliases()
 
@@ -796,10 +819,15 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
     return
   }
 
-  // 3) 準備一個 {id -> 欄位物件} 快取，方便拿 slug
+  // 3) 準備：id -> 欄位，與“允許鍵集合”（所有 id + slug）
   const colById = new Map(customColumns.value.map(c => [c.id, c]))
+  const allowedSet = new Set([
+    ...customColumns.value.map(c => c.id),
+    ...customColumns.value.map(c => c.slug).filter(Boolean)
+  ])
+  const aliasOldKeys = new Set(Object.keys(alias)) // 本次已處理的舊鍵
 
-  // 4) 一次性把所有資料「舊鍵 → 新鍵」，並且 **同時寫入 slug**；策略：**總是覆蓋**
+  // 4) 批量寫回：舊鍵 → 新 id（並雙寫 slug），且「清理無關舊鍵」
   applying.value = true
   try {
     const need = adData.value.filter(r => {
@@ -813,27 +841,39 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
       const cs = { ...(row.colors || {}) }
       let touched = false
 
+      // 4.1 先做映射：總是覆蓋新 id，並雙寫 slug；然後刪除舊鍵
       for (const [oldKey, newId] of Object.entries(alias)) {
         if (!(oldKey in ed) && !(oldKey in cs)) continue
 
         const col = colById.get(newId) || {}
         const slug = col.slug || null
 
-        // 值與色票（如果有） —— 來源用舊鍵
-        const val = ed[oldKey]
-        const color = cs[oldKey]
-
-        // **總是覆蓋**：確保把最終值寫進新 id；並且也寫進 slug（若有）
         if (oldKey in ed) {
-          ed[newId] = val
-          if (slug) ed[slug] = val
-          delete ed[oldKey]
+          const v = ed[oldKey]
+          ed[newId] = v                 // 寫入新 id
+          if (slug) ed[slug] = v        // 同步寫入穩定 slug
+          delete ed[oldKey]             // 移除舊鍵
           touched = true
         }
         if (oldKey in cs) {
-          cs[newId] = color
-          if (slug) cs[slug] = color
+          const c = cs[oldKey]
+          cs[newId] = c
+          if (slug) cs[slug] = c
           delete cs[oldKey]
+          touched = true
+        }
+      }
+
+      // 4.2 清理：移除任何“既不是新 id/slug、也不是本次待映射”的殘留鍵（防止越改越多）
+      for (const k of Object.keys(ed)) {
+        if (!allowedSet.has(k) && !aliasOldKeys.has(k)) {
+          delete ed[k]
+          touched = true
+        }
+      }
+      for (const k of Object.keys(cs)) {
+        if (!allowedSet.has(k) && !aliasOldKeys.has(k)) {
+          delete cs[k]
           touched = true
         }
       }
@@ -852,13 +892,14 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
       progress.value.done += 1
     }
 
-    toast.add({ severity: 'success', summary: '完成', detail: '映射已保存並一口氣更新所有資料（已雙寫 id 與 slug）', life: 3000 })
+    toast.add({ severity: 'success', summary: '完成', detail: '映射已保存並批量寫回（雙寫 id/slug + 清理舊鍵）', life: 3000 })
     mapDialogVisible.value = false
-    await loadDaily() // 重新載入，之後即使 ID 再變，仍可靠 slug 正確顯示
+    await loadDaily()
   } finally {
     applying.value = false
   }
 }
+
 
 
 /* 先嘗試自動；若第一筆樣本仍有未知舊鍵，就彈窗（只需匹配一次） */
