@@ -17,6 +17,10 @@ npm start                 # 啟動伺服器
 若舊有廣告資料含有 "RM" 前綴的數字字串，可執行
 `npm run sanitize-ad-daily` 將其批次轉為數字。
 
+如需同步平台欄位 ID 與廣告資料，可執行
+`npm run migrate:platform-data`，執行後會於 `src/scripts`
+產生 `migrate-platform-report.json`，記錄無法匹配的欄位。
+
 預設登入資訊如下：
 
 | 帳號 | 密碼  | 角色 |
