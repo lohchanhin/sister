@@ -11,21 +11,36 @@ const formulaPattern = /^[0-9+\-*/().\s_a-zA-Z]+$/
 const varPattern = /[a-zA-Z_][a-zA-Z0-9_]*/g
 const slugPattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/
 
-/** 仅用于缺省 slug 的降级生成（显示名可中文，slug 不可） */
-const slugify = s => s?.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')
+/**
+ * 根据名称生成 slug；若名称不含合法字元或重复，则返回唯一的 f_1、f_2…
+ * @param {string} s 名称
+ * @param {Set} exist 已存在的 slug 集合
+ */
+const slugify = (s, exist = new Set()) => {
+  let base = s?.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+  if (!base || !slugPattern.test(base) || exist.has(base)) {
+    let i = 1
+    while (exist.has(`f_${i}`)) i++
+    base = `f_${i}`
+  }
+  exist.add(base)
+  return base
+}
 
 /** —— 校验并标准化字段集合 —— */
 const validateFields = (fields) => {
-  if (!Array.isArray(fields)) return []
+  const messages = []
+  if (!Array.isArray(fields)) return { fields: [], messages }
 
   // 1) 预处理 slug
   const slugs = new Set()
   for (const f of fields) {
-    f.slug = f.slug || slugify(f.name)
-    if (!f.slug || !slugPattern.test(f.slug) || slugs.has(f.slug)) {
-      throw new Error('INVALID_FORMULA') // 统一沿用现有错误码
+    const original = f.slug
+    f.slug = slugify(original || f.name, slugs)
+    if (original && original !== f.slug) {
+      messages.push(`${original} 已被替換為 ${f.slug}`)
     }
-    slugs.add(f.slug)
   }
 
   // 2) 校验公式：语法 + 变量名必须存在于 slugs
@@ -39,7 +54,7 @@ const validateFields = (fields) => {
       if (!slugs.has(v)) throw new Error('INVALID_FORMULA')
     }
   }
-  return fields
+  return { fields, messages }
 }
 
 /** 将字段列表标准化：id → string，保留 name/slug/type/order/formula */
@@ -62,8 +77,8 @@ const oneCacheKey  = (id)       => `platform:${id}`
 export const createPlatform = async (req, res) => {
   try {
     const { name, platformType, fields, mode } = req.body
-    validateFields(fields)
-    const normalized = normalizeFields(fields)
+    const { fields: validated, messages } = validateFields(fields)
+    const normalized = normalizeFields(validated)
 
     const platform = await Platform.create({
       name,
@@ -74,7 +89,7 @@ export const createPlatform = async (req, res) => {
     })
 
     await clearCacheByPrefix('platforms:')
-    res.status(201).json(platform)
+    res.status(201).json({ ...platform.toObject(), messages })
   } catch (err) {
     if (err.message === 'INVALID_FORMULA') {
       return res.status(400).json({ message: t('INVALID_FORMULA') })
@@ -111,8 +126,8 @@ export const getPlatform = async (req, res) => {
 export const updatePlatform = async (req, res) => {
   try {
     const { name, platformType, fields, mode } = req.body
-    validateFields(fields)
-    const normalized = normalizeFields(fields)
+    const { fields: validated, messages } = validateFields(fields)
+    const normalized = normalizeFields(validated)
 
     const p = await Platform.findOneAndUpdate(
       { _id: req.params.id, clientId: req.params.clientId },
@@ -123,7 +138,7 @@ export const updatePlatform = async (req, res) => {
 
     await clearCacheByPrefix('platforms:')
     await delCache(oneCacheKey(req.params.id))
-    res.json(p)
+    res.json({ ...p.toObject(), messages })
   } catch (err) {
     if (err.message === 'INVALID_FORMULA') {
       return res.status(400).json({ message: t('INVALID_FORMULA') })
@@ -147,7 +162,7 @@ export const renamePlatformField = async (req, res) => {
       return res.status(400).json({ message: t('PARAMS_ERROR') })
     }
     if (!slugPattern.test(slug)) {
-      return res.status(400).json({ message: t('INVALID_FORMULA') })
+      return res.status(400).json({ code: 'SLUG_INVALID', message: t('SLUG_INVALID') })
     }
 
     const platform = await Platform.findOne({ _id: req.params.id, clientId: req.params.clientId })
@@ -159,7 +174,7 @@ export const renamePlatformField = async (req, res) => {
 
     // slug 唯一性
     if (platform.fields.some(f => f.slug === slug && String(f.id) !== String(id))) {
-      return res.status(409).json({ message: t('INVALID_FORMULA') })
+      return res.status(409).json({ code: 'SLUG_DUPLICATE', message: t('SLUG_DUPLICATE') })
     }
 
     const oldSlug = field.slug

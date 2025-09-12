@@ -178,6 +178,41 @@ describe('Platform API', () => {
     expect(resGood.body.fields[1]).toMatchObject({ name: 'b', type: 'formula', formula: 'a + 1' })
   })
 
+  it('auto slugifies chinese, number start and duplicate slugs', async () => {
+    const res = await request(app)
+      .post(`/api/clients/${clientId}/platforms`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Auto',
+        fields: [
+          { name: '中文名稱', type: 'text' },
+          { name: '123abc', slug: '1abc', type: 'text' },
+          { name: 'dup1', slug: 'same', type: 'text' },
+          { name: 'dup2', slug: 'same', type: 'text' }
+        ]
+      })
+      .expect(201)
+    expect(res.body.fields.map(f => f.slug)).toEqual(['f_1', 'f_2', 'same', 'f_3'])
+    expect(res.body.messages.length).toBe(2)
+  })
+
+  it('update platform auto fixes invalid slug', async () => {
+    const created = await request(app)
+      .post(`/api/clients/${clientId}/platforms`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Upd', fields: [{ name: 'a', slug: 'a', type: 'text' }] })
+      .expect(201)
+    const id = created.body._id
+
+    const res = await request(app)
+      .put(`/api/clients/${clientId}/platforms/${id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Upd', fields: [{ name: 'a', slug: '1a', type: 'text' }] })
+      .expect(200)
+    expect(res.body.fields[0].slug).toBe('f_1')
+    expect(res.body.messages.length).toBe(1)
+  })
+
   it('transfer platform to another client', async () => {
     const resNewClient = await request(app)
       .post('/api/clients')

@@ -86,4 +86,54 @@ describe('rename platform field', () => {
       .expect(200)
     expect(platform.body.fields[0]).toMatchObject({ id: 'old', name: 'New', slug: 'new' })
   })
+
+  it('rejects invalid slug format', async () => {
+    const clientRes = await request(app)
+      .post('/api/clients')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'ClientB' })
+      .expect(201)
+    const cid = clientRes.body._id
+
+    const platformRes = await request(app)
+      .post(`/api/clients/${cid}/platforms`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Meta', fields: [{ id: 'a', name: 'A', slug: 'a', type: 'text' }] })
+      .expect(201)
+
+    const res = await request(app)
+      .put(`/api/clients/${cid}/platforms/${platformRes.body._id}/rename-field`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ id: 'a', name: 'A', slug: '1a' })
+      .expect(400)
+    expect(res.body.code).toBe('SLUG_INVALID')
+  })
+
+  it('rejects duplicate slug', async () => {
+    const clientRes = await request(app)
+      .post('/api/clients')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'ClientC' })
+      .expect(201)
+    const cid = clientRes.body._id
+
+    const platformRes = await request(app)
+      .post(`/api/clients/${cid}/platforms`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Meta',
+        fields: [
+          { id: 'a', name: 'A', slug: 'a', type: 'text' },
+          { id: 'b', name: 'B', slug: 'b', type: 'text' }
+        ]
+      })
+      .expect(201)
+
+    const res = await request(app)
+      .put(`/api/clients/${cid}/platforms/${platformRes.body._id}/rename-field`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ id: 'b', name: 'B', slug: 'a' })
+      .expect(409)
+    expect(res.body.code).toBe('SLUG_DUPLICATE')
+  })
 })
