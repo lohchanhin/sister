@@ -864,7 +864,8 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
     toast.add({ severity: 'warn', summary: '提醒', detail: '請至少設定 1 條映射', life: 2200 })
     return
   }
-  // 2) 寫入本地別名
+
+  // 2) 寫入本地別名（讓當前畫面立刻生效）
   fieldAliases.value = { ...(fieldAliases.value || {}), ...alias }
   saveAliases()
 
@@ -874,7 +875,10 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
     return
   }
 
-  // 3) 一次性寫回所有資料（舊鍵 -> 新鍵）
+  // 3) 準備一個 {id -> 欄位物件} 快取，方便拿 slug
+  const colById = new Map(customColumns.value.map(c => [c.id, c]))
+
+  // 4) 一次性把所有資料「舊鍵 → 新鍵」，並且 **同時寫入 slug**；策略：**總是覆蓋**
   applying.value = true
   try {
     const need = adData.value.filter(r => {
@@ -889,14 +893,25 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
       let touched = false
 
       for (const [oldKey, newId] of Object.entries(alias)) {
+        if (!(oldKey in ed) && !(oldKey in cs)) continue
+
+        const col = colById.get(newId) || {}
+        const slug = col.slug || null
+
+        // 值與色票（如果有） —— 來源用舊鍵
+        const val = ed[oldKey]
+        const color = cs[oldKey]
+
+        // **總是覆蓋**：確保把最終值寫進新 id；並且也寫進 slug（若有）
         if (oldKey in ed) {
-          // 策略：新鍵無值才覆蓋；如需「總是覆蓋」，改成：ed[newId] = ed[oldKey]
-          if (!(newId in ed)) ed[newId] = ed[oldKey]
+          ed[newId] = val
+          if (slug) ed[slug] = val
           delete ed[oldKey]
           touched = true
         }
         if (oldKey in cs) {
-          if (!(newId in cs)) cs[newId] = cs[oldKey]
+          cs[newId] = color
+          if (slug) cs[slug] = color
           delete cs[oldKey]
           touched = true
         }
@@ -916,13 +931,14 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
       progress.value.done += 1
     }
 
-    toast.add({ severity: 'success', summary: '完成', detail: '映射已保存並一口氣更新所有資料', life: 3000 })
+    toast.add({ severity: 'success', summary: '完成', detail: '映射已保存並一口氣更新所有資料（已雙寫 id 與 slug）', life: 3000 })
     mapDialogVisible.value = false
-    await loadDaily()
+    await loadDaily() // 重新載入，之後即使 ID 再變，仍可靠 slug 正確顯示
   } finally {
     applying.value = false
   }
 }
+
 
 /* 先嘗試自動；若第一筆樣本仍有未知舊鍵，就彈窗（只需匹配一次） */
 function bootMappingFromFirstRow() {
