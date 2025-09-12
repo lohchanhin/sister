@@ -34,6 +34,8 @@
             <DatePicker v-model="endDate" placeholder="結束日期" />
             <Button label="匯出" size="small" @click="exportDaily" />
             <Button label="新增記錄" @click="openCreateDialog" />
+            <Button label="字段重新匹配" size="small" outlined @click="openRemapDialog" />
+
             <Button icon="pi pi-info-circle" link size="small" @click="showHelp = true" />
           </div>
         </div>
@@ -405,6 +407,43 @@ import {
   getWeeklyNoteImageUrl
 } from '@/services/weeklyNotes'
 import { getPlatform } from '@/services/platforms'
+
+
+/** 強制重新匹配：不論目前是否已有 alias，都彈窗讓你重選。
+ * 會以「第一筆 row 的 extraData」與「當前已保存的 alias」做聯集，帶出所有可改的舊鍵。
+ */
+function openRemapDialog() {
+  // 取得第一筆資料（若沒有資料也允許只用 alias 重配）
+  const first = adData.value?.[0] || {}
+  const ed = first?.extraData || {}
+
+  // 新ID集合（平台字段）
+  const newIds = new Set(customColumns.value.map(f => f.id))
+
+  // 來自當前資料的舊鍵（第一筆 row 中，在 extraData 里但不屬於新ID）
+  const oldKeysFromRow = Object.keys(ed).filter(k => !newIds.has(k))
+
+  // 來自既有別名的舊鍵（已經映射過的也允許改）
+  const aliasKeys = Object.keys(fieldAliases.value || {})
+
+  // 聯集（保持順序：先以資料中出現的舊鍵，再補既有 alias 中的舊鍵）
+  const allOldKeys = Array.from(new Set([...oldKeysFromRow, ...aliasKeys]))
+
+  if (!allOldKeys.length) {
+    toast.add({ severity: 'info', summary: '提示', detail: '沒有可重新匹配的舊鍵（本行已全部使用新ID）', life: 2200 })
+    return
+  }
+
+  // 構建對話窗 rows：預設 mappedId 用現有 alias；樣本值取第一筆的值（沒有則空字串）
+  mapRows.value = allOldKeys.map(oldKey => ({
+    oldKey,
+    sample: ed[oldKey] ?? '',
+    mappedId: (fieldAliases.value || {})[oldKey] || ''
+  }))
+
+  mapDialogVisible.value = true
+}
+
 
 /**** ---------------------------------------------------- 路由 / 狀態 ---------------------------------------------------- ****/
 const route = useRoute()
