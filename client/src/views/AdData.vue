@@ -532,47 +532,84 @@ const formatWeekRange = (w) => {
   const end = start.endOf('isoWeek')
   return `${start.format('YYYY/MM/DD')} - ${end.format('YYYY/MM/DD')}`
 }
+/**** ---------------------------------------------------- 週彙總（正確版：先累加數值欄，再用週累計計公式） ---------------------------------------------------- ****/
 const weeklyAgg = computed(() => {
-  const map = {}
+  const weekMap = new Map()
+
+  // 分出數值欄與公式欄；公式欄按 order 排，支援連環公式
+  const numberFields = customColumns.value.filter(f => f.type === 'number')
+  const formulaFieldsOnly = customColumns.value
+    .filter(f => f.type === 'formula')
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+
+  // 1) 逐日累加「數值欄」到每週
   adData.value.forEach(d => {
-    const week = toWeekKey(d.date)
-    if (!map[week]) {
-      map[week] = { week }
-      numericColumns.value.forEach(f => { map[week][keyOf(f)] = 0 })
+    const wk = toWeekKey(d.date)
+    if (!weekMap.has(wk)) {
+      const row = { week: wk }
+      numberFields.forEach(f => { row[keyOf(f)] = 0 })
+      weekMap.set(wk, row)
     }
-    numericColumns.value.forEach(f => {
-      const raw = f.type === 'formula' ? valByFieldWithFormula(d, f) : valByField(d, f)
-      const num = isStrictNumber(raw) ? raw : (looksNumericString(raw) ? Number(raw) : 0)
-      map[week][keyOf(f)] += Number.isFinite(num) ? num : 0
+    const agg = weekMap.get(wk)
+    numberFields.forEach(f => {
+      const raw = valByField(d, f)
+      const n = isStrictNumber(raw) ? raw : (looksNumericString(raw) ? Number(raw) : 0)
+      agg[keyOf(f)] += Number.isFinite(n) ? n : 0
     })
   })
-  Object.keys(map).forEach(w => {
-    const note = weeklyNotes.value[w]
-    map[w].note = note?.text || ''
-    map[w].hasNote = !!(note && note.text)
-    map[w].hasImage = !!(note && note.images && note.images.length)
-    map[w].images = note?.images || []
+
+  // 2) 用「週累計」去計算每週的「公式欄」
+  weekMap.forEach(agg => {
+    // 建立給公式用的變數表：以 slug/name/id 為鍵，值為「週累計」
+    const vars = {}
+    customColumns.value.forEach(f => {
+      const k = f.slug || f.name || f.id
+      if (f.type === 'number') vars[k] = Number(agg[keyOf(f)] ?? 0)
+      else vars[k] = 0
+    })
+
+    formulaFieldsOnly.forEach(f => {
+      const v = evalFormula(f.formula, vars)
+      const n = Number(v)
+      agg[keyOf(f)] = Number.isFinite(n) ? n : 0   // 分母為 0 或無效時給 0
+      vars[f.slug || f.name || f.id] = agg[keyOf(f)]
+    })
   })
-  Object.keys(weeklyNotes.value).forEach(w => {
-    if (!map[w]) {
-      const note = weeklyNotes.value[w]
-      map[w] = { week: w }
-      numericColumns.value.forEach(f => { map[w][keyOf(f)] = 0 })
-      map[w].note = note?.text || ''
-      map[w].hasNote = !!(note && note.text)
-      map[w].hasImage = !!(note && note.images && note.images.length)
-      map[w].images = note?.images || []
+
+  // 3) 只有備註沒有每日資料，也要補一筆（數值 0，公式以 0 計）
+  Object.keys(weeklyNotes.value).forEach(wk => {
+    if (!weekMap.has(wk)) {
+      const row = { week: wk }
+      numberFields.forEach(f => { row[keyOf(f)] = 0 })
+      // 依 0 計算一次所有公式欄
+      const vars = {}
+      customColumns.value.forEach(f => { vars[f.slug || f.name || f.id] = 0 })
+      formulaFieldsOnly.forEach(f => {
+        const v = evalFormula(f.formula, vars)
+        row[keyOf(f)] = Number.isFinite(v) ? Number(v) : 0
+        vars[f.slug || f.name || f.id] = row[keyOf(f)]
+      })
+      weekMap.set(wk, row)
     }
   })
-  const arr = Object.values(map)
-  arr.forEach(weekRow => {
-    numericColumns.value.forEach(f => {
+
+  // 4) 合併週備註 / 圖片 + 四捨五入到兩位
+  weekMap.forEach((row, wk) => {
+    const note = weeklyNotes.value[wk]
+    row.note = note?.text || ''
+    row.hasNote = !!(note && note.text)
+    row.hasImage = !!(note && note.images && note.images.length)
+    row.images = note?.images || []
+    customColumns.value.forEach(f => {
       const k = keyOf(f)
-      if (typeof weekRow[k] === 'number') weekRow[k] = Number(weekRow[k].toFixed(2))
+      if (typeof row[k] === 'number') row[k] = Number(row[k].toFixed(2))
     })
   })
-  return arr.sort((a, b) => a.week.localeCompare(b.week))
+
+  // 5) 排序輸出
+  return [...weekMap.values()].sort((a, b) => a.week.localeCompare(b.week))
 })
+
 
 /**** ------------------ 折線圖 ------------------ ****/
 const yMetric = ref('')
