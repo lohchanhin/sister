@@ -418,17 +418,18 @@ const saveAliases = () => {
 }
 
 /**** ---------------------------------------------------- 取值器（支援 alias + 多候選鍵 + 公式顯示） ---------------------------------------------------- ****/
-/* 從一筆 daily row 中，根據欄位物件嘗試：別名舊鍵 -> id -> slug -> name -> slugify(name) */
+const isPlainKey = (k) => typeof k === 'string' && /^[a-z0-9_]{3,}$/i.test(k)
+
 const valByField = (row, f) => {
   const ed = row?.extraData || row || {}
-  const isRoot = !row?.extraData
-  // 先走別名：找出映射到此新欄位ID的舊 Key
+  // 1) alias（舊鍵→新id）
   for (const [oldKey, newId] of Object.entries(fieldAliases.value || {})) {
-    const k = isRoot ? oldKey.replace(/^extraData\./, '') : oldKey
-    if (newId === f.id && k in ed) return ed[k]
+    if (newId === f.id && oldKey in ed) return ed[oldKey]
   }
-  // 再走多候選鍵
-  const cands = [f?.id, f?.slug, f?.name, slugify(f?.name || '')].filter(Boolean)
+  // 2) 候選：id → 安全 slug →（可選）英文名
+  const cands = [f?.id]
+  if (isSafeSlug(f?.slug)) cands.push(f.slug)
+  if (isPlainKey(f?.name)) cands.push(f.name) // 僅英文/數字鍵
   for (const k of cands) if (k in ed) return ed[k]
   return ''
 }
@@ -438,10 +439,13 @@ const colorByField = (row, f) => {
   for (const [oldKey, newId] of Object.entries(fieldAliases.value || {})) {
     if (newId === f.id && oldKey in cs) return cs[oldKey]
   }
-  const cands = [f?.id, f?.slug, f?.name, slugify(f?.name || '')].filter(Boolean)
+  const cands = [f?.id]
+  if (isSafeSlug(f?.slug)) cands.push(f.slug)
+  if (isPlainKey(f?.name)) cands.push(f.name)
   for (const k of cands) if (k in cs) return cs[k]
   return ''
 }
+
 
 /* 公式顯示（按行即時計算，不依賴資料已存入的值） */
 const formulaPattern = /^[0-9+\-*/().\s_a-zA-Z]+$/
@@ -688,7 +692,10 @@ const formatNote = text => {
 }
 
 /**** ---------------------------------------------------- 載入資料 ---------------------------------------------------- ****/
+const isSafeSlug = (s) => typeof s === 'string' && /^[a-z][a-z0-9_]{2,}$/.test(s)
+
 const loadPlatform = async () => {
+  
   platform.value = await getPlatform(clientId, platformId)
   customColumns.value = (platform.value?.fields || [])
     .map(f =>
@@ -697,7 +704,7 @@ const loadPlatform = async () => {
         : {
           id: f.id || slugify(f.name),
           name: f.name,
-          slug: f.slug || slugify(f.name),
+          slug: isSafeSlug(f.slug) ? f.slug : null,
           type: f.type || 'text',
           order: f.order || 0,
           formula: f.formula || ''
@@ -799,6 +806,77 @@ function openMappingDialogFromFirstRow() {
 }
 
 async function saveMappingFromFirstRow(writeBackAll = true) {
+  const alias = {}
+  for (const r of mapRows.value) if (r.oldKey && r.mappedId) alias[r.oldKey] = r.mappedId
+  if (!Object.keys(alias).length) {
+    toast.add({ severity: 'warn', summary: '提醒', detail: '請至少設定 1 條映射', life: 2200 })
+    return
+  }
+
+  fieldAliases.value = { ...(fieldAliases.value || {}), ...alias }
+  saveAliases()
+  if (!writeBackAll) { mapDialogVisible.value = false; toast.add({ severity:'success', summary:'已保存', detail:'映射已生效（未寫回後端）', life:2200 }); return }
+
+  const colById = new Map(customColumns.value.map(c => [c.id, c]))
+  const allowedSet = new Set([
+    ...customColumns.value.map(c => c.id),
+    ...customColumns.value.map(c => c.slug).filter(isSafeSlug) // 只接受安全 slug
+  ])
+  const aliasOldKeys = new Set(Object.keys(alias))
+
+  applying.value = true
+  try {
+    const need = adData.value.filter(r => Object.keys(alias).some(k => k in (r?.extraData || {})))
+    progress.value = { total: need.length, done: 0 }
+
+    for (const row of need) {
+      const ed = { ...(row.extraData || {}) }
+      const cs = { ...(row.colors || {}) }
+      let touched = false
+
+      // 映射：覆蓋新 id；slug 只有在安全時才雙寫；刪除舊鍵
+      for (const [oldKey, newId] of Object.entries(alias)) {
+        if (!(oldKey in ed) && !(oldKey in cs)) continue
+        const col  = colById.get(newId) || {}
+        const slug = isSafeSlug(col.slug) ? col.slug : null
+
+        if (oldKey in ed) {
+          const v = ed[oldKey]
+          ed[newId] = v
+          if (slug) ed[slug] = v
+          delete ed[oldKey]
+          touched = true
+        }
+        if (oldKey in cs) {
+          const c = cs[oldKey]
+          cs[newId] = c
+          if (slug) cs[slug] = c
+          delete cs[oldKey]
+          touched = true
+        }
+      }
+
+      // 清理：刪掉所有“不是 id/安全 slug、也不是本次處理的舊鍵”的殘留（例如 "_"）
+      for (const k of Object.keys(ed)) {
+        if (!allowedSet.has(k) && !aliasOldKeys.has(k)) { delete ed[k]; touched = true }
+      }
+      for (const k of Object.keys(cs)) {
+        if (!allowedSet.has(k) && !aliasOldKeys.has(k)) { delete cs[k]; touched = true }
+      }
+
+      if (touched) {
+        try {
+          await updateDaily(clientId, platformId, row._id, { date: row.date, extraData: ed, colors: cs })
+        } catch (err) { console.error('更新失敗：', row._id, err) }
+      }
+      progress.value.done += 1
+    }
+
+    toast.add({ severity:'success', summary:'完成', detail:'映射已批量寫回（僅安全 slug 雙寫，並清除 "_" 等非法鍵）', life:3000 })
+    mapDialogVisible.value = false
+    await loadDaily()
+  } finally { applying.value = false }
+}
   // 1) 收集映射
   const alias = {}
   for (const r of mapRows.value) {
