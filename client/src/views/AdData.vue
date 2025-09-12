@@ -388,6 +388,23 @@ const allowedNowSet = () => new Set([
   ...customColumns.value.map(c => stableKeyOfField(c)).filter(Boolean)
 ])
 
+// 將物件中的舊鍵轉為新ID並移除不允許的鍵
+const canonicalizeExtra = (data = {}) => {
+  const allowed = allowedNowSet()
+  const result = {}
+  // 先保留已存在且合法的鍵
+  for (const [k, v] of Object.entries(data || {})) {
+    if (allowed.has(k)) result[k] = v
+  }
+  // 再處理別名：舊鍵 -> 新ID
+  for (const [oldKey, newId] of Object.entries(fieldAliases.value || {})) {
+    if (oldKey in (data || {}) && allowed.has(newId) && !(newId in result)) {
+      result[newId] = data[oldKey]
+    }
+  }
+  return result
+}
+
 //「沒有資料的記錄」判定：無 extraData、無 colors，且根層常見統計皆為 0
 const isTrulyEmptyRow = (row) => {
   const ed = row?.extraData
@@ -1046,11 +1063,16 @@ const handleConfirm = async () => {
     toast.add({ severity: 'warn', summary: '警告', detail: '請選擇日期', life: 3000 }); return
   }
   try {
+    const payload = {
+      ...recordForm.value,
+      extraData: canonicalizeExtra(recordForm.value.extraData),
+      colors: canonicalizeExtra(recordForm.value.colors)
+    }
     if (editing.value) {
-      await updateDaily(clientId, platformId, editingId.value, { ...recordForm.value })
+      await updateDaily(clientId, platformId, editingId.value, payload)
       toast.add({ severity: 'success', summary: '成功', detail: '已更新記錄', life: 3000 })
     } else {
-      await createDaily(clientId, platformId, { ...recordForm.value })
+      await createDaily(clientId, platformId, payload)
       toast.add({ severity: 'success', summary: '成功', detail: '已新增記錄', life: 3000 })
     }
     dialogVisible.value = false
@@ -1063,8 +1085,8 @@ const openEdit = row => {
   editing.value = true
   editingId.value = row._id
   recordForm.value.date = row.date
-  recordForm.value.extraData = { ...(row.extraData || {}) }
-  recordForm.value.colors = { ...(row.colors || {}) }
+  recordForm.value.extraData = canonicalizeExtra(row.extraData || {})
+  recordForm.value.colors = canonicalizeExtra(row.colors || {})
   recalcFormulas()
   dialogVisible.value = true
 }
