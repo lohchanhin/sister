@@ -1,3 +1,4 @@
+// platform.controller.js
 import { t } from '../i18n/messages.js'
 import Platform from '../models/platform.model.js'
 import AdDaily from '../models/adDaily.model.js'
@@ -5,48 +6,65 @@ import WeeklyNote from '../models/weeklyNote.model.js'
 import { getCache, setCache, delCache, clearCacheByPrefix } from '../utils/cache.js'
 import mongoose from 'mongoose'
 
+/** 公式/slug 校验（仅英文字母/数字/下划线；变量名以字母或 _ 开头） */
 const formulaPattern = /^[0-9+\-*/().\s_a-zA-Z]+$/
+const varPattern = /[a-zA-Z_][a-zA-Z0-9_]*/g
 const slugPattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/
-const slugify = s => s.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')
 
-const validateFields = fields => {
+/** 仅用于缺省 slug 的降级生成（显示名可中文，slug 不可） */
+const slugify = s => s?.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')
+
+/** —— 校验并标准化字段集合 —— */
+const validateFields = (fields) => {
   if (!Array.isArray(fields)) return []
+
+  // 1) 预处理 slug
   const slugs = new Set()
   for (const f of fields) {
     f.slug = f.slug || slugify(f.name)
     if (!f.slug || !slugPattern.test(f.slug) || slugs.has(f.slug)) {
-      throw new Error('INVALID_FORMULA')
+      throw new Error('INVALID_FORMULA') // 统一沿用现有错误码
     }
     slugs.add(f.slug)
   }
+
+  // 2) 校验公式：语法 + 变量名必须存在于 slugs
   for (const f of fields) {
-    if (f.formula) {
-      if (!formulaPattern.test(f.formula)) {
-        throw new Error('INVALID_FORMULA')
-      }
-      const vars = f.formula.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || []
-      for (const v of vars) {
-        if (!slugs.has(v)) {
-          throw new Error('INVALID_FORMULA')
-        }
-      }
+    if (!f.formula) continue
+    if (!formulaPattern.test(f.formula)) {
+      throw new Error('INVALID_FORMULA')
+    }
+    const vars = f.formula.match(varPattern) || []
+    for (const v of vars) {
+      if (!slugs.has(v)) throw new Error('INVALID_FORMULA')
     }
   }
   return fields
 }
 
+/** 将字段列表标准化：id → string，保留 name/slug/type/order/formula */
+const normalizeFields = (fields = []) =>
+  fields.map(f => ({
+    id: String(f.id || new mongoose.Types.ObjectId()),
+    name: f.name,
+    slug: f.slug,
+    type: f.type,
+    order: f.order,
+    formula: f.formula
+  }))
+
+/** 缓存键工具 */
+const listCacheKey = (clientId) => `platforms:${clientId}`
+const oneCacheKey  = (id)       => `platform:${id}`
+
+/** ─────────────────────────── Controllers ─────────────────────────── */
+
 export const createPlatform = async (req, res) => {
   try {
     const { name, platformType, fields, mode } = req.body
     validateFields(fields)
-    const normalized = (fields || []).map(f => ({
-      id: f.id || new mongoose.Types.ObjectId().toString(),
-      name: f.name,
-      slug: f.slug,
-      type: f.type,
-      order: f.order,
-      formula: f.formula
-    }))
+    const normalized = normalizeFields(fields)
+
     const platform = await Platform.create({
       name,
       platformType,
@@ -54,6 +72,7 @@ export const createPlatform = async (req, res) => {
       mode,
       clientId: req.params.clientId
     })
+
     await clearCacheByPrefix('platforms:')
     res.status(201).json(platform)
   } catch (err) {
@@ -68,20 +87,23 @@ export const createPlatform = async (req, res) => {
 }
 
 export const getPlatforms = async (req, res) => {
-  const cacheKey = `platforms:${req.params.clientId}`
+  const cacheKey = listCacheKey(req.params.clientId)
   const cached = await getCache(cacheKey)
   if (cached) return res.json(cached)
+
   const list = await Platform.find({ clientId: req.params.clientId })
   await setCache(cacheKey, list)
   res.json(list)
 }
 
 export const getPlatform = async (req, res) => {
-  const cacheKey = `platform:${req.params.id}`
+  const cacheKey = oneCacheKey(req.params.id)
   const cached = await getCache(cacheKey)
   if (cached) return res.json(cached)
+
   const p = await Platform.findOne({ _id: req.params.id, clientId: req.params.clientId })
   if (!p) return res.status(404).json({ message: t('PLATFORM_NOT_FOUND') })
+
   await setCache(cacheKey, p)
   res.json(p)
 }
@@ -90,22 +112,17 @@ export const updatePlatform = async (req, res) => {
   try {
     const { name, platformType, fields, mode } = req.body
     validateFields(fields)
-    const normalized = (fields || []).map(f => ({
-      id: f.id || new mongoose.Types.ObjectId().toString(),
-      name: f.name,
-      slug: f.slug,
-      type: f.type,
-      order: f.order,
-      formula: f.formula
-    }))
+    const normalized = normalizeFields(fields)
+
     const p = await Platform.findOneAndUpdate(
       { _id: req.params.id, clientId: req.params.clientId },
       { name, platformType, fields: normalized, mode },
       { new: true }
     )
     if (!p) return res.status(404).json({ message: t('PLATFORM_NOT_FOUND') })
+
     await clearCacheByPrefix('platforms:')
-    await delCache(`platform:${req.params.id}`)
+    await delCache(oneCacheKey(req.params.id))
     res.json(p)
   } catch (err) {
     if (err.message === 'INVALID_FORMULA') {
@@ -118,56 +135,76 @@ export const updatePlatform = async (req, res) => {
   }
 }
 
+/**
+ * 重命名单个字段 slug / name，并同步：
+ * 1) 修正同平台内所有公式里的变量名
+ * 2) 将 AdDaily.extraData/colors 的 oldSlug → newSlug（$rename）
+ */
 export const renamePlatformField = async (req, res) => {
-  const { id, name, slug } = req.body
-  if (!id || !slug) {
-    return res.status(400).json({ message: t('PARAMS_ERROR') })
-  }
-  if (!slugPattern.test(slug)) {
-    return res.status(400).json({ message: t('INVALID_FORMULA') })
-  }
-  const platform = await Platform.findOne({ _id: req.params.id, clientId: req.params.clientId })
-  if (!platform) return res.status(404).json({ message: t('PLATFORM_NOT_FOUND') })
-  const field = platform.fields?.find(f => f.id === id)
-  if (!field) return res.status(404).json({ message: t('RECORD_NOT_FOUND') })
-
-  if (platform.fields.some(f => f.slug === slug && f.id !== id)) {
-    return res.status(409).json({ message: t('INVALID_FORMULA') })
-  }
-
-  const oldSlug = field.slug
-  field.name = name
-  field.slug = slug
-
-  if (oldSlug !== slug) {
-    for (const f of platform.fields) {
-      if (f.formula) {
-        f.formula = f.formula.replace(new RegExp(`\\b${oldSlug}\\b`, 'g'), slug)
-      }
+  try {
+    const { id, name, slug } = req.body
+    if (!id || !slug) {
+      return res.status(400).json({ message: t('PARAMS_ERROR') })
     }
-  }
+    if (!slugPattern.test(slug)) {
+      return res.status(400).json({ message: t('INVALID_FORMULA') })
+    }
 
-  await platform.save()
-  if (oldSlug !== slug) {
-    await AdDaily.updateMany(
-      { platformId: req.params.id },
-      {
-        $rename: {
-          [`extraData.${oldSlug}`]: `extraData.${slug}`,
-          [`colors.${oldSlug}`]: `colors.${slug}`
+    const platform = await Platform.findOne({ _id: req.params.id, clientId: req.params.clientId })
+    if (!platform) return res.status(404).json({ message: t('PLATFORM_NOT_FOUND') })
+
+    // 用字符串比较，兼容历史 ObjectId / string 混用
+    const field = platform.fields?.find(f => String(f.id) === String(id))
+    if (!field) return res.status(404).json({ message: t('RECORD_NOT_FOUND') })
+
+    // slug 唯一性
+    if (platform.fields.some(f => f.slug === slug && String(f.id) !== String(id))) {
+      return res.status(409).json({ message: t('INVALID_FORMULA') })
+    }
+
+    const oldSlug = field.slug
+    field.name = name
+    field.slug = slug
+
+    // 公式中的变量名同步替换
+    if (oldSlug !== slug) {
+      for (const f of platform.fields) {
+        if (f.formula) {
+          f.formula = f.formula.replace(new RegExp(`\\b${oldSlug}\\b`, 'g'), slug)
         }
       }
-    )
+    }
+
+    await platform.save()
+
+    // 历史数据字段重命名
+    if (oldSlug !== slug) {
+      await AdDaily.updateMany(
+        { platformId: req.params.id },
+        {
+          $rename: {
+            [`extraData.${oldSlug}`]: `extraData.${slug}`,
+            [`colors.${oldSlug}`]: `colors.${slug}`
+          }
+        }
+      )
+    }
+
+    await clearCacheByPrefix('platforms:')
+    await delCache(oneCacheKey(req.params.id))
+    res.json(platform)
+  } catch (err) {
+    if (err.message === 'INVALID_FORMULA') {
+      return res.status(400).json({ message: t('INVALID_FORMULA') })
+    }
+    throw err
   }
-  await clearCacheByPrefix('platforms:')
-  await delCache(`platform:${req.params.id}`)
-  res.json(platform)
 }
 
 export const deletePlatform = async (req, res) => {
   await Platform.findOneAndDelete({ _id: req.params.id, clientId: req.params.clientId })
   await clearCacheByPrefix('platforms:')
-  await delCache(`platform:${req.params.id}`)
+  await delCache(oneCacheKey(req.params.id))
   res.json({ message: t('PLATFORM_DELETED') })
 }
 
@@ -178,11 +215,14 @@ export const transferPlatform = async (req, res) => {
   }
   const platform = await Platform.findById(req.params.id)
   if (!platform) return res.status(404).json({ message: t('PLATFORM_NOT_FOUND') })
+
   platform.clientId = clientId
   await platform.save()
+
   await AdDaily.updateMany({ platformId: req.params.id }, { clientId })
   await WeeklyNote.updateMany({ platformId: req.params.id }, { clientId })
+
   await clearCacheByPrefix('platforms:')
-  await delCache(`platform:${req.params.id}`)
+  await delCache(oneCacheKey(req.params.id))
   res.json(platform)
 }
