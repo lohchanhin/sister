@@ -22,6 +22,10 @@ vi.mock('@/services/platforms', () => ({
   getPlatform: vi.fn()
 }))
 
+vi.mock('primevue/usetoast', () => ({
+  useToast: () => ({ add: vi.fn() })
+}))
+
 describe('AdData.vue', () => {
   it('載入後更新 adData', async () => {
     const sample = [
@@ -186,6 +190,50 @@ describe('AdData.vue', () => {
     const rows = wrapper.findAll('.row')
     expect(rows).toHaveLength(1)
     expect(rows[0].text()).toBe('15')
+  })
+
+  it('編輯時轉換舊鍵並移除非法鍵', async () => {
+    const oldId = '123456789012345678901234'
+    const row = {
+      _id: 'r1',
+      date: '2024-01-01',
+      extraData: { [oldId]: 1, f_click: 2, bad: 3 },
+      colors: { [oldId]: '#fff', f_click: '#000', bad: '#111' }
+    }
+
+    const { fetchDaily, updateDaily } = await import('@/services/adDaily')
+    const { getPlatform } = await import('@/services/platforms')
+    const { fetchWeeklyNotes } = await import('@/services/weeklyNotes')
+
+    fetchDaily.mockResolvedValue({ records: [] })
+    updateDaily.mockResolvedValue({})
+    getPlatform.mockResolvedValue({ fields: [
+      { id: 'f_click', name: '點擊', slug: 'clicks', type: 'number' }
+    ] })
+    fetchWeeklyNotes.mockResolvedValue([])
+
+    const wrapper = shallowMount(AdData, {
+      global: {
+        stubs: {
+          DataTable: { template: '<div />' }
+        }
+      }
+    })
+
+    await flushPromises()
+
+    wrapper.vm.fieldAliases = { [oldId]: 'f_click' }
+    wrapper.vm.loadDaily = vi.fn()
+
+    wrapper.vm.openEdit(row)
+    expect(wrapper.vm.recordForm.extraData).toEqual({ f_click: 2 })
+
+    await wrapper.vm.handleConfirm()
+
+    expect(updateDaily).toHaveBeenCalledTimes(1)
+    const payload = updateDaily.mock.calls[0][3]
+    expect(payload.extraData).toEqual({ f_click: 2 })
+    expect(payload.extraData).not.toHaveProperty(oldId)
   })
 
   it('傳入日期範圍時使用正確參數呼叫 fetchDaily', async () => {
