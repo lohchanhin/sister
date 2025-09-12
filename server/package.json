@@ -9,7 +9,8 @@
     "seed": "node src/scripts/seedUsers.js",
     "sanitize-ad-daily": "node src/scripts/sanitizeAdDaily.js",
     "migrate-extra-data": "node src/scripts/migrateExtraDataFieldId.js",
-    "migrate:platform-data": "node src/scripts/migratePlatformAndData.js"
+    "migrate:platform-data": "node src/scripts/migratePlatformAndData.js",
+    "migrate:platform-slug-formula": "node src/scripts/migratePlatformFieldsSlugFormula.js"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.16.0",
