@@ -229,8 +229,9 @@
         </Column>
         <Column header="映射至新字段" style="width:260px">
           <template #body="{ data }">
-            <Dropdown v-model="data.mappedId" :options="customColumns" optionLabel="name" optionValue="id"
-              placeholder="選擇字段" class="w-full" :showClear="true" />
+            <Dropdown v-model="data.mappedId" :options="customColumns"
+              :optionLabel="o => `${o.name} (${o.slug || o.id})`" :optionValue="o => (o.id || o.slug)" class="w-full" />
+
           </template>
         </Column>
       </DataTable>
@@ -449,7 +450,7 @@ const saveAliases = async () => {
   if (typeof window !== 'undefined') {
     localStorage.setItem(aliasStoreKey(platformId), JSON.stringify(fieldAliases.value))
   }
-  try { await updatePlatformAliases(clientId, platformId, fieldAliases.value) } catch {}
+  try { await updatePlatformAliases(clientId, platformId, fieldAliases.value) } catch { }
 }
 
 /**** ------------------ 取值器（先 id，再 alias 兜底，再安全 slug） ------------------ ****/
@@ -722,20 +723,29 @@ const formatNote = text => {
 
 /**** ------------------ 載入資料 ------------------ ****/
 const loadPlatform = async () => {
-  platform.value = await getPlatform(clientId, platformId)
+  p// 生成穩定鍵：優先用合法 slug，其次用英文名安全鍵，最後用 f_x 序號（不含中文）
+  const safeKeyFromName = (name) => {
+    if (typeof name !== 'string') return null
+    const s = name.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '')
+    if (!s || !/^[a-z][a-z0-9_]{2,}$/.test(s)) return null
+    return s
+  }
+
+  let counter = 0
+  const nextStable = () => `f_${++counter}`
+
   customColumns.value = (platform.value?.fields || [])
-    .map(f =>
-      typeof f === 'string'
-        ? { id: slugify(f), name: f, slug: slugify(f), type: 'text', order: 0 }
-        : {
-          id: f.id || slugify(f.name),
-          name: f.name,
-          slug: isSafeSlug(f.slug) ? f.slug : null, // 只接受安全 slug
-          type: f.type || 'text',
-          order: f.order || 0,
-          formula: f.formula || ''
-        }
-    )
+    .map(f => {
+      const stable = isSafeSlug(f.slug) ? f.slug : (safeKeyFromName(f.name) || nextStable())
+      return {
+        id: f.id ? String(f.id) : stable,   // ⬅ 沒有 id 就用「穩定鍵」當 id
+        name: f.name,
+        slug: isSafeSlug(f.slug) ? f.slug : stable,
+        type: f.type || 'text',
+        order: f.order || 0,
+        formula: f.formula || ''
+      }
+    })
     .sort((a, b) => a.order - b.order)
 }
 const loadDaily = async () => {
