@@ -9,7 +9,9 @@ import {
   updateUser,
   deleteUser,
   getProfile,
-  updateProfile
+  updateProfile,
+  getUserClients,
+  updateUserClients
 } from '../controllers/user.controller.js'
 import asyncHandler from '../utils/asyncHandler.js'
 import { validate } from '../middleware/validate.js'
@@ -47,5 +49,16 @@ router
     asyncHandler(updateUser)
   )                // PUT    /api/user/:id
   .delete(requirePerm(PERMISSIONS.USER_MANAGE), asyncHandler(deleteUser))             // DELETE /api/user/:id
+
+router
+  .route('/:id/clients')
+  .get(requirePerm(PERMISSIONS.USER_MANAGE), asyncHandler(getUserClients))
+  .put(
+    requirePerm(PERMISSIONS.USER_MANAGE),
+    body('clients').isArray(),
+    body('clients.*').isMongoId(),
+    validate,
+    asyncHandler(updateUserClients)
+  )
 
 export default router

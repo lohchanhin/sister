@@ -16,6 +16,7 @@ import ReviewSettings from '../views/ReviewSettings.vue'
 import AdClients from '../views/AdClients.vue'
 import AdPlatforms from '../views/AdPlatforms.vue'
 import AdData from '../views/AdData.vue'
+import UserClientAccess from '../views/UserClientAccess.vue'
 
 
 const routes = [
@@ -39,6 +40,7 @@ const routes = [
       { path: 'products/:folderId?', name: 'Products', component: ProductLibrary, meta: { menu: 'products' } },
 
       { path: 'employees', name: 'EmployeeManager', component: EmployeeManager, meta: { menu: 'employees' } },
+      { path: 'employees/:userId/clients', name: 'UserClientAccess', component: UserClientAccess, meta: { menu: 'employees' } },
       { path: 'roles', name: 'RoleSettings', component: RoleSettings, meta: { menu: 'roles' } },
       { path: 'tags', name: 'TagManager', component: TagManager, meta: { menu: 'tags' } },
       { path: 'review-settings', name: 'ReviewSettings', component: ReviewSettings, meta: { menu: 'review-stages' } },

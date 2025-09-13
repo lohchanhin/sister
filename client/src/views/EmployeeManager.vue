@@ -19,6 +19,7 @@
         </Column>
         <Column header="操作" :exportable="false" style="min-width:8rem">
           <template #body="{ data }">
+            <Button icon="pi pi-users" class="p-button-rounded p-button-info mr-2" @click="goClients(data)" />
             <Button icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" @click="openEdit(data)" />
             <Button icon="pi pi-trash" class="p-button-rounded p-button-warning" @click="confirmDeleteUser(data)" />
           </template>
@@ -154,6 +155,10 @@ const openEdit = (user) => {
   editing.value = true
   form.value = { ...user, password: '', allowedClients: user.allowedClients || [] }
   dialog.value = true
+}
+
+const goClients = (user) => {
+  router.push(`/employees/${user._id}/clients`)
 }
 
 const submit = async () => {

@@ -132,3 +132,29 @@ export const updateProfile = async (req,res) => {
     allowedClients: populated.allowedClients || []
   })
 }
+
+/* 取得使用者授權客戶 */
+export const getUserClients = async (req, res) => {
+  const user = await User.findById(req.params.id).populate('allowedClients')
+  if (!user) return res.status(404).json({ message: t('USER_NOT_FOUND') })
+  res.json(user.allowedClients || [])
+}
+
+/* 更新使用者授權客戶 */
+export const updateUserClients = async (req, res) => {
+  const { clients } = req.body
+  const user = await User.findById(req.params.id)
+  if (!user) return res.status(404).json({ message: t('USER_NOT_FOUND') })
+  if (!Array.isArray(clients)) return res.status(400).json({ message: 'Invalid clients' })
+
+  user.allowedClients = clients
+  await UserClientPermission.deleteMany({ userId: user._id })
+  if (clients.length) {
+    const docs = clients.map(cid => ({ userId: user._id, clientId: cid }))
+    await UserClientPermission.insertMany(docs, { ordered: false }).catch(() => {})
+  }
+  await user.save()
+  await clearCacheByPrefix('users:')
+  const populated = await user.populate('allowedClients')
+  res.json(populated.allowedClients || [])
+}
