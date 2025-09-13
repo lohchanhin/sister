@@ -92,6 +92,10 @@ export const createAdDaily = async (req, res) => {
 }
 
 export const getAdDaily = async (req, res) => {
+  const allowed = req.user.allowedClients || []
+  if (allowed.length && !allowed.some(id => id.equals(req.params.clientId))) {
+    return res.status(403).json({ message: t('PERMISSION_DENIED') })
+  }
   const query = { clientId: req.params.clientId, platformId: req.params.platformId }
   if (req.query.start && req.query.end) {
     query.date = { $gte: new Date(req.query.start), $lte: new Date(req.query.end) }
@@ -158,6 +162,10 @@ export const getAdDaily = async (req, res) => {
 }
 
 export const getWeeklyData = async (req, res) => {
+  const allowed = req.user.allowedClients || []
+  if (allowed.length && !allowed.some(id => id.equals(req.params.clientId))) {
+    return res.status(403).json({ message: t('PERMISSION_DENIED') })
+  }
   const match = {
     clientId: new mongoose.Types.ObjectId(req.params.clientId),
     platformId: new mongoose.Types.ObjectId(req.params.platformId)

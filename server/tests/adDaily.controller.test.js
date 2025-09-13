@@ -81,4 +81,30 @@ describe('getAdDaily slug key migration', () => {
     expect(saved.extraData).toEqual({ [fieldId]: 10 })
     expect(saved.colors).toEqual({ [fieldId]: '#123456' })
   })
+
+  it('拒絕未授權客戶存取', async () => {
+    const otherClient = await request(app)
+      .post('/api/clients')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'C2' })
+      .expect(201)
+
+    const role = await Role.create({ name: 'staff' })
+    await User.create({
+      username: 'limited',
+      password: 'pwd',
+      email: 'limited@test',
+      roleId: role._id,
+      allowedClients: [otherClient.body._id]
+    })
+    const login = await request(app)
+      .post('/api/auth/login')
+      .send({ username: 'limited', password: 'pwd' })
+    const limitedToken = login.body.token
+
+    await request(app)
+      .get(`/api/clients/${clientId}/platforms/${platformId}/ad-daily`)
+      .set('Authorization', `Bearer ${limitedToken}`)
+      .expect(403)
+  })
 })
