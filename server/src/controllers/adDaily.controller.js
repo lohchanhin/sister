@@ -2,12 +2,14 @@ import { t } from '../i18n/messages.js'
 import mongoose from 'mongoose'
 import AdDaily from '../models/adDaily.model.js'
 import Platform from '../models/platform.model.js'
+import WeeklyNote from '../models/weeklyNote.model.js'
 import path from 'node:path'
 import { uploadFile } from '../utils/gcs.js'
 import { decodeFilename } from '../utils/decodeFilename.js'
 import fs from 'node:fs/promises'
 import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
 
+/** ------------------ 工具函数 ------------------ **/
 const sanitizeNumber = val =>
   parseFloat(String(val).replace(/[^\d.]/g, '')) || 0
 
@@ -36,8 +38,66 @@ const evalFormula = (formula, data) => {
   }
 }
 
+/**
+ * 将传入数据的 extraData/colors 清洗成只包含平台字段 id
+ */
+const normalizeByPlatform = (platform, rawExtra = {}, rawColors = {}) => {
+  const idMap = {}
+  platform?.fields?.forEach(f => {
+    idMap[f.id] = f.id
+    if (f.slug) idMap[f.slug] = f.id
+    if (f.name) idMap[f.name] = f.id
+  })
+
+  const extra = {}
+  for (const [k, v] of Object.entries(sanitizeExtraData(rawExtra))) {
+    const nk = idMap[k]
+    if (nk) extra[nk] = v
+  }
+
+  const colors = {}
+  for (const [k, v] of Object.entries(rawColors || {})) {
+    const nk = idMap[k]
+    if (nk) colors[nk] = v
+  }
+
+  return { extra, colors }
+}
+
+/**
+ * 根据平台公式字段，计算并写入公式结果
+ */
+const applyFormulas = (platform, payload) => {
+  const formulas = platform?.fields?.filter(f => f.formula) || []
+  if (!formulas.length) return payload
+
+  const vars = {
+    spent: payload.spent,
+    enquiries: payload.enquiries,
+    reach: payload.reach,
+    impressions: payload.impressions,
+    clicks: payload.clicks
+  }
+  for (const f of platform.fields || []) {
+    if (payload.extraData[f.id] !== undefined) {
+      vars[f.slug] = payload.extraData[f.id]
+    }
+  }
+  for (const f of formulas) {
+    const val = evalFormula(f.formula, vars)
+    payload.extraData[f.id] = val
+    vars[f.slug] = val
+  }
+  return payload
+}
+
+/** ------------------ 控制器 ------------------ **/
+
 export const createAdDaily = async (req, res) => {
-  const payload = {
+  const platform = await Platform.findById(req.params.platformId)
+  if (!platform) return res.status(404).json({ message: t('PLATFORM_NOT_FOUND') })
+
+  let payload = {
     date: req.body.date,
     spent: sanitizeNumber(req.body.spent),
     enquiries: sanitizeNumber(req.body.enquiries),
@@ -45,46 +105,17 @@ export const createAdDaily = async (req, res) => {
     impressions: sanitizeNumber(req.body.impressions),
     clicks: sanitizeNumber(req.body.clicks),
     clientId: req.params.clientId,
-    platformId: req.params.platformId,
-    extraData: sanitizeExtraData(req.body.extraData),
-    colors: req.body.colors || {}
+    platformId: req.params.platformId
   }
 
-  const platform = await Platform.findById(req.params.platformId)
-  const idMap = {}
-  platform?.fields?.forEach(f => {
-    idMap[f.id] = f.id
-    idMap[f.slug] = f.id
-    idMap[f.name] = f.id
-  })
-  const mapped = {}
-  for (const [k, v] of Object.entries(payload.extraData || {})) {
-    mapped[idMap[k] || k] = v
-  }
-  payload.extraData = mapped
-  const formulas = platform?.fields?.filter(f => f.formula) || []
-  if (formulas.length) {
-    payload.extraData = payload.extraData || {}
-    const vars = {
-      spent: payload.spent,
-      enquiries: payload.enquiries,
-      reach: payload.reach,
-      impressions: payload.impressions,
-      clicks: payload.clicks
-    }
-    for (const f of platform.fields || []) {
-      const v = payload.extraData[f.id]
-      if (v !== undefined) vars[f.slug] = v
-    }
-    for (const f of formulas) {
-      const val = evalFormula(f.formula, vars)
-      payload.extraData[f.id] = val
-      vars[f.slug] = val
-    }
-  }
+  const { extra, colors } = normalizeByPlatform(platform, req.body.extraData, req.body.colors)
+  payload.extraData = extra
+  payload.colors = colors
+  payload = applyFormulas(platform, payload)
+
   const rec = await AdDaily.findOneAndUpdate(
     { clientId: payload.clientId, platformId: payload.platformId, date: payload.date },
-    payload,
+    { $set: payload },
     { new: true, upsert: true, setDefaultsOnInsert: true }
   )
   await clearCacheByPrefix('adDaily:')
@@ -92,80 +123,35 @@ export const createAdDaily = async (req, res) => {
 }
 
 export const getAdDaily = async (req, res) => {
-  const allowed = req.user.allowedClients || []
-  if (allowed.length && !allowed.some(id => id.equals(req.params.clientId))) {
-    return res.status(403).json({ message: t('PERMISSION_DENIED') })
-  }
   const query = { clientId: req.params.clientId, platformId: req.params.platformId }
   if (req.query.start && req.query.end) {
     query.date = { $gte: new Date(req.query.start), $lte: new Date(req.query.end) }
   }
-  const sortFields = ['date', 'spent', 'enquiries', 'reach', 'impressions', 'clicks']
-  let sortObj = { date: 1 }
-  if (req.query.sort && sortFields.includes(req.query.sort)) {
-    sortObj = { [req.query.sort]: req.query.order === 'desc' ? -1 : 1 }
-  }
+  const sortObj = { date: req.query.order === 'desc' ? -1 : 1 }
+
   const cacheKey = `adDaily:${req.params.clientId}:${req.params.platformId}:${JSON.stringify(query)}:${JSON.stringify(sortObj)}`
   const cached = await getCache(cacheKey)
   if (cached) return res.json(cached)
 
   const platform = await Platform.findById(req.params.platformId)
-  const idMap = {}
-  platform?.fields?.forEach(f => {
-    if (f.name) idMap[f.name] = f.id
-    if (f.slug) idMap[f.slug] = f.id
-  })
+  const list = await AdDaily.find(query).sort(sortObj)
 
-  let list = await AdDaily.find(query).sort(sortObj)
-  if (!Array.isArray(list) && list && typeof list === 'object') {
-    const keys = Object.keys(list).filter(k => Array.isArray(list[k]))
-    if (keys.length) {
-      const maxLen = Math.max(...keys.map(k => list[k].length))
-      list = Array.from({ length: maxLen }, (_, i) => {
-        const row = {}
-        keys.forEach(k => { row[k] = list[k][i] })
-        return row
-      })
-    } else list = []
-  }
+  // 清洗每条数据，确保只返回新 id
   for (const rec of list) {
-    if (!rec || typeof rec !== 'object') continue
-    let updated = false
-    const extra = {}
-    for (const [k, v] of Object.entries(rec.extraData || {})) {
-      const nk = idMap[k]
-      if (nk) {
-        extra[nk] = v
-        if (nk !== k) updated = true
-      } else {
-        extra[k] = v
-      }
+    const { extra, colors } = normalizeByPlatform(platform, rec.extraData, rec.colors)
+    if (JSON.stringify(extra) !== JSON.stringify(rec.extraData) ||
+        JSON.stringify(colors) !== JSON.stringify(rec.colors)) {
+      await AdDaily.updateOne({ _id: rec._id }, { $set: { extraData: extra, colors } })
+      rec.extraData = extra
+      rec.colors = colors
     }
-    const colors = {}
-    for (const [k, v] of Object.entries(rec.colors || {})) {
-      const nk = idMap[k]
-      if (nk) {
-        colors[nk] = v
-        if (nk !== k) updated = true
-      } else {
-        colors[k] = v
-      }
-    }
-    if (updated && rec._id) {
-      await AdDaily.updateOne({ _id: rec._id }, { extraData: extra, colors })
-    }
-    rec.extraData = extra
-    rec.colors = colors
   }
+
   await setCache(cacheKey, list)
   res.json(list)
 }
 
 export const getWeeklyData = async (req, res) => {
-  const allowed = req.user.allowedClients || []
-  if (allowed.length && !allowed.some(id => id.equals(req.params.clientId))) {
-    return res.status(403).json({ message: t('PERMISSION_DENIED') })
-  }
   const match = {
     clientId: new mongoose.Types.ObjectId(req.params.clientId),
     platformId: new mongoose.Types.ObjectId(req.params.platformId)
@@ -195,7 +181,6 @@ export const getWeeklyData = async (req, res) => {
     week: `${d._id.year}-W${d._id.week}`,
     spent: d.spent,
     enquiries: d.enquiries,
-
     reach: d.reach,
     impressions: d.impressions,
     clicks: d.clicks
@@ -209,79 +194,24 @@ export const bulkCreateAdDaily = async (req, res) => {
     return res.status(400).json({ message: t('DATA_FORMAT_ERROR') })
   }
 
-  const known = ['date', 'spent', 'enquiries', 'reach', 'impressions', 'clicks', 'extraData', 'colors']
-
   const platform = await Platform.findById(req.params.platformId)
-  const formulas = platform?.fields?.filter(f => f.formula) || []
-
-  const records = req.body
-    .map(row => {
-      let extra = sanitizeExtraData({ ...(row.extraData || {}) })
-      const mappedExtra = {}
-      for (const [k, v] of Object.entries(extra)) {
-        const field = platform.fields?.find(
-          f => f.id === k || f.slug === k || f.name === k
-        )
-        mappedExtra[field ? field.id : k] = v
-      }
-      extra = mappedExtra
-      const colors = { ...(row.colors || {}) }
-      for (const k of Object.keys(row)) {
-        if (!known.includes(k)) {
-          if (k.startsWith('color_')) {
-            const name = k.replace(/^color_/, '')
-            const field = platform.fields?.find(
-              f => f.name === name || f.slug === name || f.id === name
-            )
-            if (field) colors[field.id] = row[k]
-          } else {
-            const field = platform.fields?.find(
-              f => f.name === k || f.slug === k || f.id === k
-            )
-            const key = field ? field.id : k
-            extra[key] = numericPattern.test(String(row[k]))
-              ? sanitizeNumber(row[k])
-              : row[k]
-          }
-        }
-      }
-      return {
-        date: row.date,
-        spent: sanitizeNumber(row.spent),
-        enquiries: sanitizeNumber(row.enquiries),
-        reach: sanitizeNumber(row.reach),
-        impressions: sanitizeNumber(row.impressions),
-        clicks: sanitizeNumber(row.clicks),
-        clientId: req.params.clientId,
-        platformId: req.params.platformId,
-        extraData: Object.keys(extra).length ? extra : undefined,
-        colors: Object.keys(colors).length ? colors : undefined
-      }
-    })
-    .filter(r => r.date)
-    .map(r => ({ ...r, date: new Date(r.date) }))
-
-  if (formulas.length) {
-    for (const r of records) {
-      r.extraData = r.extraData || {}
-      const vars = {
-        spent: r.spent,
-        enquiries: r.enquiries,
-        reach: r.reach,
-        impressions: r.impressions,
-        clicks: r.clicks
-      }
-      for (const f of platform.fields || []) {
-        const v = r.extraData[f.id]
-        if (v !== undefined) vars[f.slug] = v
-      }
-      for (const f of formulas) {
-        const val = evalFormula(f.formula, vars)
-        r.extraData[f.id] = val
-        vars[f.slug] = val
-      }
+  const records = req.body.map(row => {
+    let payload = {
+      date: new Date(row.date),
+      spent: sanitizeNumber(row.spent),
+      enquiries: sanitizeNumber(row.enquiries),
+      reach: sanitizeNumber(row.reach),
+      impressions: sanitizeNumber(row.impressions),
+      clicks: sanitizeNumber(row.clicks),
+      clientId: req.params.clientId,
+      platformId: req.params.platformId
     }
-  }
+    const { extra, colors } = normalizeByPlatform(platform, row.extraData, row.colors)
+    payload.extraData = extra
+    payload.colors = colors
+    payload = applyFormulas(platform, payload)
+    return payload
+  })
 
   let docs
   try {
@@ -303,11 +233,7 @@ export const importAdDaily = async (req, res) => {
   const originalName = decodeFilename(req.file.originalname)
   const ext = path.extname(originalName)
   const filename = unique + ext
-  const filePath = await uploadFile(
-    req.file.path,
-    filename,
-    req.file.mimetype
-  )
+  const filePath = await uploadFile(req.file.path, filename, req.file.mimetype)
   const xlsxBuffer = await fs.readFile(req.file.path)
   await fs.unlink(req.file.path)
 
@@ -316,88 +242,24 @@ export const importAdDaily = async (req, res) => {
   const sheet = wb.Sheets[wb.SheetNames[0]]
   const rows = xlsx.utils.sheet_to_json(sheet)
 
-  const known = [
-    'date', 'Date', '日期',
-    'spent', 'Spent', '花費',
-    'enquiries', 'Enquiries', '詢問',
-    'reach', 'Reach', '觸及',
-    'impressions', 'Impressions', '曝光',
-    'clicks', 'Clicks', '點擊',
-    'extraData',
-    'colors'
-  ]
-
   const platform = await Platform.findById(req.params.platformId)
-  const formulas = platform?.fields?.filter(f => f.formula) || []
-
-  const records = rows
-    .map(row => {
-      let extra = sanitizeExtraData({ ...(row.extraData || {}) })
-      const mappedExtra = {}
-      for (const [k, v] of Object.entries(extra)) {
-        const field = platform.fields?.find(
-          f => f.id === k || f.slug === k || f.name === k
-        )
-        mappedExtra[field ? field.id : k] = v
-      }
-      extra = mappedExtra
-      const colors = {}
-      for (const k of Object.keys(row)) {
-        if (!known.includes(k)) {
-          if (k.startsWith('color_')) {
-            const name = k.replace(/^color_/, '')
-            const field = platform.fields?.find(
-              f => f.name === name || f.slug === name || f.id === name
-            )
-            if (field) colors[field.id] = row[k]
-          } else {
-            const field = platform.fields?.find(
-              f => f.name === k || f.slug === k || f.id === k
-            )
-            const key = field ? field.id : k
-            extra[key] = numericPattern.test(String(row[k]))
-              ? sanitizeNumber(row[k])
-              : row[k]
-          }
-        }
-      }
-      return {
-        date: row.date || row.Date || row['日期'],
-        spent: sanitizeNumber(row.spent || row.Spent || row['花費']),
-        enquiries: sanitizeNumber(row.enquiries || row.Enquiries || row['詢問']),
-        reach: sanitizeNumber(row.reach || row.Reach || row['觸及']),
-        impressions: sanitizeNumber(row.impressions || row.Impressions || row['曝光']),
-        clicks: sanitizeNumber(row.clicks || row.Clicks || row['點擊']),
-        clientId: req.params.clientId,
-        platformId: req.params.platformId,
-        extraData: Object.keys(extra).length ? extra : undefined,
-        colors: Object.keys(colors).length ? colors : undefined
-      }
-    })
-    .filter(r => r.date)
-    .map(r => ({ ...r, date: new Date(r.date) }))
-
-  if (formulas.length) {
-    for (const r of records) {
-      r.extraData = r.extraData || {}
-      const vars = {
-        spent: r.spent,
-        enquiries: r.enquiries,
-        reach: r.reach,
-        impressions: r.impressions,
-        clicks: r.clicks
-      }
-      for (const f of platform.fields || []) {
-        const v = r.extraData[f.id]
-        if (v !== undefined) vars[f.slug] = v
-      }
-      for (const f of formulas) {
-        const val = evalFormula(f.formula, vars)
-        r.extraData[f.id] = val
-        vars[f.slug] = val
-      }
+  const records = rows.map(row => {
+    let payload = {
+      date: new Date(row.date || row.Date || row['日期']),
+      spent: sanitizeNumber(row.spent || row.Spent || row['花費']),
+      enquiries: sanitizeNumber(row.enquiries || row.Enquiries || row['詢問']),
+      reach: sanitizeNumber(row.reach || row.Reach || row['觸及']),
+      impressions: sanitizeNumber(row.impressions || row.Impressions || row['曝光']),
+      clicks: sanitizeNumber(row.clicks || row.Clicks || row['點擊']),
+      clientId: req.params.clientId,
+      platformId: req.params.platformId
     }
-  }
+    const { extra, colors } = normalizeByPlatform(platform, row.extraData, row.colors)
+    payload.extraData = extra
+    payload.colors = colors
+    payload = applyFormulas(platform, payload)
+    return payload
+  })
 
   let docs
   try {
@@ -411,53 +273,26 @@ export const importAdDaily = async (req, res) => {
 }
 
 export const updateAdDaily = async (req, res) => {
-  const payload = {
+  const platform = await Platform.findById(req.params.platformId)
+  if (!platform) return res.status(404).json({ message: t('PLATFORM_NOT_FOUND') })
+
+  let payload = {
     date: req.body.date,
     spent: sanitizeNumber(req.body.spent),
     enquiries: sanitizeNumber(req.body.enquiries),
     reach: sanitizeNumber(req.body.reach),
     impressions: sanitizeNumber(req.body.impressions),
-    clicks: sanitizeNumber(req.body.clicks),
-    extraData: sanitizeExtraData(req.body.extraData),
-    colors: req.body.colors || {}
+    clicks: sanitizeNumber(req.body.clicks)
   }
 
-  const platform = await Platform.findById(req.params.platformId)
-  const idMap = {}
-  platform?.fields?.forEach(f => {
-    idMap[f.id] = f.id
-    idMap[f.slug] = f.id
-    idMap[f.name] = f.id
-  })
-  const mapped = {}
-  for (const [k, v] of Object.entries(payload.extraData || {})) {
-    mapped[idMap[k] || k] = v
-  }
-  payload.extraData = mapped
-  const formulas = platform?.fields?.filter(f => f.formula) || []
-  if (formulas.length) {
-    payload.extraData = payload.extraData || {}
-    const vars = {
-      spent: payload.spent,
-      enquiries: payload.enquiries,
-      reach: payload.reach,
-      impressions: payload.impressions,
-      clicks: payload.clicks
-    }
-    for (const f of platform.fields || []) {
-      const v = payload.extraData[f.id]
-      if (v !== undefined) vars[f.slug] = v
-    }
-    for (const f of formulas) {
-      const val = evalFormula(f.formula, vars)
-      payload.extraData[f.id] = val
-      vars[f.slug] = val
-    }
-  }
+  const { extra, colors } = normalizeByPlatform(platform, req.body.extraData, req.body.colors)
+  payload.extraData = extra
+  payload.colors = colors
+  payload = applyFormulas(platform, payload)
 
   const rec = await AdDaily.findByIdAndUpdate(
     req.params.id,
-    payload,
+    { $set: payload },
     { new: true }
   )
   if (!rec) return res.status(404).json({ message: t('RECORD_NOT_FOUND') })
