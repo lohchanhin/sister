@@ -712,7 +712,8 @@ const formatNote = text => {
   const bulletRE = /^\s*[-*•]\s+/
   const numberRE = /^\s*\d+[.)、]\s+/
   if (lines.length === 1 && !bulletRE.test(lines[0]) && !numberRE.test(lines[0])) {
-    return `<p>{{${escapeHtml(lines[0])}}}</p>`
+    return `<p>${escapeHtml(lines[0])}</p>`
+
   }
   const isOrdered = lines.every(l => numberRE.test(l))
   const tag = isOrdered ? 'ol' : 'ul'
@@ -723,22 +724,19 @@ const formatNote = text => {
 
 /**** ------------------ 載入資料 ------------------ ****/
 const loadPlatform = async () => {
-  p// 生成穩定鍵：優先用合法 slug，其次用英文名安全鍵，最後用 f_x 序號（不含中文）
-  const safeKeyFromName = (name) => {
-    if (typeof name !== 'string') return null
-    const s = name.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '')
-    if (!s || !/^[a-z][a-z0-9_]{2,}$/.test(s)) return null
-    return s
-  }
+  // 先拉平台定义
+  platform.value = await getPlatform(clientId, platformId)
 
+  // f_1,f_2... 的后备稳定键
   let counter = 0
   const nextStable = () => `f_${++counter}`
 
   customColumns.value = (platform.value?.fields || [])
     .map(f => {
+      // 稳定键：合法 slug > 英文安全名 > f_x
       const stable = isSafeSlug(f.slug) ? f.slug : (safeKeyFromName(f.name) || nextStable())
       return {
-        id: f.id ? String(f.id) : stable,   // ⬅ 沒有 id 就用「穩定鍵」當 id
+        id: f.id ? String(f.id) : stable,   // 没有 id 就用「稳定键」当 id
         name: f.name,
         slug: isSafeSlug(f.slug) ? f.slug : stable,
         type: f.type || 'text',
@@ -748,6 +746,7 @@ const loadPlatform = async () => {
     })
     .sort((a, b) => a.order - b.order)
 }
+
 const loadDaily = async () => {
   loading.value = true
   const params = {}
@@ -879,6 +878,21 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
     return
   }
 
+  // ✅ 在这里插入校验（确保目标是当前平台字段）
+  /* 插入开始 */
+  const allowedNow = allowedNowSet()             // 你文件里已有这个方法
+  for (const [oldKey, newId] of Object.entries(alias)) {
+    if (!allowedNow.has(newId)) {
+      toast.add({
+        severity: 'warn',
+        summary: '映射非法',
+        detail: `目標 ${newId} 不是當前平台字段`,
+        life: 3000
+      })
+      return
+    }
+  }
+
   // 2) 先讓畫面即時可讀；真正成功寫回後會清空 alias
   fieldAliases.value = { ...(fieldAliases.value || {}), ...alias }
   saveAliases()
@@ -890,7 +904,7 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
   }
 
   // 3) 構建「當前允許鍵集合」：新 id + 穩定鍵（slug 或安全英文名）
-  const allowedNow = new Set([
+  const allowedSet = new Set([
     ...customColumns.value.map(c => c.id),
     ...customColumns.value.map(c => stableKeyOfField(c)).filter(Boolean)
   ])
@@ -938,7 +952,7 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
       }
 
       // 6.2 其它版本的 24HEX 舊鍵：按排序位置對齊到同一批 newId
-      const rowUnknown = Object.keys(ed).filter(k => !allowedNow.has(k))
+      const rowUnknown = Object.keys(ed).filter(k => !allowedSet.has(k))
       const rowOpaque = rowUnknown.filter(isOpaqueId).sort()
       if (effectiveLen && rowOpaque.length >= effectiveLen) {
         for (let i = 0; i < effectiveLen; i++) {
@@ -967,10 +981,10 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
 
       // 6.3 清理：移除非「新ID/穩定鍵」的殘留（含 '_'、英文別名等）
       for (const k of Object.keys(ed)) {
-        if (!allowedNow.has(k)) { delete ed[k]; touched = true }
+        if (!allowedSet.has(k)) { delete ed[k]; touched = true }
       }
       for (const k of Object.keys(cs)) {
-        if (!allowedNow.has(k)) { delete cs[k]; touched = true }
+        if (!allowedSet.has(k)) { delete cs[k]; touched = true }
       }
 
       if (touched) {
@@ -1047,22 +1061,14 @@ const colorOptions = [
 
 onMounted(async () => {
   loading.value = true
-  await loadPlatform()
-  loadAliases()
-
-  // 初始化表單模型
-  customColumns.value.forEach(f => {
-    recordForm.value.extraData[f.id] = ''
-    recordForm.value.colors[f.id] = ''
-  })
-  recalcFormulas()
-
-  await loadDaily()
+  await loadPlatform()          // 等字段定义就绪
+  await loadAliases()           // 你现在没 await，这里建议也 await
+  initRecordForm()              // 抽个函数专门初始化表单模型更清晰
+  await loadDaily()             // 再拉数据
   await loadWeeklyNotes()
-
-  // 不自動亂動！不自動清空/不自動匹配。使用者手動點「字段重新匹配」進向導。
   loading.value = false
 })
+
 
 /**** ------------------ CRUD：每日 ------------------ ****/
 const openCreateDialog = () => {
