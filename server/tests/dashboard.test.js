@@ -82,4 +82,28 @@ describe('GET /api/dashboard/daily', () => {
     expect(res.body.length).toBe(1)
     expect(res.body[0].spent).toBe(5)
   })
+
+  it('拒絕未授權客戶存取', async () => {
+    const allowedClient = new mongoose.Types.ObjectId()
+    const deniedClient = new mongoose.Types.ObjectId()
+    await AdDaily.create({ clientId: deniedClient, platformId: new mongoose.Types.ObjectId(), date: new Date('2024-06-10'), spent: 5 })
+
+    const role = await Role.create({ name: 'staff2' })
+    await User.create({
+      username: 'limited',
+      password: 'pwd',
+      email: 'limited@test.com',
+      roleId: role._id,
+      allowedClients: [allowedClient]
+    })
+    const login = await request(app)
+      .post('/api/auth/login')
+      .send({ username: 'limited', password: 'pwd' })
+    const limitedToken = login.body.token
+
+    await request(app)
+      .get(`/api/dashboard/daily?clientId=${deniedClient}`)
+      .set('Authorization', `Bearer ${limitedToken}`)
+      .expect(403)
+  })
 })

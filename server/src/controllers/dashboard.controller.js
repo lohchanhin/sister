@@ -4,6 +4,7 @@ import ReviewRecord from '../models/reviewRecord.model.js'
 import ReviewStage from '../models/reviewStage.model.js'
 import AdDaily from '../models/adDaily.model.js'
 import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
+import { t } from '../i18n/messages.js'
 
 export const getSummary = async (req, res) => {
   const cacheKey = `dashboard:${req.user._id}`
@@ -123,7 +124,15 @@ export const getDaily = async (req, res) => {
   start.setDate(end.getDate() - days + 1)
 
   const match = { date: { $gte: start, $lte: end } }
-  if (clientId) match.clientId = new mongoose.Types.ObjectId(clientId)
+  const allowed = req.user.allowedClients || []
+  if (clientId) {
+    if (allowed.length && !allowed.some(id => id.equals(clientId))) {
+      return res.status(403).json({ message: t('PERMISSION_DENIED') })
+    }
+    match.clientId = new mongoose.Types.ObjectId(clientId)
+  } else if (allowed.length) {
+    match.clientId = { $in: allowed.map(id => new mongoose.Types.ObjectId(id)) }
+  }
   if (platformId) match.platformId = new mongoose.Types.ObjectId(platformId)
 
   const list = await AdDaily.aggregate([
