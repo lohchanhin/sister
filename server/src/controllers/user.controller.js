@@ -1,6 +1,7 @@
 import { t } from '../i18n/messages.js'
 import User from '../models/user.model.js'
 import Role from '../models/role.model.js'
+import UserClientPermission from '../models/userClientPermission.model.js'
 import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
 
 /* 取得所有使用者 */
@@ -22,7 +23,8 @@ export const getAllUsers = async (req,res) => {
     ...u.toObject(),
     role: u.roleId?.name,
     menus: u.roleId?.menus || [],
-    permissions: u.roleId?.permissions || []
+    permissions: u.roleId?.permissions || [],
+    allowedClients: u.allowedClients || []
   }))
 
   await setCache(cacheKey, result)
@@ -31,23 +33,28 @@ export const getAllUsers = async (req,res) => {
 
 /* 新增 */
 export const createUser = async (req,res) => {
-  const { username, name, email, role, password } = req.body
+  const { username, name, email, role, password, allowedClients = [] } = req.body
   if (await User.findOne({ email })) return res.status(400).json({ message: t('EMAIL_ALREADY_EXISTS') })
   const roleDoc = await Role.findOne({ name: role })
-  const u = await User.create({ username, name, email, roleId: roleDoc?._id, password })
+  const u = await User.create({ username, name, email, roleId: roleDoc?._id, password, allowedClients })
+  if (Array.isArray(allowedClients) && allowedClients.length) {
+    const docs = allowedClients.map(cid => ({ userId: u._id, clientId: cid }))
+    await UserClientPermission.insertMany(docs, { ordered: false }).catch(() => {})
+  }
   const populated = await u.populate('roleId')
   await clearCacheByPrefix('users:')
   res.status(201).json({
     ...populated.toObject(),
     role: populated.roleId?.name,
     menus: populated.roleId?.menus || [],
-    permissions: populated.roleId?.permissions || []
+    permissions: populated.roleId?.permissions || [],
+    allowedClients: populated.allowedClients || []
   })
 }
 
 /* 更新 */
 export const updateUser = async (req,res) => {
-  const { username, name, email, role, password } = req.body
+  const { username, name, email, role, password, allowedClients } = req.body
   const u = await User.findById(req.params.id)
   if (!u) return res.status(404).json({ message: t('USER_NOT_FOUND') })
   if (username && username!==u.username && await User.findOne({ username }))
@@ -62,6 +69,14 @@ export const updateUser = async (req,res) => {
     u.roleId = roleDoc?._id
   }
   if (password) u.password = password
+  if (Array.isArray(allowedClients)) {
+    u.allowedClients = allowedClients
+    await UserClientPermission.deleteMany({ userId: u._id })
+    if (allowedClients.length) {
+      const docs = allowedClients.map(cid => ({ userId: u._id, clientId: cid }))
+      await UserClientPermission.insertMany(docs, { ordered: false }).catch(() => {})
+    }
+  }
   await u.save()
   await clearCacheByPrefix('users:')
   const populated = await u.populate('roleId')
@@ -69,7 +84,8 @@ export const updateUser = async (req,res) => {
     ...populated.toObject(),
     role: populated.roleId?.name,
     menus: populated.roleId?.menus || [],
-    permissions: populated.roleId?.permissions || []
+    permissions: populated.roleId?.permissions || [],
+    allowedClients: populated.allowedClients || []
   })
 }
 
@@ -87,7 +103,8 @@ export const getProfile = async (req,res) => {
     ...user.toObject(),
     role: user.roleId?.name,
     menus: user.roleId?.menus || [],
-    permissions: user.roleId?.permissions || []
+    permissions: user.roleId?.permissions || [],
+    allowedClients: user.allowedClients || []
   })
 }
 
@@ -111,6 +128,7 @@ export const updateProfile = async (req,res) => {
     ...populated.toObject(),
     role: populated.roleId?.name,
     menus: populated.roleId?.menus || [],
-    permissions: populated.roleId?.permissions || []
+    permissions: populated.roleId?.permissions || [],
+    allowedClients: populated.allowedClients || []
   })
 }

@@ -13,7 +13,9 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true, select: false },
     email: { type: String, required: true, unique: true },
     // 角色參照 Role 集合
-    roleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Role' }
+    roleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Role' },
+    // 可訪問客戶列表
+    allowedClients: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Client', default: [] }]
   },
   { timestamps: true }
 )

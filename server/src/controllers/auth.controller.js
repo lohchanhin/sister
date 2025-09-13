@@ -20,7 +20,8 @@ export const login = async (req, res) => {
       username: user.username,
       role: user.roleId?.name,
       menus: user.roleId?.menus || [],
-      permissions: user.roleId?.permissions || []
+      permissions: user.roleId?.permissions || [],
+      allowedClients: user.allowedClients || []
     }
   })
 }
