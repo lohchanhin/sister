@@ -93,3 +93,31 @@ describe('validation', () => {
     expect(res.body.message).toBe('Email is invalid')
   })
 })
+
+describe('授權客戶清單管理', () => {
+  it('可新增與刪除授權客戶', async () => {
+    const client2 = await Client.create({ name: 'ClientB' })
+
+    const created = await request(app)
+      .post('/api/user')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ username: 'u4', name: 'U4', email: 'u4@example.com', role: 'employee', password: 'pwd', allowedClients: [client1._id] })
+      .expect(201)
+
+    const updated = await request(app)
+      .put(`/api/user/${created.body._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ allowedClients: [client1._id, client2._id] })
+      .expect(200)
+    expect(updated.body.allowedClients).toContain(client1._id.toString())
+    expect(updated.body.allowedClients).toContain(client2._id.toString())
+    expect(updated.body.allowedClients.length).toBe(2)
+
+    const removed = await request(app)
+      .put(`/api/user/${created.body._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ allowedClients: [] })
+      .expect(200)
+    expect(removed.body.allowedClients.length).toBe(0)
+  })
+})
