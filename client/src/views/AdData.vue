@@ -824,6 +824,17 @@ async function openRemapDialog() {
   }
 }
 
+/** 初始化「新增/編輯」用的表單模型（依照目前 customColumns） */
+function initRecordForm() {
+  recordForm.value = { date: '', extraData: {}, colors: {} }
+  customColumns.value.forEach(f => {
+    recordForm.value.extraData[f.id] = ''
+    recordForm.value.colors[f.id] = ''
+  })
+  recalcFormulas()
+}
+
+
 function continueOpenRemap() {
   const row = findFirstRowNeedingMapping()
   if (!row) {
