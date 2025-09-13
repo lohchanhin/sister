@@ -8,11 +8,13 @@ export const createClient = async (req, res) => {
   res.status(201).json(client)
 }
 
-export const getClients = async (_req, res) => {
-  const cacheKey = 'clients:all'
+export const getClients = async (req, res) => {
+  const allowed = req.user.allowedClients || []
+  const cacheKey = allowed.length ? `clients:user:${req.user._id}` : 'clients:all'
   const cached = await getCache(cacheKey)
   if (cached) return res.json(cached)
-  const clients = await Client.find()
+  const query = allowed.length ? { _id: { $in: allowed } } : {}
+  const clients = await Client.find(query)
   await setCache(cacheKey, clients)
   res.json(clients)
 }
