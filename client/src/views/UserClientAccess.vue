@@ -36,7 +36,6 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
-import { FilterMatchMode } from 'primevue/api'
 import { fetchClients } from '../services/clients'
 import { fetchUserClients, updateUserClients } from '../services/user'
 import Card from 'primevue/card'
@@ -52,7 +51,7 @@ const userId = route.params.userId
 const clients = ref([])
 const selected = ref([])
 const filters = ref({
-  global: { value: null, matchMode: FilterMatchMode.CONTAINS }
+  global: { value: null, matchMode: 'contains' } // 直接用字符串
 })
 
 onMounted(async () => {
