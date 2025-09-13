@@ -41,6 +41,7 @@ const evalFormula = (formula, data) => {
 /**
  * 将传入数据的 extraData/colors 清洗成只包含平台字段 id
  */
+// ✅ 非破坏性：保留未知鍵
 const normalizeByPlatform = (platform, rawExtra = {}, rawColors = {}) => {
   const idMap = {}
   platform?.fields?.forEach(f => {
@@ -49,20 +50,22 @@ const normalizeByPlatform = (platform, rawExtra = {}, rawColors = {}) => {
     if (f.name) idMap[f.name] = f.id
   })
 
-  const extra = {}
-  for (const [k, v] of Object.entries(sanitizeExtraData(rawExtra))) {
+  const cleanedExtra = sanitizeExtraData(rawExtra)
+  const extra = { ...cleanedExtra }     // 先保留全部
+  for (const [k, v] of Object.entries(cleanedExtra)) {
     const nk = idMap[k]
-    if (nk) extra[nk] = v
+    if (nk && nk !== k) extra[nk] = v   // 能映射的再新增一份到 id 鍵
   }
 
-  const colors = {}
+  const colors = { ...(rawColors || {}) }
   for (const [k, v] of Object.entries(rawColors || {})) {
     const nk = idMap[k]
-    if (nk) colors[nk] = v
+    if (nk && nk !== k) colors[nk] = v
   }
 
   return { extra, colors }
 }
+
 
 /**
  * 根据平台公式字段，计算并写入公式结果
@@ -139,12 +142,9 @@ export const getAdDaily = async (req, res) => {
   // 清洗每条数据，确保只返回新 id
   for (const rec of list) {
     const { extra, colors } = normalizeByPlatform(platform, rec.extraData, rec.colors)
-    if (JSON.stringify(extra) !== JSON.stringify(rec.extraData) ||
-        JSON.stringify(colors) !== JSON.stringify(rec.colors)) {
-      await AdDaily.updateOne({ _id: rec._id }, { $set: { extraData: extra, colors } })
-      rec.extraData = extra
-      rec.colors = colors
-    }
+    // 只映射到響應，不寫回資料庫（非破壞性）
+    rec.extraData = extra
+    rec.colors = colors
   }
 
   await setCache(cacheKey, list)
