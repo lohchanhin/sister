@@ -268,6 +268,19 @@
         <Button label="關閉" :disabled="opWorking" @click="opDialogVisible = false" />
       </template>
     </Dialog>
+
+    <!-- ─────────── Dialog：圖片預覽 ─────────── -->
+    <Dialog v-model:visible="imgPreviewDialog" header="圖片預覽" modal style="width: 600px">
+      <Carousel :value="imgList" :numVisible="1" :numScroll="1">
+        <template #item="slotProps">
+          <img :src="slotProps.data" class="w-full h-full object-contain" />
+        </template>
+      </Carousel>
+      <template #footer>
+        <Button label="關閉" @click="imgPreviewDialog = false" />
+      </template>
+    </Dialog>
+
   </section>
 </template>
 
