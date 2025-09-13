@@ -20,3 +20,9 @@ export const transferPlatform = (id, clientId) =>
 
 export const renamePlatformField = (clientId, platformId, data) =>
   api.put(`/clients/${clientId}/platforms/${platformId}/rename-field`, data).then(r => r.data)
+
+export const getPlatformAliases = (clientId, id) =>
+  api.get(`/clients/${clientId}/platforms/${id}/aliases`).then(r => r.data)
+
+export const updatePlatformAliases = (clientId, id, fieldAliases) =>
+  api.put(`/clients/${clientId}/platforms/${id}/aliases`, { fieldAliases }).then(r => r.data)

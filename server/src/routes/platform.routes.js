@@ -7,7 +7,9 @@ import {
   getPlatform,
   updatePlatform,
   deletePlatform,
-  renamePlatformField
+  renamePlatformField,
+  getPlatformAliases,
+  updatePlatformAliases
 } from '../controllers/platform.controller.js'
 import asyncHandler from '../utils/asyncHandler.js'
 
@@ -29,6 +31,11 @@ router
   .get(asyncHandler(getPlatform))
   .put(asyncHandler(updatePlatform))
   .delete(asyncHandler(deletePlatform))
+
+router
+  .route('/:id/aliases')
+  .get(asyncHandler(getPlatformAliases))
+  .put(asyncHandler(updatePlatformAliases))
 
 // /clients/:clientId/platforms/:id/rename-field
 router.put('/:id/rename-field', asyncHandler(renamePlatformField))

@@ -223,6 +223,28 @@ export const deletePlatform = async (req, res) => {
   res.json({ message: t('PLATFORM_DELETED') })
 }
 
+export const getPlatformAliases = async (req, res) => {
+  const p = await Platform.findOne(
+    { _id: req.params.id, clientId: req.params.clientId },
+    'fieldAliases'
+  )
+  if (!p) return res.status(404).json({ message: t('PLATFORM_NOT_FOUND') })
+  res.json(p.fieldAliases || {})
+}
+
+export const updatePlatformAliases = async (req, res) => {
+  const { fieldAliases } = req.body
+  const p = await Platform.findOneAndUpdate(
+    { _id: req.params.id, clientId: req.params.clientId },
+    { fieldAliases },
+    { new: true, select: 'fieldAliases' }
+  )
+  if (!p) return res.status(404).json({ message: t('PLATFORM_NOT_FOUND') })
+  await clearCacheByPrefix('platforms:')
+  await delCache(oneCacheKey(req.params.id))
+  res.json(p.fieldAliases || {})
+}
+
 export const transferPlatform = async (req, res) => {
   const { clientId } = req.body
   if (!clientId) {

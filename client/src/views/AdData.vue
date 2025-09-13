@@ -316,7 +316,7 @@ import {
   updateWeeklyNote,
   getWeeklyNoteImageUrl
 } from '@/services/weeklyNotes'
-import { getPlatform } from '@/services/platforms'
+import { getPlatform, getPlatformAliases, updatePlatformAliases } from '@/services/platforms'
 
 /**** ------------------ 路由 / 狀態 ------------------ ****/
 const route = useRoute()
@@ -433,15 +433,23 @@ function findFirstRowNeedingMapping() {
 /**** ------------------ 欄位別名映射（舊ID -> 新ID） ------------------ ****/
 const aliasStoreKey = (pid) => `addata_alias_${pid}`
 const fieldAliases = ref({})
-const loadAliases = () => {
-  if (typeof window === 'undefined') { fieldAliases.value = {}; return }
-  try { fieldAliases.value = JSON.parse(localStorage.getItem(aliasStoreKey(platformId)) || '{}') }
-  catch { fieldAliases.value = {} }
+const loadAliases = async () => {
+  try {
+    fieldAliases.value = await getPlatformAliases(clientId, platformId)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(aliasStoreKey(platformId), JSON.stringify(fieldAliases.value))
+    }
+  } catch {
+    if (typeof window === 'undefined') { fieldAliases.value = {}; return }
+    try { fieldAliases.value = JSON.parse(localStorage.getItem(aliasStoreKey(platformId)) || '{}') }
+    catch { fieldAliases.value = {} }
+  }
 }
-const saveAliases = () => {
+const saveAliases = async () => {
   if (typeof window !== 'undefined') {
     localStorage.setItem(aliasStoreKey(platformId), JSON.stringify(fieldAliases.value))
   }
+  try { await updatePlatformAliases(clientId, platformId, fieldAliases.value) } catch {}
 }
 
 /**** ------------------ 取值器（先 id，再 alias 兜底，再安全 slug） ------------------ ****/

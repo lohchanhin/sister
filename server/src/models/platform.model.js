@@ -26,7 +26,8 @@ const platformSchema = new mongoose.Schema(
         )
       ],
       default: []
-    }
+    },
+    fieldAliases: { type: Map, of: String, default: {} }
   },
   { timestamps: true }
 )

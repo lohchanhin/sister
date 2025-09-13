@@ -19,11 +19,18 @@ vi.mock('@/services/weeklyNotes', () => ({
 }))
 
 vi.mock('@/services/platforms', () => ({
-  getPlatform: vi.fn()
+  getPlatform: vi.fn(),
+  getPlatformAliases: vi.fn(),
+  updatePlatformAliases: vi.fn()
 }))
 
 vi.mock('primevue/usetoast', () => ({
   useToast: () => ({ add: vi.fn() })
+}))
+
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ params: { clientId: 'c1', platformId: 'p1' } }),
+  useRouter: () => ({ push: vi.fn() })
 }))
 
 describe('AdData.vue', () => {
@@ -34,11 +41,12 @@ describe('AdData.vue', () => {
     ]
 
     const { fetchDaily } = await import('@/services/adDaily')
-    const { getPlatform } = await import('@/services/platforms')
+    const { getPlatform, getPlatformAliases, updatePlatformAliases } = await import('@/services/platforms')
     const { fetchWeeklyNotes } = await import('@/services/weeklyNotes')
 
     fetchDaily.mockResolvedValue({ records: sample })
     getPlatform.mockResolvedValue({ fields: [] })
+    getPlatformAliases.mockResolvedValue({})
     fetchWeeklyNotes.mockResolvedValue([])
 
     const wrapper = shallowMount(AdData, {
@@ -60,11 +68,12 @@ describe('AdData.vue', () => {
     ]
 
     const { fetchDaily } = await import('@/services/adDaily')
-    const { getPlatform } = await import('@/services/platforms')
+    const { getPlatform, getPlatformAliases, updatePlatformAliases } = await import('@/services/platforms')
     const { fetchWeeklyNotes } = await import('@/services/weeklyNotes')
 
     fetchDaily.mockResolvedValue({ records: sample })
     getPlatform.mockResolvedValue({ fields: [] })
+    getPlatformAliases.mockResolvedValue({})
     fetchWeeklyNotes.mockResolvedValue([])
 
     const wrapper = shallowMount(AdData, {
@@ -93,11 +102,12 @@ describe('AdData.vue', () => {
     }
 
     const { fetchDaily } = await import('@/services/adDaily')
-    const { getPlatform } = await import('@/services/platforms')
+    const { getPlatform, getPlatformAliases, updatePlatformAliases } = await import('@/services/platforms')
     const { fetchWeeklyNotes } = await import('@/services/weeklyNotes')
 
     fetchDaily.mockResolvedValue(sample)
     getPlatform.mockResolvedValue({ fields: [] })
+    getPlatformAliases.mockResolvedValue({})
     fetchWeeklyNotes.mockResolvedValue([])
 
     const wrapper = shallowMount(AdData, {
@@ -130,7 +140,7 @@ describe('AdData.vue', () => {
     ]
 
     const { fetchDaily } = await import('@/services/adDaily')
-    const { getPlatform } = await import('@/services/platforms')
+    const { getPlatform, getPlatformAliases, updatePlatformAliases } = await import('@/services/platforms')
     const { fetchWeeklyNotes } = await import('@/services/weeklyNotes')
 
     fetchDaily.mockResolvedValue({ records: sample })
@@ -138,6 +148,7 @@ describe('AdData.vue', () => {
       { id: 'f_click', name: '點擊', order: 1 },
       { id: 'f_view', name: '曝光', order: 2 }
     ] })
+    getPlatformAliases.mockResolvedValue({ 點擊: 'f_click' })
     fetchWeeklyNotes.mockResolvedValue([])
 
     const wrapper = shallowMount(AdData, {
@@ -165,13 +176,14 @@ describe('AdData.vue', () => {
     ]
 
     const { fetchDaily } = await import('@/services/adDaily')
-    const { getPlatform } = await import('@/services/platforms')
+    const { getPlatform, getPlatformAliases, updatePlatformAliases } = await import('@/services/platforms')
     const { fetchWeeklyNotes } = await import('@/services/weeklyNotes')
 
     fetchDaily.mockResolvedValue({ records: sample })
     getPlatform.mockResolvedValue({ fields: [
       { id: 'clicks', name: '點擊' }
     ] })
+    getPlatformAliases.mockResolvedValue({})
     fetchWeeklyNotes.mockResolvedValue([])
 
     const wrapper = shallowMount(AdData, {
@@ -192,6 +204,34 @@ describe('AdData.vue', () => {
     expect(rows[0].text()).toBe('15')
   })
 
+  it('saveAliases 會同步至後端並寫入 localStorage', async () => {
+    const { fetchDaily } = await import('@/services/adDaily')
+    const { getPlatform, getPlatformAliases, updatePlatformAliases } = await import('@/services/platforms')
+    const { fetchWeeklyNotes } = await import('@/services/weeklyNotes')
+
+    fetchDaily.mockResolvedValue({ records: [] })
+    getPlatform.mockResolvedValue({ fields: [] })
+    getPlatformAliases.mockResolvedValue({})
+    updatePlatformAliases.mockResolvedValue({})
+    fetchWeeklyNotes.mockResolvedValue([])
+
+    const wrapper = shallowMount(AdData, {
+      global: {
+        stubs: {
+          DataTable: { template: '<div />' }
+        }
+      }
+    })
+
+    await flushPromises()
+
+    wrapper.vm.fieldAliases = { old: 'new' }
+    await wrapper.vm.saveAliases()
+
+    expect(updatePlatformAliases).toHaveBeenCalledWith('c1', 'p1', { old: 'new' })
+    expect(JSON.parse(localStorage.getItem(wrapper.vm.aliasStoreKey('p1')))).toEqual({ old: 'new' })
+  })
+
   it('編輯時轉換舊鍵並移除非法鍵', async () => {
     const oldId = '123456789012345678901234'
     const row = {
@@ -202,7 +242,7 @@ describe('AdData.vue', () => {
     }
 
     const { fetchDaily, updateDaily } = await import('@/services/adDaily')
-    const { getPlatform } = await import('@/services/platforms')
+    const { getPlatform, getPlatformAliases, updatePlatformAliases } = await import('@/services/platforms')
     const { fetchWeeklyNotes } = await import('@/services/weeklyNotes')
 
     fetchDaily.mockResolvedValue({ records: [] })
@@ -210,6 +250,7 @@ describe('AdData.vue', () => {
     getPlatform.mockResolvedValue({ fields: [
       { id: 'f_click', name: '點擊', slug: 'clicks', type: 'number' }
     ] })
+    getPlatformAliases.mockResolvedValue({})
     fetchWeeklyNotes.mockResolvedValue([])
 
     const wrapper = shallowMount(AdData, {
@@ -238,11 +279,12 @@ describe('AdData.vue', () => {
 
   it('傳入日期範圍時使用正確參數呼叫 fetchDaily', async () => {
     const { fetchDaily } = await import('@/services/adDaily')
-    const { getPlatform } = await import('@/services/platforms')
+    const { getPlatform, getPlatformAliases, updatePlatformAliases } = await import('@/services/platforms')
     const { fetchWeeklyNotes } = await import('@/services/weeklyNotes')
 
     fetchDaily.mockResolvedValue({ records: [] })
     getPlatform.mockResolvedValue({ fields: [] })
+    getPlatformAliases.mockResolvedValue({})
     fetchWeeklyNotes.mockResolvedValue([])
 
     const wrapper = shallowMount(AdData, {
