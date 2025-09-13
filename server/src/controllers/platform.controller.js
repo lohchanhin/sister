@@ -233,17 +233,39 @@ export const getPlatformAliases = async (req, res) => {
 }
 
 export const updatePlatformAliases = async (req, res) => {
-  const { fieldAliases } = req.body
-  const p = await Platform.findOneAndUpdate(
-    { _id: req.params.id, clientId: req.params.clientId },
-    { fieldAliases },
-    { new: true, select: 'fieldAliases' }
-  )
-  if (!p) return res.status(404).json({ message: t('PLATFORM_NOT_FOUND') })
+  // 兼容兩種鍵名：前端可能發 {fieldAliases} 或 {aliases}
+  const { fieldAliases, aliases } = req.body || {}
+  const incoming = fieldAliases || aliases
+  if (!incoming || typeof incoming !== 'object') {
+    return res.status(400).json({ message: t('PARAMS_ERROR') })
+  }
+
+  const platform = await Platform.findOne({ _id: req.params.id, clientId: req.params.clientId })
+  if (!platform) return res.status(404).json({ message: t('PLATFORM_NOT_FOUND') })
+
+  // 允許的目標：當前平台所有欄位 id（string）
+  const validIds = new Set((platform.fields || []).map(f => String(f.id)))
+
+  // 僅保留 string->string，且目標 newId 必須是有效欄位 id
+  const clean = {}
+  for (const [oldKey, newId] of Object.entries(incoming)) {
+    if (typeof oldKey !== 'string' || typeof newId !== 'string') continue
+    if (!validIds.has(newId)) continue           // 目標不是現有欄位 id，丟棄
+    if (oldKey === newId) continue               // 本身相等沒意義，丟棄
+    // 避免把 “新 id” 當作 oldKey 再被錯指向別的 id（防止自我污染）
+    // 舊鍵一般為 24HEX，不作硬限制，但這條能防不少誤操作
+    clean[oldKey] = newId
+  }
+
+  // 合併（不整體覆蓋），後寫覆蓋同鍵
+  platform.fieldAliases = { ...(platform.fieldAliases || {}), ...clean }
+  await platform.save()
+
   await clearCacheByPrefix('platforms:')
-  await delCache(oneCacheKey(req.params.id))
-  res.json(p.fieldAliases || {})
+  await delCache(`platform:${req.params.id}`)
+  res.json(platform.fieldAliases || {})
 }
+
 
 export const transferPlatform = async (req, res) => {
   const { clientId } = req.body

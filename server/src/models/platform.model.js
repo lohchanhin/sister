@@ -27,7 +27,8 @@ const platformSchema = new mongoose.Schema(
       ],
       default: []
     },
-    fieldAliases: { type: Map, of: String, default: {} }
+    // ✅ 平台級別的永久別名：舊鍵 → 新ID
+    fieldAliases: { type: Object, default: {} }
   },
   { timestamps: true }
 )
