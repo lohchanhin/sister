@@ -229,9 +229,16 @@
         </Column>
         <Column header="映射至新字段" style="width:260px">
           <template #body="{ data }">
-            <Dropdown v-model="data.mappedId" :options="customColumns"
-              :optionLabel="o => `${o.name} (${o.slug || o.id})`" :optionValue="o => (o.id || o.slug)" class="w-full" />
-
+            <Dropdown v-model="data.mappedId" :options="customColumns" optionLabel="name" optionValue="id"
+              class="w-full" />
+          </template>
+          <template #value="{ value }">
+            <span v-if="value">
+              {{customColumns.find(c => c.id === value)?.name}} ({{customColumns.find(c => c.id === value)?.slug}})
+            </span>
+          </template>
+          <template #option="{ option }">
+            <span>{{ option.name }} ({{ option.slug || option.id }})</span>
           </template>
         </Column>
       </DataTable>
@@ -389,9 +396,13 @@ const allowedNowSet = () => new Set([
   ...customColumns.value.map(c => stableKeyOfField(c)).filter(Boolean)
 ])
 
+// 僅包含「當前平台字段 id」的集合（用於寫庫時的清理）
+const canonicalIdSet = () => new Set(customColumns.value.map(c => c.id))
+
+
 // 將物件中的舊鍵轉為新ID並移除不允許的鍵
 const canonicalizeExtra = (data = {}) => {
-  const allowed = allowedNowSet()
+  const allowed = canonicalIdSet()
   const result = {}
   // 先保留已存在且合法的鍵
   for (const [k, v] of Object.entries(data || {})) {
@@ -878,20 +889,34 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
     const s = name.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '')
     return /^[a-z][a-z0-9_]{2,}$/.test(s) ? s : null
   }
-  // —— 取得欄位的穩定鍵：優先合法 slug，否則安全英文名；都沒有就 null
+  // —— 取得欄位的穩定鍵：優先合法 slug，否則安全英文名；都沒有就 null（僅用於「可選目標」校驗）
   const stableKeyOfField = (f) => isSafeSlug(f?.slug) ? f.slug : safeKeyFromName(f?.name)
 
-  // 1) 收集映射
+  // 1) 收集映射（樣本表內：舊鍵 -> 目標）
   const alias = {}
-  for (const r of mapRows.value) if (r.oldKey && r.mappedId) alias[r.oldKey] = r.mappedId
+  for (const r of mapRows.value) {
+    if (r.oldKey && r.mappedId) alias[r.oldKey] = r.mappedId
+  }
   if (!Object.keys(alias).length) {
     toast.add({ severity: 'warn', summary: '提醒', detail: '請至少設定 1 條映射', life: 2200 })
     return
   }
 
-  // ✅ 在这里插入校验（确保目标是当前平台字段）
-  /* 插入开始 */
-  const allowedNow = allowedNowSet()             // 你文件里已有这个方法
+  const byKey = new Map()
+  customColumns.value.forEach(c => {
+    if (c.id) byKey.set(c.id, c.id)
+    if (c.slug) byKey.set(c.slug, c.id)
+    if (c.name) byKey.set(c.name, c.id)
+  })
+
+  // 把 alias 的 target 统一转成字段 id
+  for (const [oldKey, target] of Object.entries(alias)) {
+    const asId = byKey.get(target)
+    if (asId) alias[oldKey] = asId
+  }
+
+  // 2) 校驗映射目標：必須是「當前平台字段」（id 或穩定鍵）
+  const allowedNow = allowedNowSet() // = ids + stable keys（slug/英文安全）
   for (const [oldKey, newId] of Object.entries(alias)) {
     if (!allowedNow.has(newId)) {
       toast.add({
@@ -904,7 +929,7 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
     }
   }
 
-  // 2) 先讓畫面即時可讀；真正成功寫回後會清空 alias
+  // 3) 先讓畫面即時可讀；真正成功寫回後會清空 alias
   fieldAliases.value = { ...(fieldAliases.value || {}), ...alias }
   saveAliases()
 
@@ -914,23 +939,24 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
     return
   }
 
-  // 3) 構建「當前允許鍵集合」：新 id + 穩定鍵（slug 或安全英文名）
-  const allowedSet = new Set([
-    ...customColumns.value.map(c => c.id),
-    ...customColumns.value.map(c => stableKeyOfField(c)).filter(Boolean)
-  ])
+  // 4) 僅用「字段 id」作為最終保留集合（寫庫後只留 id，不留 slug/f_* 與舊 24HEX）
+  const allowedIds = new Set(customColumns.value.map(c => c.id))
 
-  // 4) 位置模板：從「第一筆需匹配 row 或第一筆」抽取 24HEX 舊鍵排序
+  // 5) 位置模板：從「第一筆需匹配 row 或第一筆」抽取 24HEX 舊鍵排序，用於“其它版本”對齊
   const sampleRow = findFirstRowNeedingMapping() || adData.value[0] || {}
   const ed0 = sampleRow?.extraData || {}
-  const baseOldOpaque = Object.keys(ed0).filter(k => !allowedNow.has(k) && isOpaqueId(k)).sort()
+  // 過濾掉目前允許的目標（ids + 稳定鍵），只留未知 24HEX 舊鍵
+  const baseOldOpaque = Object.keys(ed0)
+    .filter(k => !allowedNow.has(k) && isOpaqueId(k))
+    .sort()
+  // 對齊序列：僅取使用者有選到的位次
   const targetIdsByOrder = baseOldOpaque.map(k => alias[k]).filter(Boolean)
   const effectiveLen = targetIdsByOrder.length
 
-  // 5) 快取欄位資訊
-  const colById = new Map(customColumns.value.map(c => [c.id, c]))
+  // 6) 快取欄位資訊（目前僅保留，若需要可擴充）
+  // const colById = new Map(customColumns.value.map(c => [c.id, c]))
 
-  // 6) 批量寫回
+  // 7) 批量寫回
   applying.value = true
   try {
     progress.value = { total: adData.value.length, done: 0 }
@@ -940,67 +966,63 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
       const cs = { ...(row.colors || {}) }
       let touched = false
 
-      // 6.1 顯式映射：把 oldKey 的值寫入 newId + 穩定鍵，並刪除 oldKey
+      // 7.1 顯式映射：把 oldKey 的值寫入「字段 id」，並刪除 oldKey（不再雙寫 slug）
       for (const [oldKey, newId] of Object.entries(alias)) {
         if (!(oldKey in ed) && !(oldKey in cs)) continue
-        const col = colById.get(newId) || {}
-        const stable = stableKeyOfField(col)
 
         if (oldKey in ed) {
           const v = ed[oldKey]
           ed[newId] = v
-          if (stable) ed[stable] = v
           delete ed[oldKey]
           touched = true
         }
         if (oldKey in cs) {
           const c = cs[oldKey]
           cs[newId] = c
-          if (stable) cs[stable] = c
           delete cs[oldKey]
           touched = true
         }
       }
 
-      // 6.2 其它版本的 24HEX 舊鍵：按排序位置對齊到同一批 newId
-      const rowUnknown = Object.keys(ed).filter(k => !allowedSet.has(k))
+      // 7.2 其它版本的 24HEX 舊鍵：按排序位置對齊到同一批「字段 id」
+      const rowUnknown = Object.keys(ed).filter(k => !allowedIds.has(k))   // 只把非 id 視為候選
       const rowOpaque = rowUnknown.filter(isOpaqueId).sort()
       if (effectiveLen && rowOpaque.length >= effectiveLen) {
         for (let i = 0; i < effectiveLen; i++) {
           const oldKey = rowOpaque[i]
           const newId = targetIdsByOrder[i]
           if (!newId) continue
-          const col = colById.get(newId) || {}
-          const stable = stableKeyOfField(col)
 
           if (oldKey in ed) {
             const v = ed[oldKey]
             ed[newId] = v
-            if (stable) ed[stable] = v
             delete ed[oldKey]
             touched = true
           }
           if (oldKey in cs) {
             const c = cs[oldKey]
             cs[newId] = c
-            if (stable) cs[stable] = c
             delete cs[oldKey]
             touched = true
           }
         }
       }
 
-      // 6.3 清理：移除非「新ID/穩定鍵」的殘留（含 '_'、英文別名等）
+      // 7.3 清理：移除所有「不是當前字段 id」的鍵（含 slug f_*、舊 24HEX、英文別名等）
       for (const k of Object.keys(ed)) {
-        if (!allowedSet.has(k)) { delete ed[k]; touched = true }
+        if (!allowedIds.has(k)) { delete ed[k]; touched = true }
       }
       for (const k of Object.keys(cs)) {
-        if (!allowedSet.has(k)) { delete cs[k]; touched = true }
+        if (!allowedIds.has(k)) { delete cs[k]; touched = true }
       }
 
       if (touched) {
         try {
-          await updateDaily(clientId, platformId, row._id, { date: row.date, extraData: ed, colors: cs })
+          await updateDaily(clientId, platformId, row._id, {
+            date: row.date,
+            extraData: ed,
+            colors: cs
+          })
         } catch (err) {
           console.error('更新失敗：', row._id, err)
         }
@@ -1008,16 +1030,17 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
       progress.value.done += 1
     }
 
-    // 7) 成功後清空 alias，避免下次覆蓋新ID；重載資料
+    // 8) 成功後清空 alias，避免下次覆蓋新ID；重載資料
     fieldAliases.value = {}
     saveAliases()
-    toast.add({ severity: 'success', summary: '完成', detail: '已批量寫回（ID+穩定鍵雙寫）並清理殘留鍵', life: 3000 })
+    toast.add({ severity: 'success', summary: '完成', detail: '已批量寫回（僅保留字段ID）並清理舊鍵', life: 3000 })
     mapDialogVisible.value = false
     await loadDaily()
   } finally {
     applying.value = false
   }
 }
+
 
 
 /**** ------------------ 自動別名（保守） ------------------ ****/
