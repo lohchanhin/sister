@@ -12,3 +12,9 @@ export const updateUser = (id, data) =>
 
 export const deleteUser = id =>
   api.delete(`/user/${id}`).then(r => r.data) // DELETE /api/user/:id
+
+export const fetchUserClients = id =>
+  api.get(`/user/${id}/clients`).then(r => r.data) // GET /api/user/:id/clients
+
+export const updateUserClients = (id, clients) =>
+  api.put(`/user/${id}/clients`, { clients }).then(r => r.data) // PUT /api/user/:id/clients

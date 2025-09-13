@@ -121,3 +121,30 @@ describe('授權客戶清單管理', () => {
     expect(removed.body.allowedClients.length).toBe(0)
   })
 })
+
+describe('使用者客戶授權 API', () => {
+  it('可取得與更新客戶授權清單', async () => {
+    const client2 = await Client.create({ name: 'ClientC' })
+
+    const created = await request(app)
+      .post('/api/user')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ username: 'u5', name: 'U5', email: 'u5@example.com', role: 'employee', password: 'pwd' })
+      .expect(201)
+
+    await request(app)
+      .put(`/api/user/${created.body._id}/clients`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ clients: [client1._id, client2._id] })
+      .expect(200)
+
+    const res = await request(app)
+      .get(`/api/user/${created.body._id}/clients`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+
+    const ids = res.body.map(c => c._id.toString())
+    expect(ids).toContain(client1._id.toString())
+    expect(ids).toContain(client2._id.toString())
+  })
+})
