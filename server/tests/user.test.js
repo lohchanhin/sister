@@ -6,6 +6,7 @@ import userRoutes from '../src/routes/user.routes.js'
 import authRoutes from '../src/routes/auth.routes.js'
 import Role from '../src/models/role.model.js'
 import User from '../src/models/user.model.js'
+import Client from '../src/models/client.model.js'
 import dotenv from 'dotenv'
 
 dotenv.config({ override: true })
@@ -14,6 +15,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'testsecret'
 let mongo
 let app
 let token
+let client1
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create()
@@ -34,6 +36,8 @@ beforeAll(async () => {
     roleId: managerRole._id
   })
 
+  client1 = await Client.create({ name: 'ClientA' })
+
   const res = await request(app)
     .post('/api/auth/login')
     .send({ username: 'admin', password: 'mypwd' })
@@ -50,7 +54,7 @@ describe('create user then login', () => {
     await request(app)
       .post('/api/user')
       .set('Authorization', `Bearer ${token}`)
-      .send({ username: 'u1', name: 'U1', email: 'u1@example.com', role: 'employee', password: 'pwd' })
+      .send({ username: 'u1', name: 'U1', email: 'u1@example.com', role: 'employee', password: 'pwd', allowedClients: [client1._id] })
       .expect(201)
 
     const res = await request(app)
@@ -59,6 +63,7 @@ describe('create user then login', () => {
       .expect(200)
 
     expect(res.body).toHaveProperty('token')
+    expect(res.body.user.allowedClients[0]).toEqual(client1._id.toString())
   })
 })
 

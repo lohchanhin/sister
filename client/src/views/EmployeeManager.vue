@@ -45,6 +45,10 @@
       <Dropdown id="role" v-model="form.role" :options="roleOptions" optionLabel="label" optionValue="value" placeholder="選擇角色" />
     </div>
     <div class="field">
+      <label for="allowedClients">可訪問客戶</label>
+      <MultiSelect id="allowedClients" v-model="form.allowedClients" :options="clients" optionLabel="name" optionValue="_id" placeholder="選擇客戶" display="chip" filter />
+    </div>
+    <div class="field">
       <label for="password">密碼</label>
       <Password id="password" v-model="form.password" :placeholder="editing ? '留空则不变' : ''" :feedback="false" toggleMask />
     </div>
@@ -63,6 +67,7 @@ import { useConfirm } from 'primevue/useconfirm'
 import { fetchUsers, createUser, updateUser, deleteUser } from '../services/user'
 import { fetchRoles } from '../services/roles'
 import { fetchDepartments, fetchSubDepartments } from '../services/departments'
+import { fetchClients } from '../services/clients'
 import { useAuthStore } from '../stores/auth'
 
 // PrimeVue Components
@@ -74,6 +79,7 @@ import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import Dropdown from 'primevue/dropdown'
 import Password from 'primevue/password'
+import MultiSelect from 'primevue/multiselect'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -89,6 +95,7 @@ const users = ref([])
 const roleOptions = ref([])
 const departments = ref([])
 const subDepartments = ref([])
+const clients = ref([])
 const dialog = ref(false)
 const editing = ref(false)
 const form = ref({})
@@ -129,15 +136,23 @@ const loadDepartments = async () => {
   }
 }
 
+const loadClients = async () => {
+  try {
+    clients.value = await fetchClients()
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load clients', life: 3000 })
+  }
+}
+
 const openCreate = () => {
   editing.value = false
-  form.value = { username: '', name: '', email: '', role: 'employee', password: '' }
+  form.value = { username: '', name: '', email: '', role: 'employee', password: '', allowedClients: [] }
   dialog.value = true
 }
 
 const openEdit = (user) => {
   editing.value = true
-  form.value = { ...user, password: '' }
+  form.value = { ...user, password: '', allowedClients: user.allowedClients || [] }
   dialog.value = true
 }
 
@@ -184,5 +199,6 @@ onMounted(() => {
   loadUsers()
   loadRoles()
   loadDepartments()
+  loadClients()
 })
 </script>

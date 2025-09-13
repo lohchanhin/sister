@@ -30,6 +30,8 @@ router
     body('email').isEmail().withMessage('Email is invalid'),
     body('role').notEmpty().withMessage('Role is required'),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    body('allowedClients').optional().isArray(),
+    body('allowedClients.*').optional().isMongoId(),
     validate,
     asyncHandler(createUser)
   )               // POST /api/user
@@ -39,6 +41,8 @@ router
   .put(
     requirePerm(PERMISSIONS.USER_MANAGE),
     body('email').optional().isEmail().withMessage('Email is invalid'),
+    body('allowedClients').optional().isArray(),
+    body('allowedClients.*').optional().isMongoId(),
     validate,
     asyncHandler(updateUser)
   )                // PUT    /api/user/:id
