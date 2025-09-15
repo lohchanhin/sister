@@ -1,9 +1,31 @@
 import { t } from '../i18n/messages.js'
 import Client from '../models/client.model.js'
+import Role from '../models/role.model.js'
+import User from '../models/user.model.js'
+import UserClientPermission from '../models/userClientPermission.model.js'
+import { ROLES } from '../config/roles.js'
 import { getCache, setCache, delCache, clearCacheByPrefix } from '../utils/cache.js'
 
 export const createClient = async (req, res) => {
   const client = await Client.create(req.body)
+
+  const managerRole = await Role.findOne({ name: ROLES.MANAGER })
+  if (managerRole) {
+    const managers = await User.find({ roleId: managerRole._id })
+    const docs = []
+    for (const u of managers) {
+      if (!u.allowedClients.some(cid => cid.equals(client._id))) {
+        u.allowedClients.push(client._id)
+        docs.push({ userId: u._id, clientId: client._id })
+      }
+    }
+    if (docs.length) {
+      await UserClientPermission.insertMany(docs, { ordered: false }).catch(() => {})
+    }
+    await Promise.all(managers.map(u => u.save()))
+    await clearCacheByPrefix('users:')
+  }
+
   await clearCacheByPrefix('clients:')
   res.status(201).json(client)
 }
