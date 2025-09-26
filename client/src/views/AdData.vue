@@ -270,12 +270,22 @@
     </Dialog>
 
     <!-- ─────────── Dialog：圖片預覽 ─────────── -->
-    <Dialog v-model:visible="imgPreviewDialog" header="圖片預覽" modal style="width: 600px">
-      <Carousel :value="imgList" :numVisible="1" :numScroll="1">
-        <template #item="slotProps">
-          <img :src="slotProps.data" class="w-full h-full object-contain" />
-        </template>
-      </Carousel>
+    <Dialog
+      v-model:visible="imgPreviewDialog"
+      header="圖片預覽"
+      modal
+      draggable
+      resizable
+      :style="{ maxWidth: '90vw', maxHeight: '90vh' }"
+      :pt="{ root: { class: 'preview-dialog-root' }, content: { class: 'preview-dialog-content' } }"
+    >
+      <div class="preview-container">
+        <Carousel :value="imgList" :numVisible="1" :numScroll="1" class="preview-carousel">
+          <template #item="slotProps">
+            <img :src="slotProps.data" class="preview-image" />
+          </template>
+        </Carousel>
+      </div>
       <template #footer>
         <Button label="關閉" @click="imgPreviewDialog = false" />
       </template>
@@ -1334,5 +1344,61 @@ const previewImages = async imgs => {
 :deep(.p-datatable td) {
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
+}
+
+.preview-dialog-root {
+  resize: both;
+}
+
+.preview-dialog-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.preview-container {
+  flex: 1;
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.preview-carousel {
+  width: 100%;
+}
+
+.preview-container :deep(.p-carousel-content) {
+  height: 100%;
+}
+
+.preview-container :deep(.p-carousel-items-content) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-container :deep(.p-carousel-item) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-container :deep(.p-carousel-item-content) {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
 }
 </style>
