@@ -45,7 +45,14 @@ const validateFields = (fields) => {
 
   // 2) 校验公式：语法 + 变量名必须存在于 slugs
   for (const f of fields) {
-    if (!f.formula) continue
+    if (f.type !== 'formula') {
+      if (f.formula) f.formula = ''
+      continue
+    }
+    if (!f.formula) {
+      f.formula = ''
+      continue
+    }
     if (!formulaPattern.test(f.formula)) {
       throw new Error('INVALID_FORMULA')
     }
@@ -65,7 +72,7 @@ const normalizeFields = (fields = []) =>
     slug: f.slug,
     type: f.type,
     order: f.order,
-    formula: f.formula
+    formula: f.type === 'formula' ? (f.formula || '') : ''
   }))
 
 /** 缓存键工具 */

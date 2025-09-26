@@ -145,6 +145,9 @@ const slugify = s =>
 watch(newFieldName, val => {
   if (!newFieldSlug.value) newFieldSlug.value = slugify(val)
 })
+watch(newFieldType, val => {
+  if (val !== 'formula') newFieldFormula.value = ''
+})
 const fieldTypeOptions = ref([
   { label: '數字', value: 'number' },
   { label: '文字', value: 'text' },
@@ -163,12 +166,25 @@ const defaultFields = [
   { name: 'clicks', slug: 'clicks', type: 'number', order: 5 }
 ]
 
+watch(
+  () => form.value.fields,
+  fields => {
+    fields.forEach(f => {
+      if (f.type !== 'formula' && f.formula) {
+        f.formula = ''
+      }
+    })
+  },
+  { deep: true }
+)
+
 const addField = () => {
   const name = newFieldName.value.trim()
   const slug = (newFieldSlug.value.trim() || slugify(name))
   if (name && slug && !form.value.fields.find(f => f.slug === slug)) {
     const field = { name, slug, originalSlug: slug, type: newFieldType.value, order: form.value.fields.length + 1 }
     if (newFieldType.value === 'formula') field.formula = newFieldFormula.value.trim()
+    else field.formula = ''
     form.value.fields.push(field)
     newFieldName.value = ''
     newFieldSlug.value = ''
@@ -261,7 +277,14 @@ const submit = async () => {
 
   try {
     // 先確保欄位排序同步
-    form.value.fields.forEach((f, i) => (f.order = i + 1))
+    form.value.fields.forEach((f, i) => {
+      f.order = i + 1
+      if (f.type !== 'formula') {
+        f.formula = ''
+      } else {
+        f.formula = (f.formula || '').trim()
+      }
+    })
 
     if (editing.value) {
       for (const f of form.value.fields) {
