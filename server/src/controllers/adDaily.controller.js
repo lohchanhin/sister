@@ -71,7 +71,7 @@ const normalizeByPlatform = (platform, rawExtra = {}, rawColors = {}) => {
  * 根据平台公式字段，计算并写入公式结果
  */
 const applyFormulas = (platform, payload) => {
-  const formulas = platform?.fields?.filter(f => f.formula) || []
+  const formulas = platform?.fields?.filter(f => f.type === 'formula' && f.formula) || []
   if (!formulas.length) return payload
 
   const vars = {
@@ -82,6 +82,7 @@ const applyFormulas = (platform, payload) => {
     clicks: payload.clicks
   }
   for (const f of platform.fields || []) {
+    if (!f?.slug) continue
     if (payload.extraData[f.id] !== undefined) {
       vars[f.slug] = payload.extraData[f.id]
     }

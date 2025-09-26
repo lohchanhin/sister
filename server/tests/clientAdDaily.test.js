@@ -238,6 +238,34 @@ describe('Client and AdDaily', () => {
     expect(bulk.body[1].extraData[fieldCId]).toBe(7)
   })
 
+  it('stop applying formula after field type becomes number', async () => {
+    const updateRes = await request(app)
+      .put(`/api/clients/${clientId}/platforms/${formulaPlatformId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Calc',
+        fields: [
+          { id: fieldAId, name: 'a', slug: 'a', type: 'number' },
+          { id: fieldBId, name: 'b', slug: 'b', type: 'number' },
+          { id: fieldCId, name: 'c', slug: 'c', type: 'number', formula: 'a + b' }
+        ]
+      })
+      .expect(200)
+    const updatedFieldC = updateRes.body.fields.find(f => f.id === fieldCId)
+    expect(updatedFieldC).toBeTruthy()
+    expect(updatedFieldC.type).toBe('number')
+    expect(updatedFieldC.formula).toBe('')
+
+    const date = new Date('2024-09-01').toISOString()
+    const res = await request(app)
+      .post(`/api/clients/${clientId}/platforms/${formulaPlatformId}/ad-daily`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ date, extraData: { [fieldAId]: 5, [fieldBId]: 7, [fieldCId]: 999 } })
+      .expect(201)
+
+    expect(res.body.extraData[fieldCId]).toBe(999)
+  })
+
   it('lazy migrate adDaily extraData and colors', async () => {
     const date = new Date('2024-08-01').toISOString()
     await AdDaily.create({
