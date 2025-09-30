@@ -29,8 +29,12 @@
           <div v-if="!isCollapsed" class="nav-section-title">主要功能</div>
           <ul class="nav-list">
             <li v-for="item in mainMenuItems" :key="item.path" class="nav-item">
-              <router-link :to="item.path" class="nav-link" :class="{ 'nav-link-active': isActiveRoute(item.path) }"
-                @click="handleNavClick">
+              <router-link
+                :to="item.path"
+                class="nav-link"
+                :class="{ 'nav-link-active': isActiveRoute(item.path) }"
+                @click="handleNavClick($event, item)"
+              >
                 <div class="nav-link-content">
                   <i :class="item.icon" class="nav-icon"></i>
                   <span v-if="!isCollapsed" class="nav-text">{{ item.label }}</span>
@@ -45,8 +49,12 @@
           <div v-if="!isCollapsed" class="nav-section-title">管理功能</div>
           <ul class="nav-list">
             <li v-for="item in adminMenuItems" :key="item.path" class="nav-item">
-              <router-link :to="item.path" class="nav-link" :class="{ 'nav-link-active': isActiveRoute(item.path) }"
-                @click="handleNavClick">
+              <router-link
+                :to="item.path"
+                class="nav-link"
+                :class="{ 'nav-link-active': isActiveRoute(item.path) }"
+                @click="handleNavClick($event, item)"
+              >
                 <div class="nav-link-content">
                   <i :class="item.icon" class="nav-icon"></i>
                   <span v-if="!isCollapsed" class="nav-text">{{ item.label }}</span>
@@ -81,6 +89,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useNotificationStore } from '../stores/notifications'
+import { useToast } from 'primevue/usetoast'
 import Button from 'primevue/button'
 import Avatar from 'primevue/avatar'
 
@@ -97,24 +106,26 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
+const toast = useToast()
 
 const isCollapsed = ref(false)
 const isMobile = ref(window.innerWidth <= 991)
 
 const mainMenuItems = computed(() => {
   const items = [
-    { path: '/dashboard', label: '仪表板', icon: 'pi pi-home', badge: null },
-    { path: '/assets', label: '素材库', icon: 'pi pi-images', badge: null },
+    { path: '/dashboard', label: '仪表板', icon: 'pi pi-home', badge: null, menu: 'dashboard' },
+    { path: '/assets', label: '素材库', icon: 'pi pi-images', badge: null, menu: 'assets' },
     {
       path: '/products',
       label: '成品区',
       icon: 'pi pi-box',
+      menu: 'products',
       badge: notificationStore.productUnreadCount > 0
         ? String(notificationStore.productUnreadCount)
         : null
     },
-    { path: '/popular-data', label: '爆款数据', icon: 'pi pi-bolt', badge: null },
-    { path: '/script-ideas', label: '腳本創意', icon: 'pi pi-pencil', badge: null }
+    { path: '/popular-data', label: '爆款数据', icon: 'pi pi-bolt', badge: null, menu: 'popular-data' },
+    { path: '/script-ideas', label: '腳本創意', icon: 'pi pi-pencil', badge: null, menu: 'script-ideas' }
   ]
 
   const canSeeWorkDiary =
@@ -123,7 +134,7 @@ const mainMenuItems = computed(() => {
     authStore.hasPermission('work-diary:read:self')
 
   if (canSeeWorkDiary) {
-    items.push({ path: '/work-diaries', label: '工作日誌', icon: 'pi pi-calendar', badge: null })
+    items.push({ path: '/work-diaries', label: '工作日誌', icon: 'pi pi-calendar', badge: null, menu: 'work-diaries' })
   }
 
   return items
@@ -132,8 +143,8 @@ const mainMenuItems = computed(() => {
 const adminMenuItems = computed(() => {
   const items = [
     // 由於沒有獨立路由，統一導向 ad-clients
-    { path: '/ad-clients', label: '广告数据', icon: 'pi pi-users' },
-    { path: '/tags', label: '标签管理', icon: 'pi pi-tags' }
+    { path: '/ad-clients', label: '广告数据', icon: 'pi pi-users', menu: 'ad-data' },
+    { path: '/tags', label: '标签管理', icon: 'pi pi-tags', menu: 'tags' }
   ]
 
   if (
@@ -141,9 +152,9 @@ const adminMenuItems = computed(() => {
     authStore.hasPermission('role:manage')
   ) {
     items.push(
-      { path: '/employees', label: '员工管理', icon: 'pi pi-user-edit' },
-      { path: '/roles', label: '角色设定', icon: 'pi pi-shield' },
-      { path: '/review-settings', label: '审查设定', icon: 'pi pi-cog' }
+      { path: '/employees', label: '员工管理', icon: 'pi pi-user-edit', menu: 'employees' },
+      { path: '/roles', label: '角色设定', icon: 'pi pi-shield', menu: 'roles' },
+      { path: '/review-settings', label: '审查设定', icon: 'pi pi-cog', menu: 'review-stages' }
     )
   }
 
@@ -159,7 +170,27 @@ const toggleCollapse = () => {
   emit('toggle-collapse', isCollapsed.value)
 }
 
-const handleNavClick = () => {
+const hasMenuAccess = (menu) => {
+  if (!menu) return true
+  const menus = authStore.user?.menus || []
+  return menus.includes(menu)
+}
+
+const handleNavClick = (event, item) => {
+  if (item?.menu && !hasMenuAccess(item.menu)) {
+    event?.preventDefault()
+    toast.add({
+      severity: 'warn',
+      summary: '無權限',
+      detail: '您尚未被授權存取此功能，已為您顯示提示頁面。',
+      life: 4000
+    })
+    router.push({ path: '/unauthorized', query: { redirect: item.path } })
+    if (isMobile.value) {
+      emit('update:mobileVisible', false)
+    }
+    return
+  }
   if (isMobile.value) {
     emit('update:mobileVisible', false)
   }

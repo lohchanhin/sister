@@ -24,6 +24,7 @@ import ScriptIdeas from '../views/script-ideas/ScriptIdeas.vue'
 import ScriptIdeasRecords from '../views/script-ideas/ScriptIdeasRecords.vue'
 import ScriptIdeasDetail from '../views/script-ideas/ScriptIdeasDetail.vue'
 import WorkDiary from '../views/WorkDiary.vue'
+import Unauthorized from '../views/Unauthorized.vue'
 
 
 const routes = [
@@ -119,6 +120,12 @@ const routes = [
       { path: 'clients/:clientId/platforms/:platformId/data', name: 'AdData', component: AdData }
     ]
   },
+  {
+    path: '/unauthorized',
+    name: 'Unauthorized',
+    component: Unauthorized,
+    meta: { public: true }
+  },
   // 404
   { path: '/:pathMatch(.*)*', redirect: '/' }
 ]
@@ -159,7 +166,12 @@ router.beforeEach(async (to) => {
   }
 
   const menus = store.user?.menus || []
-  if (to.meta.menu && !menus.includes(to.meta.menu)) return '/'
+  if (to.meta.menu && !menus.includes(to.meta.menu)) {
+    return {
+      path: '/unauthorized',
+      query: { redirect: to.fullPath }
+    }
+  }
   return true
 })
 
