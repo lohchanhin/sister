@@ -1,6 +1,6 @@
 <template>
   <div class="script-ideas-records">
-    <header class="records-header">
+    <header v-if="!permissionError" class="records-header">
       <div>
         <h2>{{ client?.name || '客戶腳本記錄' }}</h2>
         <p class="subtitle">管理腳本日期、地點、腳本數量與審核狀態</p>
@@ -11,53 +11,62 @@
       </div>
     </header>
 
-    <DataTable :value="records" :loading="loading" dataKey="_id" responsiveLayout="stack" breakpoint="960px">
-      <Column field="date" header="腳本日期">
-        <template #body="{ data }">{{ formatDate(data.date) }}</template>
-      </Column>
-      <Column field="location" header="地點" />
-      <Column field="scriptCount" header="腳本數量" />
-      <Column field="status" header="審核狀態">
-        <template #body="{ data }">
-          <Tag :value="statusText(data.status)" :severity="statusSeverity(data.status)" />
-        </template>
-      </Column>
-      <Column header="操作" bodyClass="actions-cell">
-        <template #body="{ data }">
-          <div class="row-actions">
-            <Button icon="pi pi-search" rounded severity="secondary" @click="goToDetail(data)" />
-            <Button icon="pi pi-pencil" rounded severity="info" @click="openEdit(data)" />
-            <Button icon="pi pi-trash" rounded severity="danger" @click="confirmDelete(data)" />
-          </div>
-        </template>
-      </Column>
-    </DataTable>
+    <section v-if="permissionError" class="permission-error">
+      <i class="pi pi-lock"></i>
+      <h2>無法檢視腳本記錄</h2>
+      <p>{{ errorMessage }}</p>
+      <Button label="返回客戶列表" icon="pi pi-arrow-left" severity="secondary" @click="goBack" />
+    </section>
 
-    <Dialog v-model:visible="dialogVisible" :header="isEditing ? '編輯腳本記錄' : '新增腳本記錄'" modal style="width: 520px">
-      <div class="form-grid">
-        <span class="field">
-          <label for="date">腳本日期</label>
-          <Calendar id="date" v-model="form.date" dateFormat="yy-mm-dd" showIcon />
-        </span>
-        <span class="field">
-          <label for="location">地點</label>
-          <InputText id="location" v-model="form.location" placeholder="例如：台北市內湖" />
-        </span>
-        <span class="field">
-          <label for="scriptCount">腳本數量</label>
-          <InputNumber id="scriptCount" v-model="form.scriptCount" :min="0" :maxFractionDigits="0" />
-        </span>
-        <span class="field">
-          <label for="status">審核狀態</label>
-          <Dropdown id="status" v-model="form.status" :options="statusOptions" optionLabel="label" optionValue="value" />
-        </span>
-      </div>
+    <template v-else>
+      <DataTable :value="records" :loading="loading" dataKey="_id" responsiveLayout="stack" breakpoint="960px">
+        <Column field="date" header="腳本日期">
+          <template #body="{ data }">{{ formatDate(data.date) }}</template>
+        </Column>
+        <Column field="location" header="地點" />
+        <Column field="scriptCount" header="腳本數量" />
+        <Column field="status" header="審核狀態">
+          <template #body="{ data }">
+            <Tag :value="statusText(data.status)" :severity="statusSeverity(data.status)" />
+          </template>
+        </Column>
+        <Column header="操作" bodyClass="actions-cell">
+          <template #body="{ data }">
+            <div class="row-actions">
+              <Button icon="pi pi-search" rounded severity="secondary" @click="goToDetail(data)" />
+              <Button icon="pi pi-pencil" rounded severity="info" @click="openEdit(data)" />
+              <Button icon="pi pi-trash" rounded severity="danger" @click="confirmDelete(data)" />
+            </div>
+          </template>
+        </Column>
+      </DataTable>
 
-      <template #footer>
-        <Button label="取消" severity="secondary" @click="closeDialog" />
-        <Button label="儲存" :loading="saving" @click="submitForm" />
-      </template>
-    </Dialog>
+      <Dialog v-model:visible="dialogVisible" :header="isEditing ? '編輯腳本記錄' : '新增腳本記錄'" modal style="width: 520px">
+        <div class="form-grid">
+          <span class="field">
+            <label for="date">腳本日期</label>
+            <Calendar id="date" v-model="form.date" dateFormat="yy-mm-dd" showIcon />
+          </span>
+          <span class="field">
+            <label for="location">地點</label>
+            <InputText id="location" v-model="form.location" placeholder="例如：台北市內湖" />
+          </span>
+          <span class="field">
+            <label for="scriptCount">腳本數量</label>
+            <InputNumber id="scriptCount" v-model="form.scriptCount" :min="0" :maxFractionDigits="0" />
+          </span>
+          <span class="field">
+            <label for="status">審核狀態</label>
+            <Dropdown id="status" v-model="form.status" :options="statusOptions" optionLabel="label" optionValue="value" />
+          </span>
+        </div>
+
+        <template #footer>
+          <Button label="取消" severity="secondary" @click="closeDialog" />
+          <Button label="儲存" :loading="saving" @click="submitForm" />
+        </template>
+      </Dialog>
+    </template>
   </div>
 </template>
 
@@ -100,6 +109,8 @@ const loading = ref(true)
 const dialogVisible = ref(false)
 const saving = ref(false)
 const editingId = ref(null)
+const permissionError = ref(false)
+const errorMessage = ref('')
 
 const form = reactive({
   date: null,
@@ -167,7 +178,13 @@ const submitForm = async () => {
     dialogVisible.value = false
     await loadRecords()
   } catch (error) {
-    toast.add({ severity: 'error', summary: '儲存失敗', detail: '請稍後再試', life: 3000 })
+    if (error?.response?.status === 403) {
+      permissionError.value = true
+      errorMessage.value = '請聯絡管理者開啟腳本創意檢視權限。'
+      toast.add({ severity: 'warn', summary: '無權限', detail: '您沒有腳本創意的編輯權限', life: 3000 })
+    } else {
+      toast.add({ severity: 'error', summary: '儲存失敗', detail: '請稍後再試', life: 3000 })
+    }
   } finally {
     saving.value = false
   }
@@ -180,7 +197,13 @@ const confirmDelete = async (record) => {
     toast.add({ severity: 'success', summary: '刪除成功', detail: '腳本記錄已刪除', life: 2500 })
     await loadRecords()
   } catch (error) {
-    toast.add({ severity: 'error', summary: '刪除失敗', detail: '請稍後再試', life: 3000 })
+    if (error?.response?.status === 403) {
+      permissionError.value = true
+      errorMessage.value = '請聯絡管理者開啟腳本創意檢視權限。'
+      toast.add({ severity: 'warn', summary: '無權限', detail: '您沒有腳本創意的刪除權限', life: 3000 })
+    } else {
+      toast.add({ severity: 'error', summary: '刪除失敗', detail: '請稍後再試', life: 3000 })
+    }
   }
 }
 
@@ -226,7 +249,13 @@ const loadRecords = async () => {
   try {
     records.value = await listScriptIdeas(props.clientId)
   } catch (error) {
-    toast.add({ severity: 'error', summary: '載入失敗', detail: '無法取得腳本記錄', life: 3000 })
+    if (error?.response?.status === 403) {
+      permissionError.value = true
+      errorMessage.value = '請聯絡管理者開啟腳本創意檢視權限。'
+      records.value = []
+    } else {
+      toast.add({ severity: 'error', summary: '載入失敗', detail: '無法取得腳本記錄', life: 3000 })
+    }
   } finally {
     loading.value = false
   }
@@ -236,11 +265,21 @@ const loadClient = async () => {
   try {
     client.value = await getClient(props.clientId)
   } catch (error) {
+    if (error?.response?.status === 403) {
+      permissionError.value = true
+      errorMessage.value = '請聯絡管理者開啟腳本創意檢視權限。'
+    }
     client.value = null
   }
 }
 
+const resetPermissionState = () => {
+  permissionError.value = false
+  errorMessage.value = ''
+}
+
 onMounted(() => {
+  resetPermissionState()
   loadClient()
   loadRecords()
 })
@@ -248,6 +287,7 @@ onMounted(() => {
 watch(
   () => props.clientId,
   () => {
+    resetPermissionState()
     loadClient()
     loadRecords()
   }
@@ -288,6 +328,33 @@ watch(
 
 .actions-cell {
   text-align: center;
+}
+
+.permission-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+.permission-error i {
+  font-size: 2rem;
+  color: #ef4444;
+}
+
+.permission-error h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #111827;
+}
+
+.permission-error p {
+  margin: 0;
+  max-width: 420px;
 }
 
 .form-grid {

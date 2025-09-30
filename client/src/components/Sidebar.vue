@@ -177,6 +177,20 @@ const hasMenuAccess = (menu) => {
 }
 
 const handleNavClick = (event, item) => {
+  const isScriptIdeaMenu = item?.menu === 'script-ideas' || item?.path?.startsWith('/script-ideas')
+  if (isScriptIdeaMenu && !authStore.hasPermission('script-idea:read')) {
+    event?.preventDefault()
+    toast.add({
+      severity: 'warn',
+      summary: '無權限',
+      detail: '請聯絡管理者開啟腳本創意檢視權限。',
+      life: 4000
+    })
+    if (isMobile.value) {
+      emit('update:mobileVisible', false)
+    }
+    return
+  }
   if (item?.menu && !hasMenuAccess(item.menu)) {
     event?.preventDefault()
     toast.add({

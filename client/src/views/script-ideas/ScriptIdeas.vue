@@ -13,6 +13,12 @@
 
     <section v-if="loading" class="loading">載入客戶中…</section>
 
+    <section v-else-if="permissionError" class="permission-error">
+      <i class="pi pi-lock"></i>
+      <h2>無法檢視腳本創意</h2>
+      <p>{{ errorMessage }}</p>
+    </section>
+
     <section v-else class="script-ideas__content">
       <p v-if="filteredClients.length === 0" class="empty">目前沒有符合條件的客戶</p>
       <div v-else class="client-grid">
@@ -44,6 +50,8 @@ const toast = useToast()
 const keyword = ref('')
 const clients = ref([])
 const loading = ref(true)
+const permissionError = ref(false)
+const errorMessage = ref('')
 
 const filteredClients = computed(() => {
   const k = keyword.value.trim().toLowerCase()
@@ -57,10 +65,18 @@ const goToRecords = (client) => {
 
 const loadClients = async () => {
   loading.value = true
+  permissionError.value = false
+  errorMessage.value = ''
   try {
     clients.value = await fetchClients()
   } catch (error) {
-    toast.add({ severity: 'error', summary: '載入失敗', detail: '無法取得客戶列表', life: 3000 })
+    if (error?.response?.status === 403) {
+      permissionError.value = true
+      errorMessage.value = '請聯絡管理者開啟腳本創意檢視權限。'
+      clients.value = []
+    } else {
+      toast.add({ severity: 'error', summary: '載入失敗', detail: '無法取得客戶列表', life: 3000 })
+    }
   } finally {
     loading.value = false
   }
@@ -151,6 +167,33 @@ onMounted(loadClients)
 .empty {
   text-align: center;
   color: #9ca3af;
+}
+
+.permission-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+.permission-error i {
+  font-size: 2rem;
+  color: #ef4444;
+}
+
+.permission-error h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #111827;
+}
+
+.permission-error p {
+  margin: 0;
+  max-width: 420px;
 }
 
 @media (max-width: 600px) {
