@@ -10,6 +10,8 @@ export const PERMISSION_NAMES = {
   'review:manage': '成品审查流程',
   'tag:manage': '标签管理',
   'role:manage': '角色权限设定',
+  'script-idea:read': '腳本創意檢視',
+  'script-idea:manage': '腳本創意管理',
   'analytics:view': '查看统计资料',
   'work-diary:manage:self': '管理個人工作日誌',
   'work-diary:read:all': '檢視所有工作日誌',
