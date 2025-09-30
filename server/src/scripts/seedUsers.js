@@ -34,6 +34,7 @@ const seed = async () => {
           MENUS.DASHBOARD,
           MENUS.ASSETS,
           MENUS.PRODUCTS,
+          MENUS.WORK_DIARIES,
           MENUS.POPULAR_DATA,
           MENUS.ACCOUNT
         ]
