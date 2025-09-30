@@ -112,6 +112,7 @@ const mainMenuItems = computed(() => [
       ? String(notificationStore.productUnreadCount)
       : null
   },
+  { path: '/popular-data', label: '爆款数据', icon: 'pi pi-bolt', badge: null },
 
   // { path: '/ad-data', label: '广告数据', icon: 'pi pi-chart-line', badge: null }
 ])

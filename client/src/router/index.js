@@ -17,6 +17,9 @@ import AdClients from '../views/AdClients.vue'
 import AdPlatforms from '../views/AdPlatforms.vue'
 import AdData from '../views/AdData.vue'
 import UserClientAccess from '../views/UserClientAccess.vue'
+import PopularDataClients from '../views/popular-data/PopularData.vue'
+import PopularDataPlatforms from '../views/popular-data/PopularDataPlatforms.vue'
+import PopularDataXhs from '../views/popular-data/PopularDataXhs.vue'
 
 
 const routes = [
@@ -38,6 +41,27 @@ const routes = [
       { path: 'products/asset/:assetId', name: 'ProductAssetDetailRoot', component: ProductLibrary, meta: { menu: 'products' } },
       { path: 'products/:folderId/asset/:assetId', name: 'ProductAssetDetail', component: ProductLibrary, meta: { menu: 'products' } },
       { path: 'products/:folderId?', name: 'Products', component: ProductLibrary, meta: { menu: 'products' } },
+
+      {
+        path: 'popular-data',
+        name: 'PopularDataClients',
+        component: PopularDataClients,
+        meta: { menu: 'popular-data' }
+      },
+      {
+        path: 'popular-data/:clientId',
+        name: 'PopularDataPlatforms',
+        component: PopularDataPlatforms,
+        props: true,
+        meta: { menu: 'popular-data' }
+      },
+      {
+        path: 'popular-data/:clientId/xhs',
+        name: 'PopularDataXhs',
+        component: PopularDataXhs,
+        props: true,
+        meta: { menu: 'popular-data' }
+      },
 
       { path: 'employees', name: 'EmployeeManager', component: EmployeeManager, meta: { menu: 'employees' } },
       { path: 'employees/:userId/clients', name: 'UserClientAccess', component: UserClientAccess, meta: { menu: 'employees' } },
