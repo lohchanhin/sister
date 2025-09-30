@@ -6,6 +6,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import dotenv from 'dotenv'
+import { PERMISSIONS } from '../src/config/permissions.js'
 
 dotenv.config({ override: true })
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'testsecret'
@@ -13,6 +14,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'testsecret'
 let mongo
 let app
 let token
+let limitedToken
 let clientId
 let ideaId
 let uploadFileMock
@@ -58,8 +60,15 @@ beforeAll(async () => {
   app.use('/api/clients', clientRoutes)
   app.use('/api/clients/:clientId/script-ideas', scriptIdeaRoutes)
 
-  const role = await Role.create({ name: 'script-manager', menus: ['script-ideas'] })
-  await User.create({ username: 'admin', password: 'pwd', email: 'admin@test.com', roleId: role._id })
+  const managerRole = await Role.create({
+    name: 'script-manager',
+    menus: ['script-ideas'],
+    permissions: [PERMISSIONS.SCRIPT_IDEA_READ, PERMISSIONS.SCRIPT_IDEA_MANAGE]
+  })
+  await User.create({ username: 'admin', password: 'pwd', email: 'admin@test.com', roleId: managerRole._id })
+
+  const viewerRole = await Role.create({ name: 'script-viewer', menus: ['script-ideas'], permissions: [] })
+  await User.create({ username: 'viewer', password: 'pwd', email: 'viewer@test.com', roleId: viewerRole._id })
 
   const loginRes = await request(app)
     .post('/api/auth/login')
@@ -67,6 +76,12 @@ beforeAll(async () => {
     .expect(200)
 
   token = loginRes.body.token
+  const viewerLoginRes = await request(app)
+    .post('/api/auth/login')
+    .send({ username: 'viewer', password: 'pwd' })
+    .expect(200)
+
+  limitedToken = viewerLoginRes.body.token
   const client = await Client.create({ name: '腳本客戶' })
   clientId = client._id.toString()
 })
@@ -82,6 +97,13 @@ beforeEach(() => {
 })
 
 describe('Script Ideas API', () => {
+  it('缺少腳本權限時應回傳 403', async () => {
+    await request(app)
+      .get(`/api/clients/${clientId}/script-ideas`)
+      .set('Authorization', `Bearer ${limitedToken}`)
+      .expect(403)
+  })
+
   it('建立腳本記錄', async () => {
     const res = await request(app)
       .post(`/api/clients/${clientId}/script-ideas`)

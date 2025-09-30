@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url'
 import User from '../models/user.model.js'
 import Role from '../models/role.model.js'
 import { ROLES, ROLE_DEFAULT_PERMISSIONS, ROLE_DEFAULT_MENUS } from '../config/roles.js'
+import { PERMISSIONS } from '../config/permissions.js'
+import { MENUS } from '../config/menus.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
