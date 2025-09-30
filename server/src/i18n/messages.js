@@ -39,6 +39,10 @@ export const languages = {
     MISSING_FILENAME: '缺少档名',
     MISSING_FILENAME_OR_PATH: '缺少档名或路径',
     MISSING_CLIENT_ID: '缺少 clientId',
+    DIARY_NOT_FOUND: '找不到工作日誌',
+    DIARY_DUPLICATE: '當日工作日誌已存在',
+    DIARY_EDIT_FORBIDDEN: '無權編輯此工作日誌',
+    DIARY_REVIEW_FORBIDDEN: '無權審核此工作日誌',
     UPDATED: '已更新',
     MOVED: '已移动',
     DELETED: '已删除'
