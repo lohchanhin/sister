@@ -24,14 +24,29 @@ const seed = async () => {
     await User.deleteMany({})
     await Role.deleteMany({})
 
-    // 建立角色資料
-    const roleDocs = await Role.insertMany(
-      Object.values(ROLES).map((name) => ({
-        name,
-        permissions: ROLE_DEFAULT_PERMISSIONS[name] || [],
-        menus: ROLE_DEFAULT_MENUS[name] || []
-      }))
-    )
+
+    const roleDocs = await Role.insertMany([
+      {
+        name: ROLES.EMPLOYEE,
+        menus: [
+          MENUS.DASHBOARD,
+          MENUS.ASSETS,
+          MENUS.PRODUCTS,
+          MENUS.WORK_DIARIES,
+          MENUS.POPULAR_DATA,
+          MENUS.ACCOUNT
+        ]
+      },
+      {
+        name: ROLES.MANAGER,
+        permissions: Object.values(PERMISSIONS), // 包含 ROLE_MANAGE
+        menus: Object.values(MENUS)
+      },
+      {
+        name: ROLES.OUTSOURCE,
+        menus: [MENUS.ASSETS]
+      }
+    ])
     const roleMap = {}
     for (const r of roleDocs) roleMap[r.name] = r._id
 
