@@ -10,5 +10,6 @@ export const MENU_NAMES = {
   'popular-data': '爆款数据',
   'ad-data': '广告数据',
   'ad-platforms': '平台設定',
+  'script-ideas': '腳本創意',
   account: '帐号资讯'
 }
