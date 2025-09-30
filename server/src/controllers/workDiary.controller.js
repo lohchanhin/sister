@@ -7,6 +7,7 @@ import { uploadFile, getSignedUrl } from '../utils/gcs.js'
 import { decodeFilename } from '../utils/decodeFilename.js'
 import logger from '../config/logger.js'
 import { ROLES } from '../config/roles.js'
+import { notifyDiaryReviewed, notifyDiarySubmitted } from '../services/notification.service.js'
 
 const PUBLIC_VISIBILITY = ['team', 'company']
 const ALLOWED_VISIBILITIES = ['private', 'team', 'company', 'custom']
@@ -247,6 +248,9 @@ export const createWorkDiary = async (req, res) => {
       .populate('author', 'username name email roleId')
       .populate('managerComment.commentedBy', 'username name email roleId')
     const diaryWithUrls = await appendSignedUrls(populated)
+    if (diaryWithUrls.status === 'submitted') {
+      await notifyDiarySubmitted({ diary: diaryWithUrls, actor: req.user })
+    }
     res.status(201).json(diaryWithUrls)
   } catch (err) {
     if (err.code === 11000) {
@@ -264,6 +268,7 @@ export const updateWorkDiary = async (req, res) => {
   }
 
   const update = {}
+  const previousStatus = diary.status
 
   if (req.body.title !== undefined) update.title = req.body.title
 
@@ -325,6 +330,9 @@ export const updateWorkDiary = async (req, res) => {
   await diary.populate('author', 'username name email roleId')
   await diary.populate('managerComment.commentedBy', 'username name email roleId')
   const diaryWithUrls = await appendSignedUrls(diary)
+  if (previousStatus !== 'submitted' && diary.status === 'submitted') {
+    await notifyDiarySubmitted({ diary: diaryWithUrls, actor: req.user })
+  }
   res.json(diaryWithUrls)
 }
 
@@ -354,5 +362,6 @@ export const reviewWorkDiary = async (req, res) => {
   if (!diary) return res.status(404).json({ message: t('DIARY_NOT_FOUND') })
 
   const diaryWithUrls = await appendSignedUrls(diary)
+  await notifyDiaryReviewed({ diary: diaryWithUrls, actor: req.user })
   res.json(diaryWithUrls)
 }

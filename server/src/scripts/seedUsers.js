@@ -5,9 +5,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import User from '../models/user.model.js'
 import Role from '../models/role.model.js'
-import { ROLES } from '../config/roles.js'
-import { PERMISSIONS } from '../config/permissions.js'
-import { MENUS } from '../config/menus.js'
+import { ROLES, ROLE_DEFAULT_PERMISSIONS, ROLE_DEFAULT_MENUS } from '../config/roles.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
@@ -26,7 +24,7 @@ const seed = async () => {
     await User.deleteMany({})
     await Role.deleteMany({})
 
-    // 建立角色資料
+
     const roleDocs = await Role.insertMany([
       {
         name: ROLES.EMPLOYEE,

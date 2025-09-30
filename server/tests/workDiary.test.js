@@ -12,6 +12,7 @@ import express from 'express'
 import mongoose from 'mongoose'
 import { MongoMemoryServer } from 'mongodb-memory-server'
 import dotenv from 'dotenv'
+import { PERMISSIONS } from '../src/config/permissions.js'
 
 dotenv.config({ override: true })
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'testsecret'
@@ -23,6 +24,7 @@ let getSignedUrlMock
 let managerToken
 let employeeToken
 let otherEmployeeToken
+let outsiderToken
 let employeeId
 let managerId
 let diaryId
@@ -30,6 +32,7 @@ let firstImagePath
 
 let Role
 let User
+let Notification
 beforeAll(async () => {
   jest.unstable_mockModule('../src/utils/gcs.js', () => ({
     uploadFile: jest.fn().mockImplementation((_path, destination) => Promise.resolve(destination)),
@@ -46,9 +49,10 @@ beforeAll(async () => {
     import('../src/routes/auth.routes.js')
   ])
 
-  ;[{ default: Role }, { default: User }] = await Promise.all([
+  ;[{ default: Role }, { default: User }, { default: Notification }] = await Promise.all([
     import('../src/models/role.model.js'),
-    import('../src/models/user.model.js')
+    import('../src/models/user.model.js'),
+    import('../src/models/notification.model.js')
   ])
 
   const gcs = await import('../src/utils/gcs.js')
@@ -60,14 +64,30 @@ beforeAll(async () => {
   app.use('/api/auth', authRoutes)
   app.use('/api/work-diaries', workDiaryRoutes)
 
-  const managerRole = await Role.create({ name: 'manager' })
-  const employeeRole = await Role.create({ name: 'employee' })
+  const managerRole = await Role.create({
+    name: 'manager',
+    permissions: [
+      PERMISSIONS.WORK_DIARY_MANAGE_SELF,
+      PERMISSIONS.WORK_DIARY_READ_ALL,
+      PERMISSIONS.WORK_DIARY_READ_SELF,
+      PERMISSIONS.WORK_DIARY_REVIEW
+    ]
+  })
+  const employeeRole = await Role.create({
+    name: 'employee',
+    permissions: [
+      PERMISSIONS.WORK_DIARY_MANAGE_SELF,
+      PERMISSIONS.WORK_DIARY_READ_SELF
+    ]
+  })
+  const outsiderRole = await Role.create({ name: 'outsider', permissions: [] })
 
   const manager = await User.create({
     username: 'manager',
     password: 'pass123',
     email: 'manager@test.com',
-    roleId: managerRole._id
+    roleId: managerRole._id,
+    name: '主管'
   })
   managerId = manager._id.toString()
 
@@ -75,7 +95,8 @@ beforeAll(async () => {
     username: 'alice',
     password: 'pass123',
     email: 'alice@test.com',
-    roleId: employeeRole._id
+    roleId: employeeRole._id,
+    name: '一般員工'
   })
   employeeId = employee._id.toString()
 
@@ -83,7 +104,16 @@ beforeAll(async () => {
     username: 'bob',
     password: 'pass123',
     email: 'bob@test.com',
-    roleId: employeeRole._id
+    roleId: employeeRole._id,
+    name: '第二位員工'
+  })
+
+  await User.create({
+    username: 'outsider',
+    password: 'pass123',
+    email: 'outsider@test.com',
+    roleId: outsiderRole._id,
+    name: '外部人員'
   })
 
   const managerLogin = await request(app)
@@ -103,6 +133,12 @@ beforeAll(async () => {
     .send({ username: 'bob', password: 'pass123' })
     .expect(200)
   otherEmployeeToken = otherEmployeeLogin.body.token
+
+  const outsiderLogin = await request(app)
+    .post('/api/auth/login')
+    .send({ username: 'outsider', password: 'pass123' })
+    .expect(200)
+  outsiderToken = outsiderLogin.body.token
 })
 
 afterAll(async () => {
@@ -110,9 +146,10 @@ afterAll(async () => {
   await mongo.stop()
 })
 
-beforeEach(() => {
+beforeEach(async () => {
   uploadFileMock.mockClear()
   getSignedUrlMock.mockClear()
+  await Notification.deleteMany({})
 })
 
 describe('Work Diary API', () => {
@@ -181,6 +218,21 @@ describe('Work Diary API', () => {
     expect(filterByDate.body.every(diary => diary.date.startsWith('2024-05-20'))).toBe(true)
   })
 
+  it('員工提交日誌會通知主管', async () => {
+    await request(app)
+      .post('/api/work-diaries')
+      .set('Authorization', `Bearer ${employeeToken}`)
+      .field('date', '2024-05-22')
+      .field('title', '提交審核日誌')
+      .field('status', 'submitted')
+      .expect(201)
+
+    const notifications = await Notification.find({ recipient: managerId })
+    expect(notifications).toHaveLength(1)
+    expect(notifications[0].type).toBe('work-diary:submitted')
+    expect(notifications[0].title).toContain('一般員工')
+  })
+
   it('員工更新自己的日誌可保留舊圖片並新增新圖片', async () => {
     const res = await request(app)
       .put(`/api/work-diaries/${diaryId}`)
@@ -215,5 +267,27 @@ describe('Work Diary API', () => {
     expect(res.body.status).toBe('approved')
     expect(res.body.managerComment.text).toBe('做得很好')
     expect(res.body.managerComment.commentedBy._id).toBe(managerId)
+
+    const notifications = await Notification.find({ recipient: employeeId })
+    expect(notifications.some(n => n.type === 'work-diary:reviewed')).toBe(true)
+  })
+
+  it('缺乏權限的帳號無法存取工作日誌', async () => {
+    await request(app)
+      .get('/api/work-diaries')
+      .set('Authorization', `Bearer ${outsiderToken}`)
+      .expect(403)
+
+    await request(app)
+      .get(`/api/work-diaries/${diaryId}`)
+      .set('Authorization', `Bearer ${outsiderToken}`)
+      .expect(403)
+
+    await request(app)
+      .post('/api/work-diaries')
+      .set('Authorization', `Bearer ${outsiderToken}`)
+      .field('date', '2024-06-01')
+      .field('title', '未授權測試')
+      .expect(403)
   })
 })

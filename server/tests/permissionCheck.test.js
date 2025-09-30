@@ -7,7 +7,7 @@ import authRoutes from '../src/routes/auth.routes.js'
 import Role from '../src/models/role.model.js'
 import User from '../src/models/user.model.js'
 import { PERMISSIONS } from '../src/config/permissions.js'
-import { requirePerm } from '../src/middleware/permission.js'
+import { requirePerm, requireAnyPerm } from '../src/middleware/permission.js'
 import { protect } from '../src/middleware/auth.js'
 import dotenv from 'dotenv'
 
@@ -18,6 +18,8 @@ let mongo
 let app
 let token
 let tokenLimited
+let tokenAssetOnly
+let tokenNoPermission
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create()
@@ -31,6 +33,12 @@ beforeAll(async () => {
     '/api/multi',
     protect,
     requirePerm(PERMISSIONS.USER_MANAGE, PERMISSIONS.ASSET_CREATE),
+    (req, res) => res.status(200).end()
+  )
+  app.get(
+    '/api/either',
+    protect,
+    requireAnyPerm(PERMISSIONS.USER_MANAGE, PERMISSIONS.ASSET_CREATE),
     (req, res) => res.status(200).end()
   )
 
@@ -67,6 +75,40 @@ beforeAll(async () => {
     .post('/api/auth/login')
     .send({ username: 'limited', password: 'pwd' })
   tokenLimited = res2.body.token
+
+  const roleAssetOnly = await Role.create({
+    name: 'assetOnly',
+    permissions: [PERMISSIONS.ASSET_CREATE]
+  })
+
+  await User.create({
+    username: 'asset',
+    password: 'pwd',
+    email: 'asset@example.com',
+    roleId: roleAssetOnly._id
+  })
+
+  const res3 = await request(app)
+    .post('/api/auth/login')
+    .send({ username: 'asset', password: 'pwd' })
+  tokenAssetOnly = res3.body.token
+
+  const roleNoPermission = await Role.create({
+    name: 'viewer',
+    permissions: []
+  })
+
+  await User.create({
+    username: 'viewer',
+    password: 'pwd',
+    email: 'viewer@example.com',
+    roleId: roleNoPermission._id
+  })
+
+  const res4 = await request(app)
+    .post('/api/auth/login')
+    .send({ username: 'viewer', password: 'pwd' })
+  tokenNoPermission = res4.body.token
 })
 
 afterAll(async () => {
@@ -93,6 +135,25 @@ describe('permission middleware with populated role', () => {
     await request(app)
       .get('/api/multi')
       .set('Authorization', `Bearer ${tokenLimited}`)
+      .expect(403)
+  })
+
+  it('allows access when user 任一權限即通過', async () => {
+    await request(app)
+      .get('/api/either')
+      .set('Authorization', `Bearer ${tokenLimited}`)
+      .expect(200)
+
+    await request(app)
+      .get('/api/either')
+      .set('Authorization', `Bearer ${tokenAssetOnly}`)
+      .expect(200)
+  })
+
+  it('denies access when no permission matches', async () => {
+    await request(app)
+      .get('/api/either')
+      .set('Authorization', `Bearer ${tokenNoPermission}`)
       .expect(403)
   })
 })
