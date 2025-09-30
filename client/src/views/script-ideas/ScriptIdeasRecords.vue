@@ -82,6 +82,7 @@ import {
   updateScriptIdea,
   SCRIPT_IDEA_STATUS
 } from '@/services/scriptIdeas'
+import { formatDateOnly } from '@/utils/date'
 
 const props = defineProps({
   clientId: {
@@ -142,7 +143,7 @@ const closeDialog = () => {
 }
 
 const buildPayload = () => ({
-  date: form.date ? form.date.toISOString() : '',
+  date: form.date ? formatDateOnly(form.date) : '',
   location: form.location,
   scriptCount: form.scriptCount,
   status: form.status
