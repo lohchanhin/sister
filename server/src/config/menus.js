@@ -9,5 +9,6 @@ export const MENUS = Object.freeze({
   POPULAR_DATA: 'popular-data',
   AD_DATA: 'ad-data',
   SCRIPT_IDEAS: 'script-ideas',
+  WORK_DIARIES: 'work-diaries',
   ACCOUNT: 'account'
 })

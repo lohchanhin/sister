@@ -1,44 +1,56 @@
 <template>
   <div class="work-diary-page">
-    <div class="work-diary-toolbar">
+    <div v-if="!hasDiaryAccess" class="work-diary-no-access">
       <Card>
         <template #content>
-          <div class="toolbar-content">
-            <div class="toolbar-field">
-              <label class="field-label">選擇日期</label>
-              <Calendar
-                v-model="calendarValue"
-                dateFormat="yy-mm-dd"
-                :maxDate="new Date()"
-                showIcon
-              />
-            </div>
-            <div class="toolbar-field">
-              <label class="field-label">篩選成員</label>
-              <Dropdown
-                v-model="selectedUserId"
-                :options="userOptions"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="全部成員"
-                showClear
-              />
-            </div>
-            <div class="toolbar-actions">
-              <Button
-                icon="pi pi-refresh"
-                label="重新整理"
-                class="p-button-outlined"
-                :loading="workDiaryStore.loading"
-                @click="reload"
-              />
-            </div>
+          <div class="no-access-content">
+            <i class="pi pi-lock"></i>
+            <p>您目前沒有觀看工作日誌的權限，請洽系統管理員。</p>
           </div>
         </template>
       </Card>
     </div>
 
-    <div class="work-diary-body">
+    <div v-else class="work-diary-content">
+      <div class="work-diary-toolbar">
+        <Card>
+          <template #content>
+            <div class="toolbar-content">
+              <div class="toolbar-field">
+                <label class="field-label">選擇日期</label>
+                <Calendar
+                  v-model="calendarValue"
+                  dateFormat="yy-mm-dd"
+                  :maxDate="new Date()"
+                  showIcon
+                />
+              </div>
+              <div v-if="canReadAll" class="toolbar-field">
+                <label class="field-label">篩選成員</label>
+                <Dropdown
+                  v-model="selectedUserId"
+                  :options="userOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="全部成員"
+                  showClear
+                />
+              </div>
+              <div class="toolbar-actions">
+                <Button
+                  icon="pi pi-refresh"
+                  label="重新整理"
+                  class="p-button-outlined"
+                  :loading="workDiaryStore.loading"
+                  @click="reload"
+                />
+              </div>
+            </div>
+          </template>
+        </Card>
+      </div>
+
+      <div class="work-diary-body">
       <div class="work-diary-list" data-test="work-diary-list">
         <Card class="list-card">
           <template #title>
@@ -217,6 +229,7 @@
           </template>
         </Card>
       </div>
+      </div>
     </div>
   </div>
 </template>
@@ -284,7 +297,22 @@ const statusOptions = Object.values(WORK_DIARY_STATUS).map((value) => ({
   label: WORK_DIARY_STATUS_META[value]?.label || value
 }))
 
+const canReadAll = computed(() => !!authStore.hasPermission('work-diary:read:all'))
+const canReadSelf = computed(() => !!authStore.hasPermission('work-diary:read:self'))
+const canManageSelf = computed(() => !!authStore.hasPermission('work-diary:manage:self'))
+const hasDiaryAccess = computed(() => canReadAll.value || canReadSelf.value)
+
 const userOptions = computed(() => {
+  if (!canReadAll.value) {
+    const current = authStore.user
+    if (!current?._id) return []
+    return [
+      {
+        label: current.name || current.username || '我自己',
+        value: current._id
+      }
+    ]
+  }
   const options = workDiaryStore.authorOptions.map((option) => ({
     ...option,
     label: option.label
@@ -302,7 +330,9 @@ const canEditContent = computed(() => {
   if (!selectedDiary.value) return false
   const authorId = selectedDiary.value.author?._id || selectedDiary.value.author?.id
   const userId = authStore.user?._id || authStore.user?.id
-  return isSupervisor.value || (authorId && userId && authorId === userId)
+  if (isSupervisor.value) return true
+  if (!canManageSelf.value) return false
+  return authorId && userId && authorId === userId
 })
 const canChangeStatus = computed(() => isSupervisor.value)
 const canUploadImages = computed(() => canEditContent.value)
@@ -315,7 +345,7 @@ const syncRouteParams = async () => {
   const dateString = formatDate(calendarValue.value)
   if (dateString) params.date = dateString
   const userId = selectedUserId.value
-  if (userId && userId !== 'all') params.userId = userId
+  if (canReadAll.value && userId && userId !== 'all') params.userId = userId
 
   const currentDate = route.params.date || route.query.date || null
   const currentUser = route.params.userId || route.query.user || null
@@ -326,10 +356,18 @@ const syncRouteParams = async () => {
 }
 
 const loadDiaries = async () => {
+  if (!hasDiaryAccess.value) {
+    workDiaryStore.$patch({ diaries: [], selectedDiaryId: null })
+    return
+  }
   const payload = {
     date: formatDate(calendarValue.value)
   }
-  if (selectedUserId.value && selectedUserId.value !== 'all') {
+  if (
+    canReadAll.value &&
+    selectedUserId.value &&
+    selectedUserId.value !== 'all'
+  ) {
     payload.userId = selectedUserId.value
   }
   try {
@@ -351,6 +389,10 @@ watch(
     if (nextDate && formatDate(nextDate) !== formatDate(calendarValue.value)) {
       calendarValue.value = nextDate
     }
+    if (!canReadAll.value) {
+      selectedUserId.value = 'all'
+      return
+    }
     const nextUser = params.userId || route.query.user || 'all'
     if (selectedUserId.value !== nextUser) {
       selectedUserId.value = nextUser
@@ -366,6 +408,14 @@ watch(
   },
   { immediate: true }
 )
+
+watch(hasDiaryAccess, async (allowed) => {
+  if (allowed) {
+    await loadDiaries()
+  } else {
+    workDiaryStore.$patch({ diaries: [], selectedDiaryId: null })
+  }
+})
 
 watch(
   () => workDiaryStore.selectedDiaryId,
@@ -487,6 +537,33 @@ const reload = async () => {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+.work-diary-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.work-diary-no-access {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 320px;
+}
+
+.no-access-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  text-align: center;
+  color: var(--surface-500);
+}
+
+.no-access-content .pi {
+  font-size: 2rem;
 }
 
 .work-diary-toolbar .toolbar-content {

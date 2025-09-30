@@ -188,8 +188,12 @@ const toggleNotifications = () => {
   showNotifications.value = !showNotifications.value
 }
 
-const handleNotificationClick = n => {
-  notificationStore.markAsRead(n.id)
+const handleNotificationClick = async (n) => {
+  try {
+    await notificationStore.markAsRead(n.id)
+  } catch (error) {
+    console.warn('標記通知已讀失敗', error)
+  }
   showNotifications.value = false
 }
 

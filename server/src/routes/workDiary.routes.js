@@ -1,9 +1,9 @@
 import { Router } from 'express'
 import { protect } from '../middleware/auth.js'
-import { authorize } from '../middleware/roleGuard.js'
+import { requireAnyPerm, requirePerm } from '../middleware/permission.js'
 import { upload } from '../middleware/upload.js'
 import asyncHandler from '../utils/asyncHandler.js'
-import { ROLES } from '../config/roles.js'
+import { PERMISSIONS } from '../config/permissions.js'
 import {
   listWorkDiaries,
   getWorkDiary,
@@ -18,17 +18,37 @@ router.use(protect)
 
 router
   .route('/')
-  .get(asyncHandler(listWorkDiaries))
-  .post(upload.array('images'), asyncHandler(createWorkDiary))
+  .get(
+    requireAnyPerm(
+      PERMISSIONS.WORK_DIARY_READ_ALL,
+      PERMISSIONS.WORK_DIARY_READ_SELF
+    ),
+    asyncHandler(listWorkDiaries)
+  )
+  .post(
+    requirePerm(PERMISSIONS.WORK_DIARY_MANAGE_SELF),
+    upload.array('images'),
+    asyncHandler(createWorkDiary)
+  )
 
 router
   .route('/:diaryId')
-  .get(asyncHandler(getWorkDiary))
-  .put(upload.array('images'), asyncHandler(updateWorkDiary))
+  .get(
+    requireAnyPerm(
+      PERMISSIONS.WORK_DIARY_READ_ALL,
+      PERMISSIONS.WORK_DIARY_READ_SELF
+    ),
+    asyncHandler(getWorkDiary)
+  )
+  .put(
+    requirePerm(PERMISSIONS.WORK_DIARY_MANAGE_SELF),
+    upload.array('images'),
+    asyncHandler(updateWorkDiary)
+  )
 
 router.patch(
   '/:diaryId/review',
-  authorize(ROLES.MANAGER),
+  requirePerm(PERMISSIONS.WORK_DIARY_REVIEW),
   asyncHandler(reviewWorkDiary)
 )
 

@@ -5,9 +5,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import User from '../models/user.model.js'
 import Role from '../models/role.model.js'
-import { ROLES } from '../config/roles.js'
-import { PERMISSIONS } from '../config/permissions.js'
-import { MENUS } from '../config/menus.js'
+import { ROLES, ROLE_DEFAULT_PERMISSIONS, ROLE_DEFAULT_MENUS } from '../config/roles.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
@@ -27,27 +25,13 @@ const seed = async () => {
     await Role.deleteMany({})
 
     // 建立角色資料
-    const roleDocs = await Role.insertMany([
-      {
-        name: ROLES.EMPLOYEE,
-        menus: [
-          MENUS.DASHBOARD,
-          MENUS.ASSETS,
-          MENUS.PRODUCTS,
-          MENUS.POPULAR_DATA,
-          MENUS.ACCOUNT
-        ]
-      },
-      {
-        name: ROLES.MANAGER,
-        permissions: Object.values(PERMISSIONS), // 包含 ROLE_MANAGE
-        menus: Object.values(MENUS)
-      },
-      {
-        name: ROLES.OUTSOURCE,
-        menus: [MENUS.ASSETS]
-      }
-    ])
+    const roleDocs = await Role.insertMany(
+      Object.values(ROLES).map((name) => ({
+        name,
+        permissions: ROLE_DEFAULT_PERMISSIONS[name] || [],
+        menus: ROLE_DEFAULT_MENUS[name] || []
+      }))
+    )
     const roleMap = {}
     for (const r of roleDocs) roleMap[r.name] = r._id
 

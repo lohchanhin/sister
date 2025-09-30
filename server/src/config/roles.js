@@ -1,8 +1,40 @@
+import { PERMISSIONS } from './permissions.js'
+import { MENUS } from './menus.js'
+
 /**
- * \u7cfb\u7d71\u89d2\u8272\u5e38\u6578\u5b9a\u7fa9
+ * 系統角色常數定義與預設權限、選單
  */
 export const ROLES = Object.freeze({
   EMPLOYEE: 'employee',
   MANAGER: 'manager',
   OUTSOURCE: 'outsource'
+})
+
+export const ROLE_DEFAULT_PERMISSIONS = Object.freeze({
+  [ROLES.EMPLOYEE]: [
+    PERMISSIONS.WORK_DIARY_MANAGE_SELF,
+    PERMISSIONS.WORK_DIARY_READ_SELF
+  ],
+  [ROLES.MANAGER]: Object.values(PERMISSIONS),
+  [ROLES.OUTSOURCE]: [
+    PERMISSIONS.WORK_DIARY_MANAGE_SELF,
+    PERMISSIONS.WORK_DIARY_READ_SELF
+  ]
+})
+
+export const ROLE_DEFAULT_MENUS = Object.freeze({
+  [ROLES.EMPLOYEE]: [
+    MENUS.DASHBOARD,
+    MENUS.ASSETS,
+    MENUS.PRODUCTS,
+    MENUS.POPULAR_DATA,
+    MENUS.SCRIPT_IDEAS,
+    MENUS.WORK_DIARIES,
+    MENUS.ACCOUNT
+  ],
+  [ROLES.MANAGER]: Object.values(MENUS),
+  [ROLES.OUTSOURCE]: [
+    MENUS.ASSETS,
+    MENUS.WORK_DIARIES
+  ]
 })

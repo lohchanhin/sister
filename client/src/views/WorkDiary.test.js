@@ -265,7 +265,7 @@ describe('WorkDiary.vue', () => {
       user: {
         _id: 'emp1',
         name: '一般員工',
-        permissions: [],
+        permissions: ['work-diary:manage:self', 'work-diary:read:self'],
         menus: ['work-diaries']
       }
     }
@@ -274,6 +274,9 @@ describe('WorkDiary.vue', () => {
 
     expect(listWorkDiariesMock).toHaveBeenCalled()
     expect(getWorkDiaryMock).toHaveBeenCalledWith('d1')
+
+    const memberDropdown = wrapper.find('.work-diary-toolbar .dropdown-stub')
+    expect(memberDropdown.exists()).toBe(false)
 
     const statusDropdown = wrapper.find('select.status-dropdown')
     expect(statusDropdown.exists()).toBe(false)
@@ -297,7 +300,7 @@ describe('WorkDiary.vue', () => {
       user: {
         _id: 'leader',
         name: '主管',
-        permissions: ['work-diary:review'],
+        permissions: ['work-diary:review', 'work-diary:read:all'],
         menus: ['work-diaries']
       }
     }
@@ -305,6 +308,9 @@ describe('WorkDiary.vue', () => {
     const { wrapper } = await mountWorkDiary({ user, path: '/work-diaries/2024-05-01' })
 
     await flushPromises()
+
+    const memberDropdown = wrapper.find('.work-diary-toolbar .dropdown-stub')
+    expect(memberDropdown.exists()).toBe(true)
 
     const statusDropdown = wrapper.find('select.status-dropdown')
     expect(statusDropdown.exists()).toBe(true)
@@ -326,5 +332,23 @@ describe('WorkDiary.vue', () => {
       status: 'approved',
       supervisorComment: '辛苦了，保持品質。'
     })
+  })
+
+  it('沒有權限的使用者僅看到提示訊息', async () => {
+    const user = {
+      token: 'token',
+      user: {
+        _id: 'guest',
+        name: '訪客',
+        permissions: [],
+        menus: []
+      }
+    }
+
+    const { wrapper } = await mountWorkDiary({ user })
+
+    expect(listWorkDiariesMock).not.toHaveBeenCalled()
+    expect(wrapper.find('.work-diary-no-access').exists()).toBe(true)
+    expect(wrapper.find('.no-access-content').text()).toContain('沒有觀看工作日誌的權限')
   })
 })

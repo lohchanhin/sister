@@ -10,5 +10,9 @@ export const PERMISSIONS = Object.freeze({
   REVIEW_MANAGE: 'review:manage',
   TAG_MANAGE: 'tag:manage',
   ROLE_MANAGE: 'role:manage',
-  ANALYTICS_VIEW: 'analytics:view'
+  ANALYTICS_VIEW: 'analytics:view',
+  WORK_DIARY_MANAGE_SELF: 'work-diary:manage:self',
+  WORK_DIARY_READ_ALL: 'work-diary:read:all',
+  WORK_DIARY_READ_SELF: 'work-diary:read:self',
+  WORK_DIARY_REVIEW: 'work-diary:review'
 })

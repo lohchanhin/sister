@@ -101,23 +101,33 @@ const notificationStore = useNotificationStore()
 const isCollapsed = ref(false)
 const isMobile = ref(window.innerWidth <= 991)
 
-const mainMenuItems = computed(() => [
-  { path: '/dashboard', label: '仪表板', icon: 'pi pi-home', badge: null },
-  { path: '/assets', label: '素材库', icon: 'pi pi-images', badge: null },
-  {
-    path: '/products',
-    label: '成品区',
-    icon: 'pi pi-box',
-    badge: notificationStore.productUnreadCount > 0
-      ? String(notificationStore.productUnreadCount)
-      : null
-  },
-  { path: '/popular-data', label: '爆款数据', icon: 'pi pi-bolt', badge: null },
-  { path: '/script-ideas', label: '腳本創意', icon: 'pi pi-pencil', badge: null },
-  { path: '/work-diaries', label: '工作日誌', icon: 'pi pi-calendar', badge: null },
+const mainMenuItems = computed(() => {
+  const items = [
+    { path: '/dashboard', label: '仪表板', icon: 'pi pi-home', badge: null },
+    { path: '/assets', label: '素材库', icon: 'pi pi-images', badge: null },
+    {
+      path: '/products',
+      label: '成品区',
+      icon: 'pi pi-box',
+      badge: notificationStore.productUnreadCount > 0
+        ? String(notificationStore.productUnreadCount)
+        : null
+    },
+    { path: '/popular-data', label: '爆款数据', icon: 'pi pi-bolt', badge: null },
+    { path: '/script-ideas', label: '腳本創意', icon: 'pi pi-pencil', badge: null }
+  ]
 
-  // { path: '/ad-data', label: '广告数据', icon: 'pi pi-chart-line', badge: null }
-])
+  const canSeeWorkDiary =
+    authStore.user?.menus?.includes('work-diaries') ||
+    authStore.hasPermission('work-diary:read:all') ||
+    authStore.hasPermission('work-diary:read:self')
+
+  if (canSeeWorkDiary) {
+    items.push({ path: '/work-diaries', label: '工作日誌', icon: 'pi pi-calendar', badge: null })
+  }
+
+  return items
+})
 
 const adminMenuItems = computed(() => {
   const items = [
