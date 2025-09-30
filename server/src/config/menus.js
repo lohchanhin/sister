@@ -6,6 +6,7 @@ export const MENUS = Object.freeze({
   ROLES: 'roles',
   TAGS: 'tags',
   REVIEW_STAGES: 'review-stages',
+  POPULAR_DATA: 'popular-data',
   AD_DATA: 'ad-data',
   ACCOUNT: 'account'
 })

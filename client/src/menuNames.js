@@ -7,6 +7,7 @@ export const MENU_NAMES = {
   roles: '角色设定',
   tags: '标签管理',
   'review-stages': '审查关卡',
+  'popular-data': '爆款数据',
   'ad-data': '广告数据',
   'ad-platforms': '平台設定',
   account: '帐号资讯'
