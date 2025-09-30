@@ -38,6 +38,14 @@
               </div>
               <div class="toolbar-actions">
                 <Button
+                  v-if="canCreateDiary"
+                  data-test="create-diary-button"
+                  icon="pi pi-plus"
+                  label="新增日誌"
+                  :disabled="workDiaryStore.creating"
+                  @click="openCreateDialog"
+                />
+                <Button
                   icon="pi pi-refresh"
                   label="重新整理"
                   class="p-button-outlined"
@@ -231,6 +239,106 @@
       </div>
       </div>
     </div>
+
+    <Dialog
+      v-model:visible="createDialogVisible"
+      header="新增工作日誌"
+      class="create-diary-dialog"
+      modal
+      :closable="!workDiaryStore.creating"
+      @hide="handleCreateDialogHide"
+    >
+      <div class="create-diary-form" data-test="create-diary-dialog">
+        <div class="form-row">
+          <label class="field-label" for="create-diary-date">日誌日期</label>
+          <Calendar
+            id="create-diary-date"
+            v-model="createForm.date"
+            dateFormat="yy-mm-dd"
+            :maxDate="new Date()"
+          />
+        </div>
+
+        <div class="form-row">
+          <label class="field-label" for="create-diary-title">標題</label>
+          <InputText
+            id="create-diary-title"
+            v-model.trim="createForm.title"
+            data-test="create-diary-title-input"
+          />
+        </div>
+
+        <div class="form-row">
+          <label class="field-label" for="create-diary-status">狀態</label>
+          <Dropdown
+            id="create-diary-status"
+            v-model="createForm.status"
+            :options="createStatusOptions"
+            optionLabel="label"
+            optionValue="value"
+            :disabled="!createStatusOptions.length"
+          />
+        </div>
+
+        <div class="form-row">
+          <label class="field-label" for="create-diary-content">日誌內容</label>
+          <Textarea
+            id="create-diary-content"
+            v-model="createForm.content"
+            autoResize
+            rows="6"
+          />
+        </div>
+
+        <div class="form-row">
+          <label class="field-label">圖片</label>
+          <div class="create-upload">
+            <FileUpload
+              data-test="create-diary-upload"
+              name="create-work-diary-images"
+              accept="image/*"
+              :auto="false"
+              :customUpload="true"
+              :showUploadButton="false"
+              :showCancelButton="false"
+              @select="handleCreateImageSelect"
+            >
+              <div class="upload-placeholder">
+                <i class="pi pi-cloud-upload"></i>
+                <p>拖曳或點擊以上傳圖片</p>
+              </div>
+            </FileUpload>
+            <ul v-if="createImages.length" class="create-upload-list">
+              <li v-for="(file, index) in createImages" :key="file.name + index">
+                <span>{{ file.name }}</span>
+                <Button
+                  icon="pi pi-times"
+                  class="p-button-text"
+                  severity="danger"
+                  @click="removeCreateImage(index)"
+                />
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <Button
+          label="取消"
+          class="p-button-text"
+          :disabled="workDiaryStore.creating"
+          @click="createDialogVisible = false"
+        />
+        <Button
+          label="建立"
+          icon="pi pi-check"
+          :loading="workDiaryStore.creating"
+          data-test="create-diary-submit"
+          @click="handleCreateDiarySubmit"
+        />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -255,6 +363,7 @@ import Tag from 'primevue/tag'
 import FileUpload from 'primevue/fileupload'
 import Divider from 'primevue/divider'
 import Skeleton from 'primevue/skeleton'
+import Dialog from 'primevue/dialog'
 
 const router = useRouter()
 const route = useRoute()
@@ -297,9 +406,18 @@ const statusOptions = Object.values(WORK_DIARY_STATUS).map((value) => ({
   label: WORK_DIARY_STATUS_META[value]?.label || value
 }))
 
+const createStatusOptions = computed(() => {
+  if (isSupervisor.value) return statusOptions
+  return statusOptions.filter((option) =>
+    [WORK_DIARY_STATUS.DRAFT, WORK_DIARY_STATUS.SUBMITTED].includes(option.value)
+  )
+})
+
+const isSupervisor = computed(() => !!authStore.hasPermission('work-diary:review'))
 const canReadAll = computed(() => !!authStore.hasPermission('work-diary:read:all'))
 const canReadSelf = computed(() => !!authStore.hasPermission('work-diary:read:self'))
 const canManageSelf = computed(() => !!authStore.hasPermission('work-diary:manage:self'))
+const canCreateDiary = computed(() => canManageSelf.value || isSupervisor.value)
 const hasDiaryAccess = computed(() => canReadAll.value || canReadSelf.value)
 
 const userOptions = computed(() => {
@@ -324,8 +442,6 @@ const userOptions = computed(() => {
 })
 
 const formattedDate = computed(() => formatDate(calendarValue.value))
-
-const isSupervisor = computed(() => !!authStore.hasPermission('work-diary:review'))
 const canEditContent = computed(() => {
   if (!selectedDiary.value) return false
   const authorId = selectedDiary.value.author?._id || selectedDiary.value.author?.id
@@ -339,6 +455,33 @@ const canUploadImages = computed(() => canEditContent.value)
 const canSave = computed(() => canEditContent.value || canChangeStatus.value)
 
 const detailForm = ref(null)
+const createDialogVisible = ref(false)
+const createForm = ref({
+  date: new Date(calendarValue.value),
+  title: '',
+  content: '',
+  status: WORK_DIARY_STATUS.DRAFT
+})
+const createImages = ref([])
+
+const resetCreateForm = () => {
+  createForm.value = {
+    date: new Date(calendarValue.value),
+    title: '',
+    content: '',
+    status: WORK_DIARY_STATUS.DRAFT
+  }
+  createImages.value = []
+}
+
+const openCreateDialog = () => {
+  if (!canCreateDiary.value) {
+    toast.add({ severity: 'warn', summary: '權限不足', detail: '您沒有建立日誌的權限', life: 3000 })
+    return
+  }
+  resetCreateForm()
+  createDialogVisible.value = true
+}
 
 const syncRouteParams = async () => {
   const params = {}
@@ -408,6 +551,14 @@ watch(
   },
   { immediate: true }
 )
+
+watch(calendarValue, (value) => {
+  if (!createDialogVisible.value) return
+  createForm.value = {
+    ...createForm.value,
+    date: value ? new Date(value) : null
+  }
+})
 
 watch(hasDiaryAccess, async (allowed) => {
   if (allowed) {
@@ -529,6 +680,67 @@ const handleRemoveImage = async (image) => {
 
 const reload = async () => {
   await loadDiaries()
+}
+
+const handleCreateDialogHide = () => {
+  if (workDiaryStore.creating) return
+  resetCreateForm()
+}
+
+const handleCreateImageSelect = (event) => {
+  const files = event?.files || []
+  if (!files.length) return
+  createImages.value = [...createImages.value, ...files]
+}
+
+const removeCreateImage = (index) => {
+  createImages.value = createImages.value.filter((_, idx) => idx !== index)
+}
+
+const handleCreateDiarySubmit = async () => {
+  if (!canCreateDiary.value) {
+    toast.add({ severity: 'warn', summary: '權限不足', detail: '您沒有建立日誌的權限', life: 3000 })
+    return
+  }
+  if (!createForm.value.title?.trim()) {
+    toast.add({ severity: 'warn', summary: '資料不足', detail: '請輸入日誌標題', life: 3000 })
+    return
+  }
+  const formatted = formatDate(createForm.value.date || calendarValue.value)
+  if (!formatted) {
+    toast.add({ severity: 'warn', summary: '資料不足', detail: '請選擇日誌日期', life: 3000 })
+    return
+  }
+
+  const formData = new FormData()
+  formData.append('title', createForm.value.title)
+  if (createForm.value.content?.trim()) formData.append('content', createForm.value.content)
+  if (createForm.value.status) formData.append('status', createForm.value.status)
+  formData.append('date', formatted)
+  if (isSupervisor.value && canReadAll.value && selectedUserId.value && selectedUserId.value !== 'all') {
+    formData.append('author', selectedUserId.value)
+  }
+  createImages.value.forEach((file) => {
+    const payload = file?.raw || file?.file || file
+    if (payload) formData.append('images', payload)
+  })
+
+  try {
+    await workDiaryStore.createDiary(formData)
+    await reload()
+    toast.add({ severity: 'success', summary: '建立成功', detail: '已新增日誌', life: 3000 })
+    createDialogVisible.value = false
+    resetCreateForm()
+  } catch (error) {
+    const status = error?.response?.status
+    if (status === 403) {
+      toast.add({ severity: 'warn', summary: '權限不足', detail: '您沒有建立日誌的權限', life: 3000 })
+    } else if (status === 400 || status === 422) {
+      toast.add({ severity: 'warn', summary: '資料格式錯誤', detail: '請確認日誌內容是否完整', life: 3000 })
+    } else {
+      toast.add({ severity: 'error', summary: '建立失敗', detail: '建立日誌時發生錯誤', life: 3000 })
+    }
+  }
 }
 </script>
 
@@ -747,6 +959,40 @@ const reload = async () => {
 .form-actions {
   display: flex;
   justify-content: flex-end;
+}
+
+.create-diary-dialog :deep(.p-dialog-content) {
+  padding-top: 0;
+}
+
+.create-diary-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.create-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.create-upload-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.create-upload-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--surface-200);
+  border-radius: 8px;
 }
 
 @media (max-width: 1024px) {
