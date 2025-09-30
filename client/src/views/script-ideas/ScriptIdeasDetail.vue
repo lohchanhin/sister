@@ -1,78 +1,88 @@
 <template>
   <div class="script-ideas-detail">
-    <header class="detail-header">
-      <div>
-        <h2>{{ idea?.headline || '腳本詳情' }}</h2>
-        <p class="subtitle">上傳影片素材並維護腳本文案內容</p>
-      </div>
-      <div class="actions">
+    <template v-if="permissionError">
+      <section class="permission-error">
+        <i class="pi pi-lock"></i>
+        <h2>無法檢視腳本詳情</h2>
+        <p>{{ errorMessage }}</p>
         <Button label="返回列表" icon="pi pi-arrow-left" severity="secondary" @click="goBack" />
-        <Button label="儲存變更" icon="pi pi-save" :loading="saving" @click="save" />
+      </section>
+    </template>
+    <template v-else>
+      <header class="detail-header">
+        <div>
+          <h2>{{ idea?.headline || '腳本詳情' }}</h2>
+          <p class="subtitle">上傳影片素材並維護腳本文案內容</p>
+        </div>
+        <div class="actions">
+          <Button label="返回列表" icon="pi pi-arrow-left" severity="secondary" @click="goBack" />
+          <Button label="儲存變更" icon="pi pi-save" :loading="saving" @click="save" />
+        </div>
+      </header>
+
+      <div v-if="loading" class="loading">載入腳本詳情中…</div>
+
+      <div v-else class="detail-content">
+        <Card class="detail-card">
+          <template #title>影片上傳</template>
+          <template #content>
+            <p class="description">上傳影片檔案，供腳本團隊參考。支援常見影片格式。</p>
+            <div class="upload-area">
+              <FileUpload name="video" accept="video/*" :auto="false" :showUploadButton="false"
+                :showCancelButton="false" :maxFileSize="1024 * 1024 * 1024" v-model:files="videoFiles"
+                @select="onVideoSelect" @remove="onVideoRemove">
+                <template #empty>
+                  <span class="upload-placeholder">
+                    <i class="pi pi-cloud-upload"></i>
+                    <span>拖曳或選擇影片檔案</span>
+                  </span>
+                </template>
+              </FileUpload>
+              <div v-if="idea?.videoUrl && !removeVideo" class="current-video">
+                <p>目前檔案：<a :href="idea.videoUrl" target="_blank" rel="noopener">{{ idea.videoName }}</a></p>
+                <Button label="清除既有檔案" severity="secondary" text @click="toggleRemove" />
+              </div>
+              <div v-else-if="removeVideo" class="current-video muted">
+                <p>儲存後將移除現有影片</p>
+                <Button label="取消移除" severity="secondary" text @click="toggleRemove" />
+              </div>
+            </div>
+          </template>
+        </Card>
+
+        <Card class="detail-card">
+          <template #title>腳本內容</template>
+          <template #content>
+            <div class="form-grid">
+              <span class="field">
+                <label for="summary">綜合腳本</label>
+                <Textarea id="summary" v-model="form.summaryScript" rows="4" autoResize />
+              </span>
+              <span class="field">
+                <label for="title">標題</label>
+                <InputText id="title" v-model="form.headline" />
+              </span>
+              <span class="field">
+                <label for="first">第一段</label>
+                <Textarea id="first" v-model="form.firstParagraph" rows="3" autoResize />
+              </span>
+              <span class="field">
+                <label for="lines">台詞</label>
+                <Textarea id="lines" v-model="form.dialogue" rows="4" autoResize />
+              </span>
+              <span class="field">
+                <label for="keyLines">要講的台詞</label>
+                <Textarea id="keyLines" v-model="form.keyLines" rows="3" autoResize />
+              </span>
+              <span class="field">
+                <label for="feedback">修改意見</label>
+                <Textarea id="feedback" v-model="form.feedback" rows="4" autoResize />
+              </span>
+            </div>
+          </template>
+        </Card>
       </div>
-    </header>
-
-    <div v-if="loading" class="loading">載入腳本詳情中…</div>
-
-    <div v-else class="detail-content">
-      <Card class="detail-card">
-        <template #title>影片上傳</template>
-        <template #content>
-          <p class="description">上傳影片檔案，供腳本團隊參考。支援常見影片格式。</p>
-          <div class="upload-area">
-            <FileUpload name="video" accept="video/*" :auto="false" :showUploadButton="false"
-              :showCancelButton="false" :maxFileSize="1024 * 1024 * 1024" v-model:files="videoFiles"
-              @select="onVideoSelect" @remove="onVideoRemove">
-              <template #empty>
-                <span class="upload-placeholder">
-                  <i class="pi pi-cloud-upload"></i>
-                  <span>拖曳或選擇影片檔案</span>
-                </span>
-              </template>
-            </FileUpload>
-            <div v-if="idea?.videoUrl && !removeVideo" class="current-video">
-              <p>目前檔案：<a :href="idea.videoUrl" target="_blank" rel="noopener">{{ idea.videoName }}</a></p>
-              <Button label="清除既有檔案" severity="secondary" text @click="toggleRemove" />
-            </div>
-            <div v-else-if="removeVideo" class="current-video muted">
-              <p>儲存後將移除現有影片</p>
-              <Button label="取消移除" severity="secondary" text @click="toggleRemove" />
-            </div>
-          </div>
-        </template>
-      </Card>
-
-      <Card class="detail-card">
-        <template #title>腳本內容</template>
-        <template #content>
-          <div class="form-grid">
-            <span class="field">
-              <label for="summary">綜合腳本</label>
-              <Textarea id="summary" v-model="form.summaryScript" rows="4" autoResize />
-            </span>
-            <span class="field">
-              <label for="title">標題</label>
-              <InputText id="title" v-model="form.headline" />
-            </span>
-            <span class="field">
-              <label for="first">第一段</label>
-              <Textarea id="first" v-model="form.firstParagraph" rows="3" autoResize />
-            </span>
-            <span class="field">
-              <label for="lines">台詞</label>
-              <Textarea id="lines" v-model="form.dialogue" rows="4" autoResize />
-            </span>
-            <span class="field">
-              <label for="keyLines">要講的台詞</label>
-              <Textarea id="keyLines" v-model="form.keyLines" rows="3" autoResize />
-            </span>
-            <span class="field">
-              <label for="feedback">修改意見</label>
-              <Textarea id="feedback" v-model="form.feedback" rows="4" autoResize />
-            </span>
-          </div>
-        </template>
-      </Card>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -110,6 +120,8 @@ const idea = ref(null)
 const videoFiles = ref([])
 const videoFile = ref(null)
 const removeVideo = ref(false)
+const permissionError = ref(false)
+const errorMessage = ref('')
 
 const form = reactive({
   summaryScript: '',
@@ -131,6 +143,8 @@ const assignForm = (data) => {
 
 const loadDetail = async () => {
   loading.value = true
+  permissionError.value = false
+  errorMessage.value = ''
   try {
     const data = await getScriptIdea(props.clientId, props.recordId)
     idea.value = data
@@ -139,7 +153,13 @@ const loadDetail = async () => {
     videoFiles.value = []
     videoFile.value = null
   } catch (error) {
-    toast.add({ severity: 'error', summary: '載入失敗', detail: '無法取得腳本詳情', life: 3000 })
+    if (error?.response?.status === 403) {
+      permissionError.value = true
+      errorMessage.value = '請聯絡管理者開啟腳本創意檢視權限。'
+      idea.value = null
+    } else {
+      toast.add({ severity: 'error', summary: '載入失敗', detail: '無法取得腳本詳情', life: 3000 })
+    }
   } finally {
     loading.value = false
   }
@@ -176,7 +196,13 @@ const save = async () => {
     toast.add({ severity: 'success', summary: '已儲存', detail: '腳本詳情更新成功', life: 2500 })
     await loadDetail()
   } catch (error) {
-    toast.add({ severity: 'error', summary: '儲存失敗', detail: '請稍後再試', life: 3000 })
+    if (error?.response?.status === 403) {
+      permissionError.value = true
+      errorMessage.value = '請聯絡管理者開啟腳本創意檢視權限。'
+      toast.add({ severity: 'warn', summary: '無權限', detail: '您沒有腳本創意的編輯權限', life: 3000 })
+    } else {
+      toast.add({ severity: 'error', summary: '儲存失敗', detail: '請稍後再試', life: 3000 })
+    }
   } finally {
     saving.value = false
   }
@@ -235,6 +261,33 @@ watch(
 
 .detail-card {
   height: 100%;
+}
+
+.permission-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+.permission-error i {
+  font-size: 2rem;
+  color: #ef4444;
+}
+
+.permission-error h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #111827;
+}
+
+.permission-error p {
+  margin: 0;
+  max-width: 420px;
 }
 
 .description {
