@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import {
+  createWorkDiary,
   listWorkDiaries,
   getWorkDiary,
   updateWorkDiary,
@@ -35,6 +36,7 @@ export const useWorkDiaryStore = defineStore('workDiary', {
     diaries: [],
     loading: false,
     saving: false,
+    creating: false,
     uploading: false,
     error: null,
     selectedDiaryId: null,
@@ -141,6 +143,33 @@ export const useWorkDiaryStore = defineStore('workDiary', {
         throw error
       } finally {
         this.saving = false
+      }
+    },
+    async createDiary(payload = {}) {
+      this.creating = true
+      this.error = null
+      try {
+        const created = await createWorkDiary(payload)
+        const normalized = {
+          ...created,
+          id: created?.id || created?._id || null,
+          detailLoaded: Boolean(created?.content || created?.contentBlocks)
+        }
+        if (normalized.id) {
+          const existingIndex = this.diaries.findIndex((item) => item.id === normalized.id)
+          if (existingIndex >= 0) {
+            this.diaries.splice(existingIndex, 1, normalized)
+          } else {
+            this.diaries.unshift(normalized)
+          }
+          this.selectedDiaryId = normalized.id
+        }
+        return normalized
+      } catch (error) {
+        this.error = error
+        throw error
+      } finally {
+        this.creating = false
       }
     },
     async uploadImages(diaryId, files) {

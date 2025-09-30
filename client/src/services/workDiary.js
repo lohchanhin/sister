@@ -6,6 +6,37 @@ const toArray = (value) => {
   return []
 }
 
+const ensureFormData = (payload = {}) => {
+  if (payload instanceof FormData) return payload
+  const formData = new FormData()
+  Object.entries(payload || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null) return
+    if (key === 'images') {
+      toArray(value).forEach((file) => {
+        const input = file?.raw || file?.file || file
+        if (input) formData.append('images', input)
+      })
+      return
+    }
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (item === undefined || item === null) return
+        formData.append(key, item)
+      })
+      return
+    }
+    formData.append(key, value)
+  })
+  return formData
+}
+
+export const createWorkDiary = (payload = {}) =>
+  api
+    .post('/work-diaries', ensureFormData(payload), {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    .then((res) => res.data)
+
 export const listWorkDiaries = (params = {}) =>
   api
     .get('/work-diaries', { params })
@@ -43,6 +74,7 @@ export const removeWorkDiaryImage = (diaryId, imageId) =>
     .then((res) => res.data)
 
 export default {
+  createWorkDiary,
   listWorkDiaries,
   getWorkDiary,
   updateWorkDiary,

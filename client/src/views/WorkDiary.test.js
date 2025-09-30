@@ -10,6 +10,7 @@ const toastMock = { add: vi.fn() }
 vi.mock('primevue/usetoast', () => ({ useToast: () => toastMock }))
 
 const workDiaryServiceMock = vi.hoisted(() => ({
+  createWorkDiary: vi.fn(),
   listWorkDiaries: vi.fn(),
   getWorkDiary: vi.fn(),
   updateWorkDiary: vi.fn(),
@@ -20,6 +21,7 @@ const workDiaryServiceMock = vi.hoisted(() => ({
 vi.mock('@/services/workDiary', () => workDiaryServiceMock)
 
 const {
+  createWorkDiary: createWorkDiaryMock,
   listWorkDiaries: listWorkDiariesMock,
   getWorkDiary: getWorkDiaryMock,
   updateWorkDiary: updateWorkDiaryMock
@@ -152,11 +154,23 @@ const CardStub = defineComponent({
   }
 })
 
+const DialogStub = defineComponent({
+  name: 'DialogStub',
+  props: ['visible'],
+  emits: ['update:visible', 'hide'],
+  setup(props, { slots }) {
+    return () =>
+      props.visible
+        ? h('div', { class: 'dialog-stub' }, [slots.default?.(), slots.footer?.()])
+        : null
+  }
+})
+
 const FileUploadStub = defineComponent({
   name: 'FileUploadStub',
   emits: ['select'],
-  setup(_, { slots }) {
-    return () => h('div', { class: 'file-upload-stub' }, slots.default?.())
+  setup(_, { slots, attrs }) {
+    return () => h('div', { class: 'file-upload-stub', ...attrs }, slots.default?.())
   }
 })
 
@@ -176,6 +190,7 @@ const SkeletonStub = defineComponent({
 
 const globalStubs = {
   Card: CardStub,
+  Dialog: DialogStub,
   Calendar: CalendarStub,
   Dropdown: DropdownStub,
   Button: ButtonStub,
@@ -204,17 +219,18 @@ const createTestRouter = async (initialPath = '/work-diaries') => {
   return router
 }
 
-const mountWorkDiary = async ({ user, path = '/work-diaries' }) => {
-  listWorkDiariesMock.mockResolvedValueOnce([
+const mountWorkDiary = async ({
+  user,
+  path = '/work-diaries',
+  diaries = [
     {
       id: 'd1',
       title: '日誌 A',
       status: 'submitted',
       author: { _id: 'emp1', name: '一般員工' }
     }
-  ])
-
-  const detail = {
+  ],
+  detail = {
     id: 'd1',
     title: '日誌 A',
     content: '今日完成任務。',
@@ -222,6 +238,8 @@ const mountWorkDiary = async ({ user, path = '/work-diaries' }) => {
     supervisorComment: '請再補充銷售結果',
     images: []
   }
+}) => {
+  listWorkDiariesMock.mockResolvedValueOnce(diaries)
 
   getWorkDiaryMock.mockResolvedValueOnce(detail)
   updateWorkDiaryMock.mockImplementation((id, payload) =>
@@ -250,6 +268,7 @@ const mountWorkDiary = async ({ user, path = '/work-diaries' }) => {
 describe('WorkDiary.vue', () => {
   beforeEach(() => {
     toastMock.add.mockClear()
+    createWorkDiaryMock.mockReset()
     listWorkDiariesMock.mockReset()
     getWorkDiaryMock.mockReset()
     updateWorkDiaryMock.mockReset()
@@ -332,6 +351,143 @@ describe('WorkDiary.vue', () => {
       status: 'approved',
       supervisorComment: '辛苦了，保持品質。'
     })
+  })
+
+  it('可以建立日誌並重新整理列表', async () => {
+    const user = {
+      token: 'token',
+      user: {
+        _id: 'emp1',
+        name: '一般員工',
+        permissions: ['work-diary:manage:self', 'work-diary:read:self'],
+        menus: ['work-diaries']
+      }
+    }
+
+    const { wrapper } = await mountWorkDiary({ user, path: '/work-diaries/2024-05-01' })
+
+    createWorkDiaryMock.mockResolvedValueOnce({
+      id: 'd2',
+      title: '新日誌',
+      status: 'submitted',
+      content: '今天完成新功能',
+      images: []
+    })
+    listWorkDiariesMock.mockResolvedValueOnce([
+      {
+        id: 'd2',
+        title: '新日誌',
+        status: 'submitted',
+        author: { _id: 'emp1', name: '一般員工' }
+      },
+      {
+        id: 'd1',
+        title: '日誌 A',
+        status: 'submitted',
+        author: { _id: 'emp1', name: '一般員工' }
+      }
+    ])
+    getWorkDiaryMock.mockResolvedValueOnce({
+      id: 'd2',
+      title: '新日誌',
+      content: '今天完成新功能',
+      status: 'submitted',
+      images: []
+    })
+
+    await wrapper.find('[data-test="create-diary-button"]').trigger('click')
+    await flushPromises()
+
+    const titleInput = wrapper.find('[data-test="create-diary-title-input"]')
+    await titleInput.setValue('新日誌')
+
+    const statusSelect = wrapper.find('#create-diary-status')
+    await statusSelect.setValue('submitted')
+
+    const contentTextarea = wrapper.find('#create-diary-content')
+    await contentTextarea.setValue('今天完成新功能')
+
+    const file = new File(['mock'], 'proof.png', { type: 'image/png' })
+    const uploadComponents = wrapper.findAllComponents(FileUploadStub)
+    const createUpload = uploadComponents.find((comp) => comp.attributes()['data-test'] === 'create-diary-upload')
+    expect(createUpload).toBeTruthy()
+    createUpload.vm.$emit('select', { files: [file] })
+
+    await wrapper.find('[data-test="create-diary-submit"]').trigger('click')
+    await flushPromises()
+    await flushPromises()
+
+    expect(createWorkDiaryMock).toHaveBeenCalledTimes(1)
+    const formData = createWorkDiaryMock.mock.calls[0][0]
+    expect(formData).toBeInstanceOf(FormData)
+    expect(formData.get('title')).toBe('新日誌')
+    expect(formData.get('status')).toBe('submitted')
+    expect(formData.get('date')).toBe('2024-05-01')
+    expect(formData.getAll('images').length).toBe(1)
+
+    expect(listWorkDiariesMock).toHaveBeenCalledTimes(2)
+
+    const listItems = wrapper.findAll('.list-item')
+    expect(listItems[0].text()).toContain('新日誌')
+
+    const successToast = toastMock.add.mock.calls.find((call) => call[0].summary === '建立成功')
+    expect(successToast).toBeTruthy()
+  })
+
+  it('建立日誌權限不足時顯示警告', async () => {
+    const user = {
+      token: 'token',
+      user: {
+        _id: 'emp1',
+        name: '一般員工',
+        permissions: ['work-diary:manage:self', 'work-diary:read:self'],
+        menus: ['work-diaries']
+      }
+    }
+
+    const { wrapper } = await mountWorkDiary({ user })
+
+    createWorkDiaryMock.mockRejectedValueOnce({ response: { status: 403 } })
+
+    await wrapper.find('[data-test="create-diary-button"]').trigger('click')
+    await flushPromises()
+
+    const titleInput = wrapper.find('[data-test="create-diary-title-input"]')
+    await titleInput.setValue('權限測試日誌')
+
+    await wrapper.find('[data-test="create-diary-submit"]').trigger('click')
+    await flushPromises()
+
+    const warnToast = toastMock.add.mock.calls.find((call) => call[0].summary === '權限不足')
+    expect(warnToast).toBeTruthy()
+  })
+
+  it('建立日誌資料驗證失敗顯示提示', async () => {
+    const user = {
+      token: 'token',
+      user: {
+        _id: 'emp1',
+        name: '一般員工',
+        permissions: ['work-diary:manage:self', 'work-diary:read:self'],
+        menus: ['work-diaries']
+      }
+    }
+
+    const { wrapper } = await mountWorkDiary({ user })
+
+    createWorkDiaryMock.mockRejectedValueOnce({ response: { status: 400 } })
+
+    await wrapper.find('[data-test="create-diary-button"]').trigger('click')
+    await flushPromises()
+
+    const titleInput = wrapper.find('[data-test="create-diary-title-input"]')
+    await titleInput.setValue('錯誤日誌')
+
+    await wrapper.find('[data-test="create-diary-submit"]').trigger('click')
+    await flushPromises()
+
+    const warningToast = toastMock.add.mock.calls.find((call) => call[0].summary === '資料格式錯誤')
+    expect(warningToast).toBeTruthy()
   })
 
   it('沒有權限的使用者僅看到提示訊息', async () => {
