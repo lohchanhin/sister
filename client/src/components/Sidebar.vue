@@ -114,6 +114,7 @@ const mainMenuItems = computed(() => [
   },
   { path: '/popular-data', label: '爆款数据', icon: 'pi pi-bolt', badge: null },
   { path: '/script-ideas', label: '腳本創意', icon: 'pi pi-pencil', badge: null },
+  { path: '/work-diaries', label: '工作日誌', icon: 'pi pi-calendar', badge: null },
 
   // { path: '/ad-data', label: '广告数据', icon: 'pi pi-chart-line', badge: null }
 ])
