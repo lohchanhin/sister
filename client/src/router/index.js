@@ -23,6 +23,7 @@ import PopularDataXhs from '../views/popular-data/PopularDataXhs.vue'
 import ScriptIdeas from '../views/script-ideas/ScriptIdeas.vue'
 import ScriptIdeasRecords from '../views/script-ideas/ScriptIdeasRecords.vue'
 import ScriptIdeasDetail from '../views/script-ideas/ScriptIdeasDetail.vue'
+import WorkDiary from '../views/WorkDiary.vue'
 
 
 const routes = [
@@ -107,6 +108,12 @@ const routes = [
       { path: 'roles', name: 'RoleSettings', component: RoleSettings, meta: { menu: 'roles' } },
       { path: 'tags', name: 'TagManager', component: TagManager, meta: { menu: 'tags' } },
       { path: 'review-settings', name: 'ReviewSettings', component: ReviewSettings, meta: { menu: 'review-stages' } },
+      {
+        path: 'work-diaries/:date?/:userId?',
+        name: 'WorkDiaries',
+        component: WorkDiary,
+        meta: { menu: 'work-diaries' }
+      },
       { path: 'ad-clients', name: 'AdClients', component: AdClients, meta: { menu: 'ad-data' } },
       { path: 'clients/:clientId/platforms', name: 'AdPlatforms', component: AdPlatforms, meta: { menu: 'ad-data' } },
       { path: 'clients/:clientId/platforms/:platformId/data', name: 'AdData', component: AdData }
