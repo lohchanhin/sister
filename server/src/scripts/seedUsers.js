@@ -5,7 +5,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import User from '../models/user.model.js'
 import Role from '../models/role.model.js'
-import { ROLES } from '../config/roles.js'
+import { ROLES, ROLE_DEFAULT_PERMISSIONS } from '../config/roles.js'
 import { PERMISSIONS } from '../config/permissions.js'
 import { MENUS } from '../config/menus.js'
 
@@ -30,6 +30,7 @@ const seed = async () => {
     const roleDocs = await Role.insertMany([
       {
         name: ROLES.EMPLOYEE,
+        permissions: ROLE_DEFAULT_PERMISSIONS[ROLES.EMPLOYEE],
         menus: [
           MENUS.DASHBOARD,
           MENUS.ASSETS,
@@ -45,6 +46,7 @@ const seed = async () => {
       },
       {
         name: ROLES.OUTSOURCE,
+        permissions: ROLE_DEFAULT_PERMISSIONS[ROLES.OUTSOURCE],
         menus: [MENUS.ASSETS]
       }
     ])

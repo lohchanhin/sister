@@ -13,18 +13,14 @@ export const useNotificationStore = defineStore('notifications', {
   actions: {
     async fetch() {
       const data = await fetchNotifications()
-      this.list = data.map(item => {
-        const base = item.fileType === 'edited' ? '/products' : '/assets'
-        const folderPath = item.folderId ? `${base}/${item.folderId}` : base
-        const detailPath = item._id ? `${folderPath}/asset/${item._id}` : folderPath
-        return {
-          id: item._id,
-          title: item.fileName,
-          type: item.fileType,
-          link: detailPath,
-          read: false
-        }
-      })
+      this.list = data.map(item => ({
+        id: item.id || item._id,
+        title: item.title || item.message || '通知',
+        message: item.message || '',
+        type: item.type || 'general',
+        link: item.link || '#',
+        read: Boolean(item.read)
+      }))
     },
     markAsRead(id) {
       const target = this.list.find(n => n.id === id)

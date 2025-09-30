@@ -13,7 +13,7 @@
                 showIcon
               />
             </div>
-            <div class="toolbar-field">
+            <div v-if="canViewAll" class="toolbar-field">
               <label class="field-label">篩選成員</label>
               <Dropdown
                 v-model="selectedUserId"
@@ -267,7 +267,12 @@ const parseDate = (value) => {
 
 const initialDateString = route.params.date || route.query.date || formatDate(new Date())
 const calendarValue = ref(parseDate(initialDateString) || new Date())
-const selectedUserId = ref(route.params.userId || route.query.user || 'all')
+const currentUserId = computed(() => authStore.user?._id || authStore.user?.id || null)
+const canViewAll = computed(() => authStore.hasPermission('work-diary:read-all'))
+const canViewOwn = computed(() => authStore.hasPermission('work-diary:read-own'))
+const selectedUserId = ref(
+  canViewAll.value ? route.params.userId || route.query.user || 'all' : currentUserId.value
+)
 
 const diaries = computed(() => workDiaryStore.diaries)
 const selectedDiary = computed(() => workDiaryStore.selectedDiary)
@@ -289,6 +294,7 @@ const userOptions = computed(() => {
     ...option,
     label: option.label
   }))
+  if (!canViewAll.value) return options
   return [
     { label: '全部成員', value: 'all' },
     ...options
@@ -297,14 +303,17 @@ const userOptions = computed(() => {
 
 const formattedDate = computed(() => formatDate(calendarValue.value))
 
-const isSupervisor = computed(() => !!authStore.hasPermission('work-diary:review'))
+const canReview = computed(() => authStore.hasPermission('work-diary:review'))
+const isSupervisor = computed(
+  () => canReview.value || authStore.hasPermission('work-diary:comment')
+)
 const canEditContent = computed(() => {
   if (!selectedDiary.value) return false
   const authorId = selectedDiary.value.author?._id || selectedDiary.value.author?.id
   const userId = authStore.user?._id || authStore.user?.id
   return isSupervisor.value || (authorId && userId && authorId === userId)
 })
-const canChangeStatus = computed(() => isSupervisor.value)
+const canChangeStatus = computed(() => canReview.value)
 const canUploadImages = computed(() => canEditContent.value)
 const canSave = computed(() => canEditContent.value || canChangeStatus.value)
 
@@ -314,11 +323,15 @@ const syncRouteParams = async () => {
   const params = {}
   const dateString = formatDate(calendarValue.value)
   if (dateString) params.date = dateString
-  const userId = selectedUserId.value
-  if (userId && userId !== 'all') params.userId = userId
+  if (canViewAll.value) {
+    const userId = selectedUserId.value
+    if (userId && userId !== 'all') params.userId = userId
+  }
 
   const currentDate = route.params.date || route.query.date || null
-  const currentUser = route.params.userId || route.query.user || null
+  const currentUser = canViewAll.value
+    ? route.params.userId || route.query.user || null
+    : null
 
   if (currentDate !== params.date || currentUser !== params.userId) {
     await router.replace({ name: 'WorkDiaries', params })
@@ -326,11 +339,26 @@ const syncRouteParams = async () => {
 }
 
 const loadDiaries = async () => {
+  if (!canViewAll.value && !canViewOwn.value) {
+    toast.add({
+      severity: 'warn',
+      summary: '權限不足',
+      detail: '您沒有檢視工作日誌的權限',
+      life: 3000
+    })
+    workDiaryStore.diaries = []
+    workDiaryStore.selectedDiaryId = null
+    return
+  }
   const payload = {
     date: formatDate(calendarValue.value)
   }
-  if (selectedUserId.value && selectedUserId.value !== 'all') {
-    payload.userId = selectedUserId.value
+  if (canViewAll.value) {
+    if (selectedUserId.value && selectedUserId.value !== 'all') {
+      payload.userId = selectedUserId.value
+    }
+  } else if (currentUserId.value) {
+    payload.userId = currentUserId.value
   }
   try {
     await workDiaryStore.loadDiaries(payload)
@@ -351,15 +379,27 @@ watch(
     if (nextDate && formatDate(nextDate) !== formatDate(calendarValue.value)) {
       calendarValue.value = nextDate
     }
-    const nextUser = params.userId || route.query.user || 'all'
-    if (selectedUserId.value !== nextUser) {
-      selectedUserId.value = nextUser
+    if (canViewAll.value) {
+      const nextUser = params.userId || route.query.user || 'all'
+      if (selectedUserId.value !== nextUser) {
+        selectedUserId.value = nextUser
+      }
     }
   }
 )
 
 watch(
-  [calendarValue, selectedUserId],
+  canViewAll,
+  (value) => {
+    if (!value) {
+      selectedUserId.value = currentUserId.value
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  [calendarValue, selectedUserId, canViewAll],
   async () => {
     await syncRouteParams()
     await loadDiaries()

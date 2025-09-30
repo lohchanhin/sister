@@ -265,7 +265,7 @@ describe('WorkDiary.vue', () => {
       user: {
         _id: 'emp1',
         name: '一般員工',
-        permissions: [],
+        permissions: ['work-diary:read-own'],
         menus: ['work-diaries']
       }
     }
@@ -273,7 +273,14 @@ describe('WorkDiary.vue', () => {
     const { wrapper } = await mountWorkDiary({ user })
 
     expect(listWorkDiariesMock).toHaveBeenCalled()
+    expect(listWorkDiariesMock).toHaveBeenCalledWith({
+      date: expect.any(String),
+      userId: 'emp1'
+    })
     expect(getWorkDiaryMock).toHaveBeenCalledWith('d1')
+
+    const userFilter = wrapper.find('.work-diary-toolbar .dropdown-stub')
+    expect(userFilter.exists()).toBe(false)
 
     const statusDropdown = wrapper.find('select.status-dropdown')
     expect(statusDropdown.exists()).toBe(false)
@@ -297,7 +304,12 @@ describe('WorkDiary.vue', () => {
       user: {
         _id: 'leader',
         name: '主管',
-        permissions: ['work-diary:review'],
+        permissions: [
+          'work-diary:read-all',
+          'work-diary:read-own',
+          'work-diary:review',
+          'work-diary:comment'
+        ],
         menus: ['work-diaries']
       }
     }
@@ -305,6 +317,9 @@ describe('WorkDiary.vue', () => {
     const { wrapper } = await mountWorkDiary({ user, path: '/work-diaries/2024-05-01' })
 
     await flushPromises()
+
+    const userFilter = wrapper.find('.work-diary-toolbar .dropdown-stub')
+    expect(userFilter.exists()).toBe(true)
 
     const statusDropdown = wrapper.find('select.status-dropdown')
     expect(statusDropdown.exists()).toBe(true)
