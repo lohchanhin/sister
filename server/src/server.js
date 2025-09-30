@@ -88,6 +88,7 @@ import weeklyNoteRoutes   from './routes/weeklyNote.routes.js'
 import dashboardRoutes    from './routes/dashboard.routes.js'
 import departmentRoutes   from './routes/department.routes.js'
 import popularContentRoutes from './routes/popularContent.routes.js'
+import scriptIdeaRoutes   from './routes/scriptIdea.routes.js'
 
 app.use('/api/auth',     authRoutes)
 app.use('/api/user',     userRoutes)
@@ -103,6 +104,7 @@ app.use('/api/platforms', platformTransferRoutes)
 app.use('/api/clients/:clientId/platforms/:platformId/ad-daily', adDailyRoutes)
 app.use('/api/clients/:clientId/platforms/:platformId/weekly-notes', weeklyNoteRoutes)
 app.use('/api/clients/:clientId/popular-contents', popularContentRoutes)
+app.use('/api/clients/:clientId/script-ideas', scriptIdeaRoutes)
 app.use('/api/permissions', permissionsRoutes)
 app.use('/api/menus', menusRoutes)
 app.use('/api/review-stages', reviewStageRoutes)

@@ -20,6 +20,9 @@ import UserClientAccess from '../views/UserClientAccess.vue'
 import PopularDataClients from '../views/popular-data/PopularData.vue'
 import PopularDataPlatforms from '../views/popular-data/PopularDataPlatforms.vue'
 import PopularDataXhs from '../views/popular-data/PopularDataXhs.vue'
+import ScriptIdeas from '../views/script-ideas/ScriptIdeas.vue'
+import ScriptIdeasRecords from '../views/script-ideas/ScriptIdeasRecords.vue'
+import ScriptIdeasDetail from '../views/script-ideas/ScriptIdeasDetail.vue'
 
 
 const routes = [
@@ -61,6 +64,42 @@ const routes = [
         component: PopularDataXhs,
         props: true,
         meta: { menu: 'popular-data' }
+      },
+
+      {
+        path: 'script-ideas',
+        component: { template: '<router-view />' },
+        meta: { menu: 'script-ideas' },
+        children: [
+          {
+            path: '',
+            name: 'ScriptIdeasClients',
+            component: ScriptIdeas,
+            meta: { menu: 'script-ideas' }
+          },
+          {
+            path: ':clientId',
+            component: { template: '<router-view />' },
+            props: true,
+            meta: { menu: 'script-ideas' },
+            children: [
+              {
+                path: '',
+                name: 'ScriptIdeasRecords',
+                component: ScriptIdeasRecords,
+                props: true,
+                meta: { menu: 'script-ideas' }
+              },
+              {
+                path: 'records/:recordId',
+                name: 'ScriptIdeasDetail',
+                component: ScriptIdeasDetail,
+                props: true,
+                meta: { menu: 'script-ideas' }
+              }
+            ]
+          }
+        ]
       },
 
       { path: 'employees', name: 'EmployeeManager', component: EmployeeManager, meta: { menu: 'employees' } },
