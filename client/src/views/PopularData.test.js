@@ -136,6 +136,27 @@ describe('PopularData 客戶列表', () => {
     await wrapper.findAll('button')[0].trigger('click')
     expect(pushSpy).toHaveBeenCalledWith({ name: 'PopularDataPlatforms', params: { clientId: '2' } })
   })
+
+  it('含無名稱客戶時仍可載入並搜尋', async () => {
+    fetchClientsMock.mockResolvedValueOnce([
+      { _id: '1' },
+      { _id: '2', name: '晨曦品牌' }
+    ])
+
+    const router = await createTestRouter()
+    const wrapper = mount(PopularData, { global: { stubs: globalStubs, plugins: [router] } })
+    await flushPromises()
+
+    expect(wrapper.findAll('.card-stub').length).toBe(2)
+    expect(wrapper.text()).toContain('晨曦品牌')
+
+    const input = wrapper.find('input')
+    await input.setValue('晨曦')
+    await flushPromises()
+
+    expect(wrapper.findAll('.card-stub').length).toBe(1)
+    expect(wrapper.text()).toContain('晨曦品牌')
+  })
 })
 
 describe('PopularData 平台選擇', () => {
