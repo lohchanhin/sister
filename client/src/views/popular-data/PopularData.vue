@@ -47,7 +47,10 @@ const clients = ref([])
 const filteredClients = computed(() => {
   const k = keyword.value.trim().toLowerCase()
   if (!k) return clients.value
-  return clients.value.filter((client) => client.name?.toLowerCase().includes(k))
+  return clients.value.filter((client) => {
+    const name = (client?.name ?? '').toLowerCase()
+    return name.includes(k)
+  })
 })
 
 const loadClients = async () => {
