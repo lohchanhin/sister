@@ -273,6 +273,32 @@ describe('ScriptIdeas 客戶列表', () => {
     await manageButton.trigger('click')
     expect(pushSpy).toHaveBeenCalledWith({ name: 'ScriptIdeasRecords', params: { clientId: 'c2' } })
   })
+
+  it('客戶缺少名稱時仍能顯示並支援搜尋', async () => {
+    fetchClientsMock.mockResolvedValueOnce([
+      { _id: 'c1', name: null },
+      { _id: 'c2', name: '晨曦品牌' }
+    ])
+
+    const router = await createTestRouter()
+    const wrapper = mount(ScriptIdeas, { global: { plugins: [router], stubs: globalStubs } })
+    await flushPromises()
+
+    const cards = wrapper.findAll('.card-stub')
+    expect(cards).toHaveLength(2)
+
+    const headings = wrapper.findAll('.card-stub h2')
+    expect(headings[0].text()).toBe('')
+    expect(headings[1].text()).toBe('晨曦品牌')
+
+    const searchInput = wrapper.find('input')
+    await searchInput.setValue('晨曦')
+    await flushPromises()
+
+    const filteredCards = wrapper.findAll('.card-stub')
+    expect(filteredCards).toHaveLength(1)
+    expect(wrapper.text()).toContain('晨曦品牌')
+  })
 })
 
 describe('ScriptIdeasRecords 管理腳本記錄', () => {
