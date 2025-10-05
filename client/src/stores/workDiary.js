@@ -56,11 +56,29 @@ const normalizeDiaryItem = (item) => {
       : hasContentField
       ? Boolean(item.content)
       : false
+  const managerComment =
+    item.managerComment && typeof item.managerComment === 'object'
+      ? {
+          ...item.managerComment,
+          text:
+            item.managerComment.text !== undefined && item.managerComment.text !== null
+              ? String(item.managerComment.text)
+              : '',
+          commentedBy: item.managerComment.commentedBy ?? null,
+          commentedAt: item.managerComment.commentedAt ?? null
+        }
+      : { text: '', commentedBy: null, commentedAt: null }
+  const supervisorComment =
+    item.supervisorComment !== undefined && item.supervisorComment !== null
+      ? String(item.supervisorComment)
+      : managerComment.text
   return {
     ...item,
     id,
     content: derivedContent,
-    detailLoaded
+    detailLoaded,
+    managerComment,
+    supervisorComment
   }
 }
 

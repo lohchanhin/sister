@@ -235,7 +235,7 @@ const mountWorkDiary = async ({
     title: '日誌 A',
     content: '今日完成任務。',
     status: 'submitted',
-    supervisorComment: '請再補充銷售結果',
+    managerComment: { text: '請再補充銷售結果' },
     images: []
   }
 }) => {
@@ -349,7 +349,7 @@ describe('WorkDiary.vue', () => {
       title: '日誌 A',
       content: '今日完成任務。',
       status: 'approved',
-      supervisorComment: '辛苦了，保持品質。'
+      managerComment: { text: '辛苦了，保持品質。' }
     })
   })
 

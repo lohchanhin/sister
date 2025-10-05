@@ -90,6 +90,19 @@ const deriveContentFromBlocks = blocks => {
     .join('\n')
 }
 
+const normalizeManagerComment = comment => {
+  if (!comment || typeof comment !== 'object') {
+    return { text: '', commentedBy: null, commentedAt: null }
+  }
+
+  return {
+    ...comment,
+    text: comment.text ?? '',
+    commentedBy: comment.commentedBy ?? null,
+    commentedAt: comment.commentedAt ?? null
+  }
+}
+
 const appendSignedUrls = async diary => {
   if (!diary) return diary
   const base = diary.toObject ? diary.toObject({ virtuals: true }) : { ...diary }
@@ -98,8 +111,20 @@ const appendSignedUrls = async diary => {
       ? base.content
       : deriveContentFromBlocks(base.contentBlocks)
 
+  const managerComment = normalizeManagerComment(base.managerComment)
+  const supervisorComment =
+    base.supervisorComment !== undefined ? base.supervisorComment : managerComment.text
+
+  const buildResult = images => ({
+    ...base,
+    images,
+    content,
+    managerComment,
+    supervisorComment
+  })
+
   if (!Array.isArray(base.images) || base.images.length === 0) {
-    return { ...base, images: base.images ?? [], content }
+    return buildResult(base.images ?? [])
   }
 
   const images = await Promise.all(
@@ -117,7 +142,7 @@ const appendSignedUrls = async diary => {
     })
   )
 
-  return { ...base, images, content }
+  return buildResult(images)
 }
 
 const ensureCanAccess = (user, diary) => {
@@ -359,6 +384,31 @@ export const updateWorkDiary = async (req, res) => {
       update.status = requestedStatus
     } else {
       return res.status(403).json({ message: t('DIARY_EDIT_FORBIDDEN') })
+    }
+  }
+
+  if (isManager(req.user)) {
+    let commentText
+    let hasComment = false
+
+    if (Object.prototype.hasOwnProperty.call(req.body, 'supervisorComment')) {
+      commentText = req.body.supervisorComment
+      hasComment = true
+    } else if (
+      req.body.managerComment &&
+      typeof req.body.managerComment === 'object' &&
+      Object.prototype.hasOwnProperty.call(req.body.managerComment, 'text')
+    ) {
+      commentText = req.body.managerComment.text
+      hasComment = true
+    }
+
+    if (hasComment) {
+      update.managerComment = {
+        text: commentText === undefined || commentText === null ? '' : String(commentText),
+        commentedBy: req.user._id,
+        commentedAt: new Date()
+      }
     }
   }
 
