@@ -72,22 +72,52 @@ const uploadImages = async files => {
   return paths
 }
 
+const DEFAULT_BLOCK_TYPE = 'text'
+
+const buildContentBlocksFromText = content => {
+  if (content === undefined || content === null) return undefined
+  const text = typeof content === 'string' ? content : String(content)
+  if (!text) return []
+  return [{ type: DEFAULT_BLOCK_TYPE, value: text, order: 0 }]
+}
+
+const deriveContentFromBlocks = blocks => {
+  if (!Array.isArray(blocks) || !blocks.length) return ''
+  return blocks
+    .slice()
+    .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
+    .map(block => (block?.value !== undefined && block?.value !== null ? String(block.value) : ''))
+    .join('\n')
+}
+
 const appendSignedUrls = async diary => {
   if (!diary) return diary
-  const obj = diary.toObject ? diary.toObject({ virtuals: true }) : diary
-  if (!obj.images?.length) return obj
+  const base = diary.toObject ? diary.toObject({ virtuals: true }) : { ...diary }
+  const content =
+    typeof base.content === 'string' && base.content.length
+      ? base.content
+      : deriveContentFromBlocks(base.contentBlocks)
+
+  if (!Array.isArray(base.images) || base.images.length === 0) {
+    return { ...base, images: base.images ?? [], content }
+  }
+
   const images = await Promise.all(
-    obj.images.map(async filePath => {
+    base.images.map(async image => {
+      const path = typeof image === 'string' ? image : image?.path
+      if (!path) return image
+      if (image?.url) return image
       try {
-        const url = await getSignedUrl(filePath)
-        return { path: filePath, url }
+        const url = await getSignedUrl(path)
+        return { path, url }
       } catch (err) {
-        logger.warn('failed to get signed url for diary image %s: %s', filePath, err.message)
-        return { path: filePath, url: '' }
+        logger.warn('failed to get signed url for diary image %s: %s', path, err.message)
+        return { path, url: '' }
       }
     })
   )
-  return { ...obj, images }
+
+  return { ...base, images, content }
 }
 
 const ensureCanAccess = (user, diary) => {
@@ -193,6 +223,8 @@ export const createWorkDiary = async (req, res) => {
     return res.status(400).json({ message: t('DATA_FORMAT_ERROR') })
   }
 
+  const hasContentField = Object.prototype.hasOwnProperty.call(req.body, 'content')
+  const normalizedContent = hasContentField ? (req.body.content ?? '') : undefined
   let contentBlocks
   try {
     contentBlocks = parseJSONField(req.body.contentBlocks, [])
@@ -201,6 +233,13 @@ export const createWorkDiary = async (req, res) => {
   }
   if (!Array.isArray(contentBlocks)) {
     return res.status(400).json({ message: t('DATA_FORMAT_ERROR') })
+  }
+
+  if ((req.body.contentBlocks === undefined || contentBlocks.length === 0) && hasContentField) {
+    const blocksFromText = buildContentBlocksFromText(normalizedContent)
+    if (blocksFromText !== undefined) {
+      contentBlocks = blocksFromText
+    }
   }
 
   let visibleTo
@@ -280,6 +319,9 @@ export const updateWorkDiary = async (req, res) => {
     }
   }
 
+  const hasContentField = Object.prototype.hasOwnProperty.call(req.body, 'content')
+  const normalizedContent = hasContentField ? (req.body.content ?? '') : undefined
+
   if (req.body.contentBlocks !== undefined) {
     try {
       update.contentBlocks = parseJSONField(req.body.contentBlocks, [])
@@ -288,6 +330,11 @@ export const updateWorkDiary = async (req, res) => {
     }
     if (!Array.isArray(update.contentBlocks)) {
       return res.status(400).json({ message: t('DATA_FORMAT_ERROR') })
+    }
+  } else if (hasContentField) {
+    const blocksFromText = buildContentBlocksFromText(normalizedContent)
+    if (blocksFromText !== undefined) {
+      update.contentBlocks = blocksFromText
     }
   }
 

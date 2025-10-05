@@ -353,6 +353,48 @@ describe('WorkDiary.vue', () => {
     })
   })
 
+  it('缺少 content 欄位時會從 contentBlocks 推導顯示內容', async () => {
+    const user = {
+      token: 'token',
+      user: {
+        _id: 'emp1',
+        name: '一般員工',
+        permissions: ['work-diary:manage:self', 'work-diary:read:self'],
+        menus: ['work-diaries']
+      }
+    }
+
+    const diaries = [
+      {
+        id: 'd-block',
+        title: '日誌區塊',
+        status: 'submitted',
+        author: { _id: 'emp1', name: '一般員工' },
+        contentBlocks: [{ type: 'text', value: '摘要段落', order: 0 }]
+      }
+    ]
+
+    const detail = {
+      id: 'd-block',
+      title: '日誌區塊',
+      status: 'submitted',
+      images: [],
+      contentBlocks: [
+        { type: 'text', value: '第一段內容', order: 0 },
+        { type: 'text', value: '第二段內容', order: 1 }
+      ]
+    }
+
+    const { wrapper } = await mountWorkDiary({ user, diaries, detail })
+
+    const listPreview = wrapper.find('.list-item .item-preview')
+    expect(listPreview.text()).toContain('第一段內容')
+
+    const detailTextarea = wrapper.find('#diary-content')
+    expect(detailTextarea.element.value).toBe(`第一段內容
+第二段內容`)
+  })
+
   it('可以建立日誌並重新整理列表', async () => {
     const user = {
       token: 'token',

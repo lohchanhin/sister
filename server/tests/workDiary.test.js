@@ -159,7 +159,7 @@ describe('Work Diary API', () => {
       .set('Authorization', `Bearer ${employeeToken}`)
       .field('date', '2024-05-20')
       .field('title', '第一天工作紀錄')
-      .field('contentBlocks', JSON.stringify([{ type: 'text', value: '完成需求整理' }]))
+      .field('content', '完成需求整理')
       .attach('images', Buffer.from('hello'), 'note.png')
       .expect(201)
 
@@ -167,8 +167,18 @@ describe('Work Diary API', () => {
     expect(res.body.title).toBe('第一天工作紀錄')
     expect(res.body.images).toHaveLength(1)
     expect(res.body.images[0].url).toContain('https://signed.example.com/')
+    expect(res.body.content).toBe('完成需求整理')
+    expect(res.body.contentBlocks?.[0]?.value).toBe('完成需求整理')
     diaryId = res.body._id
     firstImagePath = res.body.images[0].path
+
+    const detailRes = await request(app)
+      .get(`/api/work-diaries/${diaryId}`)
+      .set('Authorization', `Bearer ${employeeToken}`)
+      .expect(200)
+
+    expect(detailRes.body.content).toBe('完成需求整理')
+    expect(detailRes.body.contentBlocks?.[0]?.value).toBe('完成需求整理')
   })
 
   it('其他員工無法檢視或編輯私有日誌', async () => {
@@ -238,6 +248,7 @@ describe('Work Diary API', () => {
       .put(`/api/work-diaries/${diaryId}`)
       .set('Authorization', `Bearer ${employeeToken}`)
       .field('title', '第一天工作紀錄（更新）')
+      .field('content', '更新後的內容整理')
       .field('keepImages', firstImagePath)
       .attach('images', Buffer.from('new file'), 'new.png')
       .expect(200)
@@ -246,6 +257,15 @@ describe('Work Diary API', () => {
     expect(res.body.images).toHaveLength(2)
     const paths = res.body.images.map(img => img.path)
     expect(paths).toContain(firstImagePath)
+    expect(res.body.content).toBe('更新後的內容整理')
+    expect(res.body.contentBlocks?.[0]?.value).toBe('更新後的內容整理')
+
+    const detailRes = await request(app)
+      .get(`/api/work-diaries/${diaryId}`)
+      .set('Authorization', `Bearer ${employeeToken}`)
+      .expect(200)
+
+    expect(detailRes.body.content).toBe('更新後的內容整理')
   })
 
   it('非主管不得審核工作日誌', async () => {
