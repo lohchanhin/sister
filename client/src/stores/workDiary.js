@@ -31,6 +31,39 @@ const normalizeList = (payload) => {
   return []
 }
 
+const deriveContentFromBlocks = (blocks) => {
+  if (!Array.isArray(blocks) || !blocks.length) return ''
+  return blocks
+    .slice()
+    .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
+    .map((block) => {
+      if (block?.value === undefined || block?.value === null) return ''
+      return String(block.value)
+    })
+    .join('\n')
+}
+
+const normalizeDiaryItem = (item) => {
+  if (!item) return item
+  const id = item.id || item._id || item.diaryId || null
+  const hasContentField = typeof item.content === 'string'
+  const derivedContent = hasContentField
+    ? item.content
+    : deriveContentFromBlocks(item.contentBlocks)
+  const detailLoaded =
+    item.detailLoaded !== undefined
+      ? item.detailLoaded
+      : hasContentField
+      ? Boolean(item.content)
+      : false
+  return {
+    ...item,
+    id,
+    content: derivedContent,
+    detailLoaded
+  }
+}
+
 export const useWorkDiaryStore = defineStore('workDiary', {
   state: () => ({
     diaries: [],
@@ -74,12 +107,11 @@ export const useWorkDiaryStore = defineStore('workDiary', {
     updateLocalDiary(diaryId, patch = {}) {
       const index = this.diaries.findIndex((diary) => diary.id === diaryId)
       if (index === -1) return
-      const merged = {
+      const merged = normalizeDiaryItem({
         ...this.diaries[index],
         ...patch,
-        id: diaryId,
-        detailLoaded: patch.detailLoaded ?? this.diaries[index].detailLoaded ?? false
-      }
+        id: diaryId
+      })
       this.diaries.splice(index, 1, merged)
       if (this.selectedDiaryId === diaryId && this.selectedDiary?.id === diaryId) {
         this.selectedDiaryId = diaryId
@@ -90,11 +122,7 @@ export const useWorkDiaryStore = defineStore('workDiary', {
       this.error = null
       try {
         const result = await listWorkDiaries(params)
-        const diaries = normalizeList(result).map((item) => ({
-          ...item,
-          id: item.id || item._id,
-          detailLoaded: Boolean(item.content)
-        }))
+        const diaries = normalizeList(result).map((item) => normalizeDiaryItem(item))
         this.diaries = diaries
         this.filters = {
           date: params.date ?? this.filters.date,
@@ -115,12 +143,13 @@ export const useWorkDiaryStore = defineStore('workDiary', {
       if (!diaryId) return null
       try {
         const detail = await getWorkDiary(diaryId)
-        this.updateLocalDiary(diaryId, {
+        const normalized = normalizeDiaryItem({
           ...detail,
           id: detail.id || detail._id || diaryId,
           detailLoaded: true
         })
-        return detail
+        this.updateLocalDiary(diaryId, normalized)
+        return normalized
       } catch (error) {
         this.error = error
         throw error
@@ -132,12 +161,13 @@ export const useWorkDiaryStore = defineStore('workDiary', {
       this.error = null
       try {
         const updated = await updateWorkDiary(diaryId, payload)
-        this.updateLocalDiary(diaryId, {
+        const normalized = normalizeDiaryItem({
           ...updated,
           id: updated.id || updated._id || diaryId,
           detailLoaded: true
         })
-        return updated
+        this.updateLocalDiary(diaryId, normalized)
+        return normalized
       } catch (error) {
         this.error = error
         throw error
@@ -150,11 +180,10 @@ export const useWorkDiaryStore = defineStore('workDiary', {
       this.error = null
       try {
         const created = await createWorkDiary(payload)
-        const normalized = {
+        const normalized = normalizeDiaryItem({
           ...created,
-          id: created?.id || created?._id || null,
-          detailLoaded: Boolean(created?.content || created?.contentBlocks)
-        }
+          id: created?.id || created?._id || null
+        })
         if (normalized.id) {
           const existingIndex = this.diaries.findIndex((item) => item.id === normalized.id)
           if (existingIndex >= 0) {
@@ -178,12 +207,13 @@ export const useWorkDiaryStore = defineStore('workDiary', {
       this.error = null
       try {
         const updated = await uploadWorkDiaryImages(diaryId, files)
-        this.updateLocalDiary(diaryId, {
+        const normalized = normalizeDiaryItem({
           ...updated,
           id: updated.id || updated._id || diaryId,
           detailLoaded: true
         })
-        return updated
+        this.updateLocalDiary(diaryId, normalized)
+        return normalized
       } catch (error) {
         this.error = error
         throw error
@@ -196,12 +226,13 @@ export const useWorkDiaryStore = defineStore('workDiary', {
       this.error = null
       try {
         const updated = await removeWorkDiaryImage(diaryId, imageId)
-        this.updateLocalDiary(diaryId, {
+        const normalized = normalizeDiaryItem({
           ...updated,
           id: updated.id || updated._id || diaryId,
           detailLoaded: true
         })
-        return updated
+        this.updateLocalDiary(diaryId, normalized)
+        return normalized
       } catch (error) {
         this.error = error
         throw error

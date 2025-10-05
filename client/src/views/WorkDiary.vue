@@ -96,7 +96,7 @@
                     :severity="statusMeta(diary.status).severity"
                   />
                 </div>
-                <p class="item-preview">{{ diary.summary || diary.content || '尚未填寫內容' }}</p>
+                <p class="item-preview">{{ diary.summary || getDiaryContent(diary) || '尚未填寫內容' }}</p>
               </div>
             </div>
           </template>
@@ -442,6 +442,27 @@ const userOptions = computed(() => {
 })
 
 const formattedDate = computed(() => formatDate(calendarValue.value))
+
+const buildContentFromBlocks = (blocks) => {
+  if (!Array.isArray(blocks) || !blocks.length) return ''
+  return blocks
+    .slice()
+    .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
+    .map((block) => {
+      if (block?.value === undefined || block?.value === null) return ''
+      return String(block.value)
+    })
+    .join('\n')
+}
+
+const getDiaryContent = (diary) => {
+  if (!diary) return ''
+  if (typeof diary.content === 'string' && diary.content.length) return diary.content
+  if (Array.isArray(diary.contentBlocks) && diary.contentBlocks.length) {
+    return buildContentFromBlocks(diary.contentBlocks)
+  }
+  return ''
+}
 const canEditContent = computed(() => {
   if (!selectedDiary.value) return false
   const authorId = selectedDiary.value.author?._id || selectedDiary.value.author?.id
@@ -595,9 +616,10 @@ watch(
       detailForm.value = null
       return
     }
+    const content = getDiaryContent(diary)
     detailForm.value = {
       title: diary.title || '',
-      content: diary.content || '',
+      content,
       supervisorComment: diary.supervisorComment || '',
       status: diary.status || WORK_DIARY_STATUS.DRAFT,
       images: Array.isArray(diary.images) ? [...diary.images] : []
