@@ -43,6 +43,7 @@ export const languages = {
     DIARY_DUPLICATE: '當日工作日誌已存在',
     DIARY_EDIT_FORBIDDEN: '無權編輯此工作日誌',
     DIARY_REVIEW_FORBIDDEN: '無權審核此工作日誌',
+    DIARY_IMAGE_NOT_FOUND: '找不到指定圖片',
     UPDATED: '已更新',
     MOVED: '已移动',
     DELETED: '已删除'

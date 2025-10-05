@@ -29,6 +29,7 @@ let employeeId
 let managerId
 let diaryId
 let firstImagePath
+let secondImagePath
 
 let Role
 let User
@@ -179,6 +180,39 @@ describe('Work Diary API', () => {
 
     expect(detailRes.body.content).toBe('完成需求整理')
     expect(detailRes.body.contentBlocks?.[0]?.value).toBe('完成需求整理')
+  })
+
+  it('員工可以追加與刪除日誌圖片並取得最新列表', async () => {
+    const appendRes = await request(app)
+      .post(`/api/work-diaries/${diaryId}/images`)
+      .set('Authorization', `Bearer ${employeeToken}`)
+      .attach('images', Buffer.from('second file'), 'second.png')
+      .expect(200)
+
+    expect(uploadFileMock).toHaveBeenCalled()
+    expect(getSignedUrlMock).toHaveBeenCalled()
+    expect(Array.isArray(appendRes.body.images)).toBe(true)
+    expect(appendRes.body.images).toHaveLength(2)
+    const appendedPaths = appendRes.body.images.map(img => img.path)
+    expect(appendedPaths).toContain(firstImagePath)
+    secondImagePath = appendedPaths.find(path => path !== firstImagePath)
+    expect(secondImagePath).toBeTruthy()
+
+    const removeRes = await request(app)
+      .delete(
+        `/api/work-diaries/${diaryId}/images/${encodeURIComponent(secondImagePath)}`
+      )
+      .set('Authorization', `Bearer ${employeeToken}`)
+      .expect(200)
+
+    expect(Array.isArray(removeRes.body.images)).toBe(true)
+    expect(removeRes.body.images).toHaveLength(1)
+    expect(removeRes.body.images[0].path).toBe(firstImagePath)
+
+    await request(app)
+      .delete(`/api/work-diaries/${diaryId}/images/${encodeURIComponent('not-exist')}`)
+      .set('Authorization', `Bearer ${employeeToken}`)
+      .expect(404)
   })
 
   it('其他員工無法檢視或編輯私有日誌', async () => {
