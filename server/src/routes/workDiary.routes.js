@@ -9,6 +9,8 @@ import {
   getWorkDiary,
   createWorkDiary,
   updateWorkDiary,
+  addWorkDiaryImages,
+  removeWorkDiaryImage,
   reviewWorkDiary
 } from '../controllers/workDiary.controller.js'
 
@@ -45,6 +47,19 @@ router
     upload.array('images'),
     asyncHandler(updateWorkDiary)
   )
+
+router.post(
+  '/:diaryId/images',
+  requirePerm(PERMISSIONS.WORK_DIARY_MANAGE_SELF),
+  upload.array('images'),
+  asyncHandler(addWorkDiaryImages)
+)
+
+router.delete(
+  '/:diaryId/images/:imageId',
+  requirePerm(PERMISSIONS.WORK_DIARY_MANAGE_SELF),
+  asyncHandler(removeWorkDiaryImage)
+)
 
 router.patch(
   '/:diaryId/review',

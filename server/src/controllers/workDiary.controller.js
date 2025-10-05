@@ -383,6 +383,62 @@ export const updateWorkDiary = async (req, res) => {
   res.json(diaryWithUrls)
 }
 
+export const addWorkDiaryImages = async (req, res) => {
+  const diary = await WorkDiary.findById(req.params.diaryId)
+    .populate('author', 'username name email roleId')
+    .populate('managerComment.commentedBy', 'username name email roleId')
+
+  if (!diary) {
+    return res.status(404).json({ message: t('DIARY_NOT_FOUND') })
+  }
+  if (!ensureCanEdit(req.user, diary)) {
+    return res.status(403).json({ message: t('DIARY_EDIT_FORBIDDEN') })
+  }
+
+  const uploaded = await uploadImages(req.files)
+  const currentImages = Array.isArray(diary.images) ? diary.images.slice() : []
+  if (uploaded.length) {
+    diary.images = [...currentImages, ...uploaded]
+  } else if (!Array.isArray(diary.images)) {
+    diary.images = currentImages
+  }
+
+  await diary.save()
+  const diaryWithUrls = await appendSignedUrls(diary)
+  res.json(diaryWithUrls)
+}
+
+export const removeWorkDiaryImage = async (req, res) => {
+  const diary = await WorkDiary.findById(req.params.diaryId)
+    .populate('author', 'username name email roleId')
+    .populate('managerComment.commentedBy', 'username name email roleId')
+
+  if (!diary) {
+    return res.status(404).json({ message: t('DIARY_NOT_FOUND') })
+  }
+  if (!ensureCanEdit(req.user, diary)) {
+    return res.status(403).json({ message: t('DIARY_EDIT_FORBIDDEN') })
+  }
+
+  const target = req.params.imageId
+  const images = Array.isArray(diary.images) ? diary.images.slice() : []
+  const index = images.findIndex(image => {
+    if (typeof image === 'string') return image === target
+    if (image && typeof image === 'object') return image.path === target
+    return false
+  })
+
+  if (index === -1) {
+    return res.status(404).json({ message: t('DIARY_IMAGE_NOT_FOUND') })
+  }
+
+  images.splice(index, 1)
+  diary.images = images
+  await diary.save()
+  const diaryWithUrls = await appendSignedUrls(diary)
+  res.json(diaryWithUrls)
+}
+
 export const reviewWorkDiary = async (req, res) => {
   if (!isManager(req.user)) {
     return res.status(403).json({ message: t('DIARY_REVIEW_FORBIDDEN') })

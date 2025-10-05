@@ -70,7 +70,7 @@ export const uploadWorkDiaryImages = (diaryId, files = []) => {
 
 export const removeWorkDiaryImage = (diaryId, imageId) =>
   api
-    .delete(`/work-diaries/${diaryId}/images/${imageId}`)
+    .delete(`/work-diaries/${diaryId}/images/${encodeURIComponent(imageId)}`)
     .then((res) => res.data)
 
 export default {
