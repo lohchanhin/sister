@@ -215,7 +215,7 @@
                   <label class="field-label" for="diary-supervisor">主管留言</label>
                   <Textarea
                     id="diary-supervisor"
-                    v-model="detailForm.supervisorComment"
+                    v-model="detailForm.managerCommentText"
                     autoResize
                     rows="5"
                     :readonly="!isSupervisor"
@@ -617,10 +617,12 @@ watch(
       return
     }
     const content = getDiaryContent(diary)
+    const commentText =
+      diary.managerComment?.text ?? diary.supervisorComment ?? ''
     detailForm.value = {
       title: diary.title || '',
       content,
-      supervisorComment: diary.supervisorComment || '',
+      managerCommentText: commentText,
       status: diary.status || WORK_DIARY_STATUS.DRAFT,
       images: Array.isArray(diary.images) ? [...diary.images] : []
     }
@@ -657,9 +659,11 @@ const handleSave = async () => {
     status: canChangeStatus.value
       ? detailForm.value.status
       : workDiaryStore.selectedDiary?.status,
-    supervisorComment: isSupervisor.value
-      ? detailForm.value.supervisorComment
-      : workDiaryStore.selectedDiary?.supervisorComment
+  }
+  if (isSupervisor.value) {
+    payload.managerComment = {
+      text: detailForm.value.managerCommentText ?? ''
+    }
   }
   try {
     await workDiaryStore.saveDiary(workDiaryStore.selectedDiaryId, payload)

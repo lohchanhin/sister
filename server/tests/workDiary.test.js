@@ -326,6 +326,36 @@ describe('Work Diary API', () => {
     expect(notifications.some(n => n.type === 'work-diary:reviewed')).toBe(true)
   })
 
+  it('主管可透過 PUT 更新留言並維持欄位格式一致', async () => {
+    const updateBySupervisor = await request(app)
+      .put(`/api/work-diaries/${diaryId}`)
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ supervisorComment: '主管補充：請調整排程。' })
+      .expect(200)
+
+    expect(updateBySupervisor.body.managerComment.text).toBe('主管補充：請調整排程。')
+    expect(updateBySupervisor.body.managerComment.commentedBy._id).toBe(managerId)
+    expect(updateBySupervisor.body.managerComment.commentedAt).toBeTruthy()
+    expect(updateBySupervisor.body.supervisorComment).toBe('主管補充：請調整排程。')
+
+    const firstTimestamp = new Date(updateBySupervisor.body.managerComment.commentedAt).getTime()
+    expect(Number.isNaN(firstTimestamp)).toBe(false)
+
+    const updateByManagerComment = await request(app)
+      .put(`/api/work-diaries/${diaryId}`)
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ managerComment: { text: '主管再次補充：保持溝通。' } })
+      .expect(200)
+
+    expect(updateByManagerComment.body.managerComment.text).toBe('主管再次補充：保持溝通。')
+    expect(updateByManagerComment.body.supervisorComment).toBe('主管再次補充：保持溝通。')
+    expect(updateByManagerComment.body.managerComment.commentedBy._id).toBe(managerId)
+    const secondTimestamp = new Date(
+      updateByManagerComment.body.managerComment.commentedAt
+    ).getTime()
+    expect(secondTimestamp).toBeGreaterThanOrEqual(firstTimestamp)
+  })
+
   it('缺乏權限的帳號無法存取工作日誌', async () => {
     await request(app)
       .get('/api/work-diaries')
