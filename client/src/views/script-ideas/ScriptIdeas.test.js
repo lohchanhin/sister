@@ -372,30 +372,26 @@ describe('ScriptIdeasDetail 編輯詳情', () => {
     toastMock.add.mockClear()
   })
 
-  it('可移除影片並儲存腳本內容', async () => {
+  it('可管理段落並儲存腳本內容', async () => {
     getScriptIdeaMock.mockResolvedValueOnce({
       _id: 'idea-1',
       clientId: 'client-1',
       summaryScript: '原始腳本',
       headline: '原始標題',
-      firstParagraph: '',
+      paragraphs: ['段落 A', '段落 B'],
       dialogue: '',
       keyLines: '',
-      feedback: '',
-      videoUrl: 'https://example.com/demo.mp4',
-      videoName: 'demo.mp4'
+      feedback: ''
     })
     getScriptIdeaMock.mockResolvedValueOnce({
       _id: 'idea-1',
       clientId: 'client-1',
       summaryScript: '更新後腳本',
       headline: '更新後標題',
-      firstParagraph: '',
+      paragraphs: ['段落 B', '新增段落'],
       dialogue: '',
       keyLines: '',
-      feedback: '',
-      videoUrl: '',
-      videoName: ''
+      feedback: ''
     })
     const router = await createTestRouter('/script-ideas/client-1/records/idea-1')
     const wrapper = mount(ScriptIdeasDetail, {
@@ -406,15 +402,19 @@ describe('ScriptIdeasDetail 編輯詳情', () => {
 
     expect(getScriptIdeaMock).toHaveBeenCalledWith('client-1', 'idea-1')
     expect(wrapper.vm.form.summaryScript).toBe('原始腳本')
+    expect(wrapper.vm.form.paragraphs).toEqual(['段落 A', '段落 B'])
 
-    await wrapper.vm.toggleRemove()
+    wrapper.vm.addParagraph()
+    wrapper.vm.form.paragraphs[2] = '新增段落'
+    wrapper.vm.removeParagraph(0)
     wrapper.vm.form.summaryScript = '更新後腳本'
     await wrapper.vm.save()
     await flushPromises()
 
     expect(updateScriptIdeaMock).toHaveBeenCalledWith('client-1', 'idea-1', expect.objectContaining({
       summaryScript: '更新後腳本',
-      removeVideo: 'true'
+      paragraphs: ['段落 B', '新增段落'],
+      firstParagraph: '段落 B'
     }))
     expect(getScriptIdeaMock).toHaveBeenCalledTimes(2)
   })
