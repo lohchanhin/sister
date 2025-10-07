@@ -26,7 +26,7 @@
         <Card class="detail-card">
           <template #title>腳本內容</template>
           <template #content>
-            <div class="form-grid">
+            <div class="form-grid stacked">
               <span class="field">
                 <label for="summary">綜合腳本</label>
                 <Textarea id="summary" v-model="form.summaryScript" rows="4" autoResize />
@@ -287,7 +287,7 @@ const removeParagraph = (index) => {
   background-color: #f9fafb;
 }
 
-.form-section + .form-section {
+.form-section+.form-section {
   margin-top: 1.5rem;
 }
 
@@ -378,5 +378,38 @@ const removeParagraph = (index) => {
     width: 100%;
     justify-content: space-between;
   }
+
+  /* 讓上半區改為單欄、由上到下排列 */
+  .form-grid.stacked {
+    display: grid;
+    grid-template-columns: 1fr;
+    /* 單欄 */
+    gap: 1rem;
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    background-color: #f9fafb;
+  }
+
+  /* 標籤與輸入維持直向排列 */
+  .form-grid.stacked .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* PrimeVue 輸入元件預設寬度不是 100%，手動拉滿 */
+  .form-grid.stacked :deep(.p-inputtext),
+  .form-grid.stacked :deep(.p-inputtextarea) {
+    width: 100%;
+  }
+
+  /* 手機下保持單欄（可省略，這裡只是明示） */
+  @media (max-width: 640px) {
+    .form-grid.stacked {
+      grid-template-columns: 1fr;
+    }
+  }
+
 }
 </style>
