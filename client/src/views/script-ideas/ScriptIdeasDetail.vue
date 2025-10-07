@@ -152,13 +152,20 @@ const loadDetail = async () => {
     removeVideo.value = false
     videoFiles.value = []
     videoFile.value = null
+    console.info('[ScriptIdeasDetail] 已載入腳本詳情', {
+      clientId: props.clientId,
+      ideaId: props.recordId,
+      hasVideo: Boolean(data?.videoUrl)
+    })
   } catch (error) {
     if (error?.response?.status === 403) {
       permissionError.value = true
       errorMessage.value = '請聯絡管理者開啟腳本創意檢視權限。'
       idea.value = null
+      console.warn('[ScriptIdeasDetail] 檢視腳本詳情權限不足', error)
     } else {
       toast.add({ severity: 'error', summary: '載入失敗', detail: '無法取得腳本詳情', life: 3000 })
+      console.error('[ScriptIdeasDetail] 載入腳本詳情失敗', error)
     }
   } finally {
     loading.value = false
@@ -195,13 +202,21 @@ const save = async () => {
     await updateScriptIdea(props.clientId, props.recordId, buildPayload())
     toast.add({ severity: 'success', summary: '已儲存', detail: '腳本詳情更新成功', life: 2500 })
     await loadDetail()
+    console.info('[ScriptIdeasDetail] 已儲存腳本詳情', {
+      clientId: props.clientId,
+      ideaId: props.recordId,
+      removeVideo: removeVideo.value,
+      hasNewVideo: Boolean(videoFile.value)
+    })
   } catch (error) {
     if (error?.response?.status === 403) {
       permissionError.value = true
       errorMessage.value = '請聯絡管理者開啟腳本創意檢視權限。'
       toast.add({ severity: 'warn', summary: '無權限', detail: '您沒有腳本創意的編輯權限', life: 3000 })
+      console.warn('[ScriptIdeasDetail] 儲存腳本詳情權限不足', error)
     } else {
       toast.add({ severity: 'error', summary: '儲存失敗', detail: '請稍後再試', life: 3000 })
+      console.error('[ScriptIdeasDetail] 儲存腳本詳情失敗', error)
     }
   } finally {
     saving.value = false
