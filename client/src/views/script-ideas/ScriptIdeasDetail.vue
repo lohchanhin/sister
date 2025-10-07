@@ -26,44 +26,28 @@
         <Card class="detail-card">
           <template #title>腳本內容</template>
           <template #content>
-            <section class="form-section">
-              <header class="form-section__header">
-                <h3>腳本概覽</h3>
-                <p>設定腳本重點與標題，作為創作方向的起點。</p>
-              </header>
-              <div class="form-section__fields">
-                <span class="field">
-                  <label for="summary">綜合腳本</label>
-                  <Textarea id="summary" v-model="form.summaryScript" rows="4" autoResize />
-                </span>
-                <span class="field">
-                  <label for="title">標題</label>
-                  <InputText id="title" v-model="form.headline" />
-                </span>
-              </div>
-            </section>
-
-            <section class="form-section">
-              <header class="form-section__header">
-                <h3>台詞與回饋</h3>
-                <p>整理對話內容與修改方向，方便後續調整腳本。</p>
-              </header>
-              <div class="form-section__fields">
-                <span class="field">
-                  <label for="lines">台詞</label>
-                  <Textarea id="lines" v-model="form.dialogue" rows="4" autoResize />
-                </span>
-                <span class="field">
-                  <label for="keyLines">要講的台詞</label>
-                  <Textarea id="keyLines" v-model="form.keyLines" rows="3" autoResize />
-                </span>
-                <span class="field">
-                  <label for="feedback">修改意見</label>
-                  <Textarea id="feedback" v-model="form.feedback" rows="4" autoResize />
-                </span>
-              </div>
-            </section>
-
+            <div class="form-grid">
+              <span class="field">
+                <label for="summary">綜合腳本</label>
+                <Textarea id="summary" v-model="form.summaryScript" rows="4" autoResize />
+              </span>
+              <span class="field">
+                <label for="title">標題</label>
+                <InputText id="title" v-model="form.headline" />
+              </span>
+              <span class="field">
+                <label for="lines">台詞</label>
+                <Textarea id="lines" v-model="form.dialogue" rows="4" autoResize />
+              </span>
+              <span class="field">
+                <label for="keyLines">要講的台詞</label>
+                <Textarea id="keyLines" v-model="form.keyLines" rows="3" autoResize />
+              </span>
+              <span class="field">
+                <label for="feedback">修改意見</label>
+                <Textarea id="feedback" v-model="form.feedback" rows="4" autoResize />
+              </span>
+            </div>
             <div class="paragraphs">
               <header class="paragraphs__header">
                 <h3>腳本段落</h3>
@@ -293,15 +277,9 @@ const removeParagraph = (index) => {
   max-width: 420px;
 }
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-section {
-  display: flex;
-  flex-direction: column;
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 1rem;
   padding: 1.5rem;
   border: 1px solid #e5e7eb;
@@ -326,10 +304,10 @@ const removeParagraph = (index) => {
   font-size: 0.9rem;
 }
 
-.form-section__fields {
+.field {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 .field label {
