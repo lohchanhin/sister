@@ -71,7 +71,7 @@ const routes = [
       {
         path: 'script-ideas',
         component: { template: '<router-view />' },
-        meta: { menu: 'script-ideas', requiresPermission: 'script-idea:read' },
+        meta: { menu: 'script-ideas' },
         children: [
           {
             path: '',
@@ -167,13 +167,6 @@ router.beforeEach(async (to) => {
 
   const menus = store.user?.menus || []
   if (to.meta.menu && !menus.includes(to.meta.menu)) {
-    return {
-      path: '/unauthorized',
-      query: { redirect: to.fullPath }
-    }
-  }
-  const requiredPermission = to.meta.requiresPermission
-  if (requiredPermission && !store.hasPermission(requiredPermission)) {
     return {
       path: '/unauthorized',
       query: { redirect: to.fullPath }

@@ -111,6 +111,14 @@ const toast = useToast()
 const isCollapsed = ref(false)
 const isMobile = ref(window.innerWidth <= 991)
 
+const hasMenuAccess = (menu) => {
+  if (!menu) return true
+  const menus = authStore.user?.menus || []
+  return menus.includes(menu)
+}
+
+const filterAccessibleMenus = (items) => items.filter((item) => hasMenuAccess(item.menu))
+
 const mainMenuItems = computed(() => {
   const items = [
     { path: '/dashboard', label: '仪表板', icon: 'pi pi-home', badge: null, menu: 'dashboard' },
@@ -125,40 +133,24 @@ const mainMenuItems = computed(() => {
         : null
     },
     { path: '/popular-data', label: '爆款数据', icon: 'pi pi-bolt', badge: null, menu: 'popular-data' },
-    { path: '/script-ideas', label: '腳本創意', icon: 'pi pi-pencil', badge: null, menu: 'script-ideas' }
+    { path: '/script-ideas', label: '腳本創意', icon: 'pi pi-pencil', badge: null, menu: 'script-ideas' },
+    { path: '/work-diaries', label: '工作日誌', icon: 'pi pi-calendar', badge: null, menu: 'work-diaries' }
   ]
 
-  const canSeeWorkDiary =
-    authStore.user?.menus?.includes('work-diaries') ||
-    authStore.hasPermission('work-diary:read:all') ||
-    authStore.hasPermission('work-diary:read:self')
-
-  if (canSeeWorkDiary) {
-    items.push({ path: '/work-diaries', label: '工作日誌', icon: 'pi pi-calendar', badge: null, menu: 'work-diaries' })
-  }
-
-  return items
+  return filterAccessibleMenus(items)
 })
 
 const adminMenuItems = computed(() => {
   const items = [
     // 由於沒有獨立路由，統一導向 ad-clients
     { path: '/ad-clients', label: '广告数据', icon: 'pi pi-users', menu: 'ad-data' },
-    { path: '/tags', label: '标签管理', icon: 'pi pi-tags', menu: 'tags' }
+    { path: '/tags', label: '标签管理', icon: 'pi pi-tags', menu: 'tags' },
+    { path: '/employees', label: '员工管理', icon: 'pi pi-user-edit', menu: 'employees' },
+    { path: '/roles', label: '角色设定', icon: 'pi pi-shield', menu: 'roles' },
+    { path: '/review-settings', label: '审查设定', icon: 'pi pi-cog', menu: 'review-stages' }
   ]
 
-  if (
-    authStore.hasPermission('user:manage') ||
-    authStore.hasPermission('role:manage')
-  ) {
-    items.push(
-      { path: '/employees', label: '员工管理', icon: 'pi pi-user-edit', menu: 'employees' },
-      { path: '/roles', label: '角色设定', icon: 'pi pi-shield', menu: 'roles' },
-      { path: '/review-settings', label: '审查设定', icon: 'pi pi-cog', menu: 'review-stages' }
-    )
-  }
-
-  return items
+  return filterAccessibleMenus(items)
 })
 
 const isActiveRoute = (path) => {
@@ -170,27 +162,7 @@ const toggleCollapse = () => {
   emit('toggle-collapse', isCollapsed.value)
 }
 
-const hasMenuAccess = (menu) => {
-  if (!menu) return true
-  const menus = authStore.user?.menus || []
-  return menus.includes(menu)
-}
-
 const handleNavClick = (event, item) => {
-  const isScriptIdeaMenu = item?.menu === 'script-ideas' || item?.path?.startsWith('/script-ideas')
-  if (isScriptIdeaMenu && !authStore.hasPermission('script-idea:read')) {
-    event?.preventDefault()
-    toast.add({
-      severity: 'warn',
-      summary: '無權限',
-      detail: '請聯絡管理者開啟腳本創意檢視權限。',
-      life: 4000
-    })
-    if (isMobile.value) {
-      emit('update:mobileVisible', false)
-    }
-    return
-  }
   if (item?.menu && !hasMenuAccess(item.menu)) {
     event?.preventDefault()
     toast.add({
