@@ -281,6 +281,27 @@ const removeParagraph = (index) => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 1rem;
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background-color: #f9fafb;
+}
+
+.form-section + .form-section {
+  margin-top: 1.5rem;
+}
+
+.form-section__header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.form-section__header p {
+  margin: 0.25rem 0 0;
+  color: #6b7280;
+  font-size: 0.9rem;
 }
 
 .field {
@@ -347,6 +368,10 @@ const removeParagraph = (index) => {
 
   .detail-content {
     grid-template-columns: 1fr;
+  }
+
+  .form-section {
+    padding: 1.25rem;
   }
 
   .actions {
