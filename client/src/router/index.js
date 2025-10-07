@@ -68,42 +68,28 @@ const routes = [
         meta: { menu: 'popular-data' }
       },
 
+      // ✅ 扁平化，避免父级占位 <router-view> 没命中的情况
       {
         path: 'script-ideas',
-        alias: '/script-ideas', // 直连显式命中这一层
-        component: { template: '<div data-probe="lvl-1"><router-view /></div>' },
-        meta: { menu: 'script-ideas' },
-        children: [
-          {
-            path: '',
-            name: 'ScriptIdeasClients',
-            component: ScriptIdeas,
-            meta: { menu: 'script-ideas' }
-          },
-          {
-            path: ':clientId',
-            component: { template: '<div data-probe="lvl-2"><router-view /></div>' },
-            props: true,
-            meta: { menu: 'script-ideas' },
-            children: [
-              {
-                path: '',
-                name: 'ScriptIdeasRecords',
-                component: ScriptIdeasRecords,
-                props: true,
-                meta: { menu: 'script-ideas' }
-              },
-              {
-                path: 'records/:recordId',
-                name: 'ScriptIdeasDetail',
-                component: ScriptIdeasDetail,
-                props: true,
-                meta: { menu: 'script-ideas' }
-              }
-            ]
-          }
-        ]
+        name: 'ScriptIdeasClients',
+        component: ScriptIdeas,
+        meta: { menu: 'script-ideas' }
       },
+      {
+        path: 'script-ideas/:clientId',
+        name: 'ScriptIdeasRecords',
+        component: ScriptIdeasRecords,
+        props: true,
+        meta: { menu: 'script-ideas' }
+      },
+      {
+        path: 'script-ideas/:clientId/records/:recordId',
+        name: 'ScriptIdeasDetail',
+        component: ScriptIdeasDetail,
+        props: true,
+        meta: { menu: 'script-ideas' }
+      },
+
 
       { path: 'employees', name: 'EmployeeManager', component: EmployeeManager, meta: { menu: 'employees' } },
       { path: 'employees/:userId/clients', name: 'UserClientAccess', component: UserClientAccess, meta: { menu: 'employees' } },
