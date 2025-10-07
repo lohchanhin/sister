@@ -171,9 +171,11 @@ const submitForm = async () => {
     if (isEditing.value) {
       await updateScriptIdea(props.clientId, editingId.value, buildPayload())
       toast.add({ severity: 'success', summary: '更新成功', detail: '腳本記錄已更新', life: 2500 })
+      console.info('[ScriptIdeasRecords] 已更新腳本記錄', { clientId: props.clientId, ideaId: editingId.value })
     } else {
       await createScriptIdea(props.clientId, buildPayload())
       toast.add({ severity: 'success', summary: '新增成功', detail: '已建立新的腳本記錄', life: 2500 })
+      console.info('[ScriptIdeasRecords] 已新增腳本記錄', { clientId: props.clientId })
     }
     dialogVisible.value = false
     await loadRecords()
@@ -182,8 +184,10 @@ const submitForm = async () => {
       permissionError.value = true
       errorMessage.value = '請聯絡管理者開啟腳本創意檢視權限。'
       toast.add({ severity: 'warn', summary: '無權限', detail: '您沒有腳本創意的編輯權限', life: 3000 })
+      console.warn('[ScriptIdeasRecords] 編輯腳本記錄權限不足', error)
     } else {
       toast.add({ severity: 'error', summary: '儲存失敗', detail: '請稍後再試', life: 3000 })
+      console.error('[ScriptIdeasRecords] 儲存腳本記錄失敗', error)
     }
   } finally {
     saving.value = false
@@ -196,13 +200,16 @@ const confirmDelete = async (record) => {
     await deleteScriptIdea(props.clientId, record._id)
     toast.add({ severity: 'success', summary: '刪除成功', detail: '腳本記錄已刪除', life: 2500 })
     await loadRecords()
+    console.info('[ScriptIdeasRecords] 已刪除腳本記錄', { clientId: props.clientId, ideaId: record._id })
   } catch (error) {
     if (error?.response?.status === 403) {
       permissionError.value = true
       errorMessage.value = '請聯絡管理者開啟腳本創意檢視權限。'
       toast.add({ severity: 'warn', summary: '無權限', detail: '您沒有腳本創意的刪除權限', life: 3000 })
+      console.warn('[ScriptIdeasRecords] 刪除腳本記錄權限不足', error)
     } else {
       toast.add({ severity: 'error', summary: '刪除失敗', detail: '請稍後再試', life: 3000 })
+      console.error('[ScriptIdeasRecords] 刪除腳本記錄失敗', error)
     }
   }
 }
@@ -248,13 +255,16 @@ const loadRecords = async () => {
   loading.value = true
   try {
     records.value = await listScriptIdeas(props.clientId)
+    console.info('[ScriptIdeasRecords] 已載入腳本記錄', { clientId: props.clientId, count: records.value.length })
   } catch (error) {
     if (error?.response?.status === 403) {
       permissionError.value = true
       errorMessage.value = '請聯絡管理者開啟腳本創意檢視權限。'
       records.value = []
+      console.warn('[ScriptIdeasRecords] 取得腳本記錄權限不足', error)
     } else {
       toast.add({ severity: 'error', summary: '載入失敗', detail: '無法取得腳本記錄', life: 3000 })
+      console.error('[ScriptIdeasRecords] 載入腳本記錄發生錯誤', error)
     }
   } finally {
     loading.value = false
@@ -264,11 +274,16 @@ const loadRecords = async () => {
 const loadClient = async () => {
   try {
     client.value = await getClient(props.clientId)
+    if (client.value) {
+      console.info('[ScriptIdeasRecords] 已取得客戶資訊', { clientId: props.clientId, name: client.value.name })
+    }
   } catch (error) {
     if (error?.response?.status === 403) {
       permissionError.value = true
       errorMessage.value = '請聯絡管理者開啟腳本創意檢視權限。'
+      console.warn('[ScriptIdeasRecords] 取得客戶資訊權限不足', error)
     }
+    console.error('[ScriptIdeasRecords] 取得客戶資訊失敗', error)
     client.value = null
   }
 }
