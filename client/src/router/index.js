@@ -70,7 +70,8 @@ const routes = [
 
       {
         path: 'script-ideas',
-        component: { template: '<router-view />' },
+        alias: '/script-ideas', // 直连显式命中这一层
+        component: { template: '<div data-probe="lvl-1"><router-view /></div>' },
         meta: { menu: 'script-ideas' },
         children: [
           {
@@ -81,7 +82,7 @@ const routes = [
           },
           {
             path: ':clientId',
-            component: { template: '<router-view />' },
+            component: { template: '<div data-probe="lvl-2"><router-view /></div>' },
             props: true,
             meta: { menu: 'script-ideas' },
             children: [
@@ -133,6 +134,11 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+router.onError((err, to) => {
+  // 把动态模块加载失败、代码分割 404、权限中断等都印出来
+  console.error('[router error]', to?.fullPath, err)
 })
 
 /* -------- 路由守衛：驗證 JWT & 權限 -------- */
