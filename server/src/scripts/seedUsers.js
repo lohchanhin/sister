@@ -30,12 +30,18 @@ const seed = async () => {
     const roleDocs = await Role.insertMany([
       {
         name: ROLES.EMPLOYEE,
+        permissions: [
+          PERMISSIONS.WORK_DIARY_MANAGE_SELF,
+          PERMISSIONS.WORK_DIARY_READ_SELF,
+          PERMISSIONS.SCRIPT_IDEA_READ
+        ],
         menus: [
           MENUS.DASHBOARD,
           MENUS.ASSETS,
           MENUS.PRODUCTS,
           MENUS.WORK_DIARIES,
           MENUS.POPULAR_DATA,
+          MENUS.SCRIPT_IDEAS,
           MENUS.ACCOUNT
         ]
       },
@@ -46,7 +52,16 @@ const seed = async () => {
       },
       {
         name: ROLES.OUTSOURCE,
-        menus: [MENUS.ASSETS]
+        permissions: [
+          PERMISSIONS.WORK_DIARY_MANAGE_SELF,
+          PERMISSIONS.WORK_DIARY_READ_SELF,
+          PERMISSIONS.SCRIPT_IDEA_READ
+        ],
+        menus: [
+          MENUS.ASSETS,
+          MENUS.WORK_DIARIES,
+          MENUS.SCRIPT_IDEAS
+        ]
       }
     ])
     const roleMap = {}
