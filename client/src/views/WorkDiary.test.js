@@ -20,6 +20,14 @@ const workDiaryServiceMock = vi.hoisted(() => ({
 
 vi.mock('@/services/workDiary', () => workDiaryServiceMock)
 
+const userServiceMock = vi.hoisted(() => ({
+  fetchUsers: vi.fn()
+}))
+
+vi.mock('@/services/user', () => userServiceMock)
+
+const fetchUsersMock = userServiceMock.fetchUsers
+
 const {
   createWorkDiary: createWorkDiaryMock,
   listWorkDiaries: listWorkDiariesMock,
@@ -174,6 +182,52 @@ const FileUploadStub = defineComponent({
   }
 })
 
+const MultiSelectStub = defineComponent({
+  name: 'MultiSelectStub',
+  props: ['modelValue', 'options'],
+  emits: ['update:modelValue'],
+  setup(props, { emit, attrs }) {
+    return () =>
+      h(
+        'select',
+        {
+          class: ['multiselect-stub', attrs.class].filter(Boolean).join(' '),
+          multiple: true,
+          value: props.modelValue || [],
+          onChange: (event) => {
+            const selected = Array.from(event.target.selectedOptions).map((option) => option.value)
+            emit('update:modelValue', selected)
+          }
+        },
+        (props.options || []).map((option) =>
+          h(
+            'option',
+            {
+              value: option.value,
+              selected: (props.modelValue || []).includes(option.value)
+            },
+            option.label
+          )
+        )
+      )
+  }
+})
+
+const InputSwitchStub = defineComponent({
+  name: 'InputSwitchStub',
+  props: ['modelValue'],
+  emits: ['update:modelValue'],
+  setup(props, { emit, attrs }) {
+    return () =>
+      h('input', {
+        type: 'checkbox',
+        class: ['input-switch-stub', attrs.class].filter(Boolean).join(' '),
+        checked: !!props.modelValue,
+        onChange: (event) => emit('update:modelValue', event.target.checked)
+      })
+  }
+})
+
 const DividerStub = defineComponent({
   name: 'DividerStub',
   setup() {
@@ -198,6 +252,8 @@ const globalStubs = {
   InputText: InputTextStub,
   Tag: TagStub,
   FileUpload: FileUploadStub,
+  MultiSelect: MultiSelectStub,
+  InputSwitch: InputSwitchStub,
   Divider: DividerStub,
   Skeleton: SkeletonStub
 }
@@ -272,6 +328,8 @@ describe('WorkDiary.vue', () => {
     listWorkDiariesMock.mockReset()
     getWorkDiaryMock.mockReset()
     updateWorkDiaryMock.mockReset()
+    fetchUsersMock.mockReset()
+    fetchUsersMock.mockResolvedValue([])
   })
 
   afterAll(() => {
@@ -349,8 +407,81 @@ describe('WorkDiary.vue', () => {
       title: '日誌 A',
       content: '今日完成任務。',
       status: 'approved',
-      managerComment: { text: '辛苦了，保持品質。' }
+      managerComment: { text: '辛苦了，保持品質。' },
+      visibleTo: []
     })
+  })
+
+  it('主管可切換顯示全部日誌', async () => {
+    const user = {
+      token: 'token',
+      user: {
+        _id: 'leader',
+        name: '主管',
+        permissions: ['work-diary:review', 'work-diary:read:all'],
+        menus: ['work-diaries']
+      }
+    }
+
+    const { wrapper } = await mountWorkDiary({ user })
+
+    expect(listWorkDiariesMock).toHaveBeenCalled()
+    const firstPayload = listWorkDiariesMock.mock.calls[0][0]
+    expect(firstPayload).toHaveProperty('date')
+
+    const switchStub = wrapper.find('.input-switch-stub')
+    expect(switchStub.exists()).toBe(true)
+    await switchStub.setValue(true)
+    await flushPromises()
+
+    const latestCall = listWorkDiariesMock.mock.calls.at(-1)[0]
+    expect(latestCall).not.toHaveProperty('date')
+  })
+
+  it('顯示全部日誌時會依日期顯示群組標題', async () => {
+    const user = {
+      token: 'token',
+      user: {
+        _id: 'leader',
+        name: '主管',
+        permissions: ['work-diary:review', 'work-diary:read:all'],
+        menus: ['work-diaries']
+      }
+    }
+
+    const initialDiaries = [
+      {
+        id: 'd-newer',
+        title: '最新日誌',
+        status: 'submitted',
+        date: '2024-05-02',
+        author: { _id: 'emp1', name: '一般員工' }
+      }
+    ]
+
+    const allDiaries = [
+      ...initialDiaries,
+      {
+        id: 'd-older',
+        title: '前一天日誌',
+        status: 'approved',
+        date: '2024-05-01',
+        author: { _id: 'emp2', name: '第二位員工' }
+      }
+    ]
+
+    const { wrapper } = await mountWorkDiary({ user, diaries: initialDiaries })
+
+    listWorkDiariesMock.mockResolvedValueOnce(allDiaries)
+
+    const switchStub = wrapper.find('.input-switch-stub')
+    await switchStub.setValue(true)
+    await flushPromises()
+
+    const groupHeaders = wrapper.findAll('.list-group-header')
+    expect(groupHeaders.length).toBe(2)
+    expect(groupHeaders.at(0)?.text()).toContain('2024-05-02')
+    expect(groupHeaders.at(1)?.text()).toContain('2024-05-01')
   })
 
   it('缺少 content 欄位時會從 contentBlocks 推導顯示內容', async () => {
