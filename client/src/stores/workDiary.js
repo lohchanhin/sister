@@ -72,13 +72,31 @@ const normalizeDiaryItem = (item) => {
     item.supervisorComment !== undefined && item.supervisorComment !== null
       ? String(item.supervisorComment)
       : managerComment.text
+  const visibleTo = Array.isArray(item.visibleTo)
+    ? item.visibleTo
+        .map((viewer) => {
+          const viewerId = viewer?._id || viewer?.id || viewer
+          if (!viewerId) return null
+          if (typeof viewer === 'object') {
+            return {
+              ...viewer,
+              id: viewerId,
+              name: viewer.name || viewer.displayName || viewer.username || viewer.email || ''
+            }
+          }
+          return { id: viewerId }
+        })
+        .filter(Boolean)
+    : []
   return {
     ...item,
     id,
     content: derivedContent,
     detailLoaded,
     managerComment,
-    supervisorComment
+    supervisorComment,
+    visibleTo,
+    visibility: item.visibility || 'private'
   }
 }
 

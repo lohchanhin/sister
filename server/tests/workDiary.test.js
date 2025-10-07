@@ -22,11 +22,13 @@ let app
 let uploadFileMock
 let getSignedUrlMock
 let managerToken
+let otherManagerToken
 let employeeToken
 let otherEmployeeToken
 let outsiderToken
 let employeeId
 let managerId
+let otherManagerId
 let diaryId
 let firstImagePath
 let secondImagePath
@@ -34,6 +36,7 @@ let secondImagePath
 let Role
 let User
 let Notification
+let employeeRoleDoc
 beforeAll(async () => {
   jest.unstable_mockModule('../src/utils/gcs.js', () => ({
     uploadFile: jest.fn().mockImplementation((_path, destination) => Promise.resolve(destination)),
@@ -74,7 +77,7 @@ beforeAll(async () => {
       PERMISSIONS.WORK_DIARY_REVIEW
     ]
   })
-  const employeeRole = await Role.create({
+  employeeRoleDoc = await Role.create({
     name: 'employee',
     permissions: [
       PERMISSIONS.WORK_DIARY_MANAGE_SELF,
@@ -92,11 +95,23 @@ beforeAll(async () => {
   })
   managerId = manager._id.toString()
 
+  const otherManager = await User.create({
+    username: 'manager2',
+    password: 'pass123',
+    email: 'manager2@test.com',
+    roleId: managerRole._id,
+    name: '另一位主管'
+  })
+  otherManagerId = otherManager._id.toString()
+
+  employeeRoleDoc.workDiaryViewers = [manager._id]
+  await employeeRoleDoc.save()
+
   const employee = await User.create({
     username: 'alice',
     password: 'pass123',
     email: 'alice@test.com',
-    roleId: employeeRole._id,
+    roleId: employeeRoleDoc._id,
     name: '一般員工'
   })
   employeeId = employee._id.toString()
@@ -105,7 +120,7 @@ beforeAll(async () => {
     username: 'bob',
     password: 'pass123',
     email: 'bob@test.com',
-    roleId: employeeRole._id,
+    roleId: employeeRoleDoc._id,
     name: '第二位員工'
   })
 
@@ -122,6 +137,12 @@ beforeAll(async () => {
     .send({ username: 'manager', password: 'pass123' })
     .expect(200)
   managerToken = managerLogin.body.token
+
+  const otherManagerLogin = await request(app)
+    .post('/api/auth/login')
+    .send({ username: 'manager2', password: 'pass123' })
+    .expect(200)
+  otherManagerToken = otherManagerLogin.body.token
 
   const employeeLogin = await request(app)
     .post('/api/auth/login')
@@ -170,6 +191,10 @@ describe('Work Diary API', () => {
     expect(res.body.images[0].url).toContain('https://signed.example.com/')
     expect(res.body.content).toBe('完成需求整理')
     expect(res.body.contentBlocks?.[0]?.value).toBe('完成需求整理')
+    const viewers = Array.isArray(res.body.visibleTo)
+      ? res.body.visibleTo.map(viewer => viewer?._id || viewer)
+      : []
+    expect(viewers).toContain(managerId)
     diaryId = res.body._id
     firstImagePath = res.body.images[0].path
 
@@ -226,6 +251,23 @@ describe('Work Diary API', () => {
       .set('Authorization', `Bearer ${otherEmployeeToken}`)
       .field('title', '嘗試竄改')
       .expect(403)
+  })
+
+  it('未列於角色可見清單的主管無法檢視或列表日誌', async () => {
+    await request(app)
+      .get(`/api/work-diaries/${diaryId}`)
+      .set('Authorization', `Bearer ${otherManagerToken}`)
+      .expect(403)
+
+    const listRes = await request(app)
+      .get('/api/work-diaries')
+      .set('Authorization', `Bearer ${otherManagerToken}`)
+      .expect(200)
+
+    const authors = Array.isArray(listRes.body)
+      ? listRes.body.map(item => item.author?._id || item.author)
+      : []
+    expect(authors).not.toContain(employeeId)
   })
 
   it('列表支援篩選並依角色限制可見資料', async () => {
@@ -300,6 +342,19 @@ describe('Work Diary API', () => {
       .expect(200)
 
     expect(detailRes.body.content).toBe('更新後的內容整理')
+  })
+
+  it('角色預設可見者不會被移除', async () => {
+    const res = await request(app)
+      .put(`/api/work-diaries/${diaryId}`)
+      .set('Authorization', `Bearer ${employeeToken}`)
+      .send({ title: '第一天工作紀錄（更新）', visibleTo: [] })
+      .expect(200)
+
+    const viewers = Array.isArray(res.body.visibleTo)
+      ? res.body.visibleTo.map(viewer => viewer?._id || viewer)
+      : []
+    expect(viewers).toContain(managerId)
   })
 
   it('非主管不得審核工作日誌', async () => {

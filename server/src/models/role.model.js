@@ -23,6 +23,12 @@ const roleSchema = new mongoose.Schema(
         message: 'Invalid menu'
       },
       default: []
+    },
+
+    workDiaryViewers: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'User',
+      default: []
     }
 
 

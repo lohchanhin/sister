@@ -25,6 +25,10 @@
                   showIcon
                 />
               </div>
+              <div class="toolbar-field toolbar-field--switch">
+                <label class="field-label">顯示全部</label>
+                <InputSwitch v-model="showAllDates" :binary="true" />
+              </div>
               <div v-if="canReadAll" class="toolbar-field">
                 <label class="field-label">篩選成員</label>
                 <Dropdown
@@ -77,26 +81,37 @@
             </div>
             <div v-else class="list-items">
               <div
-                v-for="diary in diaries"
-                :key="diary.id"
-                class="list-item"
-                :class="{ 'list-item--active': diary.id === workDiaryStore.selectedDiaryId }"
-                role="button"
-                tabindex="0"
-                @click="handleSelectDiary(diary)"
-                @keyup.enter="handleSelectDiary(diary)"
+                v-for="group in groupedDiaries"
+                :key="group.dateKey"
+                class="list-group"
               >
-                <div class="item-header">
-                  <div class="item-title">
-                    <h3>{{ diary.title || '未命名日誌' }}</h3>
-                    <small>作者：{{ diary.author?.name || diary.owner?.name || '未提供' }}</small>
-                  </div>
-                  <Tag
-                    :value="statusMeta(diary.status).label"
-                    :severity="statusMeta(diary.status).severity"
-                  />
+                <div v-if="shouldShowGroupHeaders" class="list-group-header">
+                  <i class="pi pi-calendar"></i>
+                  <span>{{ group.label }}</span>
                 </div>
-                <p class="item-preview">{{ diary.summary || getDiaryContent(diary) || '尚未填寫內容' }}</p>
+                <div
+                  v-for="diary in group.diaries"
+                  :key="diary.id"
+                  class="list-item"
+                  :class="{ 'list-item--active': diary.id === workDiaryStore.selectedDiaryId }"
+                  role="button"
+                  tabindex="0"
+                  @click="handleSelectDiary(diary)"
+                  @keyup.enter="handleSelectDiary(diary)"
+                >
+                  <div class="item-header">
+                    <div class="item-title">
+                      <h3>{{ diary.title || '未命名日誌' }}</h3>
+                      <small>作者：{{ diary.author?.name || diary.owner?.name || '未提供' }}</small>
+                      <small class="item-date">{{ formatDateWithWeekday(diary.date) }}</small>
+                    </div>
+                    <Tag
+                      :value="statusMeta(diary.status).label"
+                      :severity="statusMeta(diary.status).severity"
+                    />
+                  </div>
+                  <p class="item-preview">{{ diary.summary || getDiaryContent(diary) || '尚未填寫內容' }}</p>
+                </div>
               </div>
             </div>
           </template>
@@ -158,6 +173,21 @@
                       :severity="activeStatusMeta?.severity"
                     />
                   </div>
+                </div>
+
+                <div class="form-row">
+                  <label class="field-label" for="diary-visible-to">可查看人員</label>
+                  <MultiSelect
+                    id="diary-visible-to"
+                    v-model="detailForm.visibleTo"
+                    :options="viewerOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    display="chip"
+                    :disabled="!canManageVisibility"
+                    placeholder="選擇可查看者"
+                    class="visibility-select"
+                  />
                 </div>
 
                 <div class="form-row">
@@ -280,6 +310,20 @@
           />
         </div>
 
+        <div v-if="canManageVisibility" class="form-row">
+          <label class="field-label" for="create-diary-visible-to">可查看人員</label>
+          <MultiSelect
+            id="create-diary-visible-to"
+            v-model="createForm.visibleTo"
+            :options="viewerOptions"
+            optionLabel="label"
+            optionValue="value"
+            display="chip"
+            placeholder="選擇可查看者"
+            class="visibility-select"
+          />
+        </div>
+
         <div class="form-row">
           <label class="field-label" for="create-diary-content">日誌內容</label>
           <Textarea
@@ -352,6 +396,7 @@ import {
   WORK_DIARY_STATUS,
   WORK_DIARY_STATUS_META
 } from '@/stores/workDiary'
+import { fetchUsers } from '@/services/user'
 
 import Card from 'primevue/card'
 import Calendar from 'primevue/calendar'
@@ -364,6 +409,8 @@ import FileUpload from 'primevue/fileupload'
 import Divider from 'primevue/divider'
 import Skeleton from 'primevue/skeleton'
 import Dialog from 'primevue/dialog'
+import MultiSelect from 'primevue/multiselect'
+import InputSwitch from 'primevue/inputswitch'
 
 const router = useRouter()
 const route = useRoute()
@@ -387,11 +434,58 @@ const parseDate = (value) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
+const weekdayLabels = ['週日', '週一', '週二', '週三', '週四', '週五', '週六']
+
+const formatDateWithWeekday = (value) => {
+  const parsed = parseDate(value)
+  if (!parsed) return ''
+  const base = formatDate(parsed)
+  const weekday = weekdayLabels[parsed.getDay?.()] || ''
+  return weekday ? `${base} (${weekday})` : base
+}
+
 const initialDateString = route.params.date || route.query.date || formatDate(new Date())
 const calendarValue = ref(parseDate(initialDateString) || new Date())
 const selectedUserId = ref(route.params.userId || route.query.user || 'all')
+const showAllDates = ref(route.query.all === '1')
+const allUsers = ref([])
+const hasLoadedUsers = ref(false)
 
 const diaries = computed(() => workDiaryStore.diaries)
+const groupedDiaries = computed(() => {
+  const list = Array.isArray(diaries.value) ? diaries.value : []
+  if (!list.length) return []
+
+  const groups = new Map()
+  const order = []
+
+  list.forEach((diary, index) => {
+    const parsed = parseDate(diary?.date)
+    const dateKey = parsed ? formatDate(parsed) : 'unknown'
+    const label = parsed ? formatDateWithWeekday(parsed) : '未提供日期'
+
+    if (!groups.has(dateKey)) {
+      groups.set(dateKey, { dateKey, label, diaries: [] })
+      order.push({ key: dateKey, timestamp: parsed ? parsed.getTime() : Number.NEGATIVE_INFINITY, index })
+    }
+
+    groups.get(dateKey).diaries.push(diary)
+  })
+
+  const sortedKeys = order
+    .slice()
+    .sort((a, b) => {
+      if (a.timestamp === b.timestamp) return a.index - b.index
+      return b.timestamp - a.timestamp
+    })
+    .map((entry) => entry.key)
+
+  const uniqueKeys = [...new Set(sortedKeys)]
+  return uniqueKeys.map((key) => groups.get(key))
+})
+const shouldShowGroupHeaders = computed(
+  () => showAllDates.value || groupedDiaries.value.length > 1
+)
 const selectedDiary = computed(() => workDiaryStore.selectedDiary)
 
 const statusMeta = (status) =>
@@ -417,6 +511,7 @@ const isSupervisor = computed(() => !!authStore.hasPermission('work-diary:review
 const canReadAll = computed(() => !!authStore.hasPermission('work-diary:read:all'))
 const canReadSelf = computed(() => !!authStore.hasPermission('work-diary:read:self'))
 const canManageSelf = computed(() => !!authStore.hasPermission('work-diary:manage:self'))
+const canManageVisibility = computed(() => isSupervisor.value)
 const canCreateDiary = computed(() => canManageSelf.value || isSupervisor.value)
 const hasDiaryAccess = computed(() => canReadAll.value || canReadSelf.value)
 
@@ -441,7 +536,13 @@ const userOptions = computed(() => {
   ]
 })
 
-const formattedDate = computed(() => formatDate(calendarValue.value))
+const formattedDate = computed(() => {
+  if (selectedDiary.value?.date) {
+    return formatDateWithWeekday(selectedDiary.value.date)
+  }
+  if (showAllDates.value) return ''
+  return formatDateWithWeekday(calendarValue.value)
+})
 
 const buildContentFromBlocks = (blocks) => {
   if (!Array.isArray(blocks) || !blocks.length) return ''
@@ -463,6 +564,44 @@ const getDiaryContent = (diary) => {
   }
   return ''
 }
+
+const toUserId = (user) => {
+  if (!user) return null
+  if (typeof user === 'string') return user
+  if (typeof user === 'object') {
+    return user.id || user._id || user.value || null
+  }
+  return null
+}
+
+const viewerOptions = computed(() => {
+  const map = new Map()
+  const appendUser = (user) => {
+    if (!user) return
+    const id = toUserId(user)
+    if (!id || map.has(id)) return
+    const label =
+      user.name || user.displayName || user.username || user.email || user.label || id
+    map.set(id, { label, value: id })
+  }
+
+  allUsers.value.forEach((user) => appendUser(user))
+
+  workDiaryStore.diaries.forEach((diary) => {
+    if (!Array.isArray(diary.visibleTo)) return
+    diary.visibleTo.forEach((viewer) => appendUser(viewer))
+  })
+
+  const currentUser = authStore.user
+  if (currentUser?._id) {
+    appendUser({
+      _id: currentUser._id,
+      name: currentUser.name || currentUser.username || currentUser.email || '我自己'
+    })
+  }
+
+  return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, 'zh-Hant'))
+})
 const canEditContent = computed(() => {
   if (!selectedDiary.value) return false
   const authorId = selectedDiary.value.author?._id || selectedDiary.value.author?.id
@@ -481,7 +620,8 @@ const createForm = ref({
   date: new Date(calendarValue.value),
   title: '',
   content: '',
-  status: WORK_DIARY_STATUS.DRAFT
+  status: WORK_DIARY_STATUS.DRAFT,
+  visibleTo: []
 })
 const createImages = ref([])
 
@@ -490,9 +630,31 @@ const resetCreateForm = () => {
     date: new Date(calendarValue.value),
     title: '',
     content: '',
-    status: WORK_DIARY_STATUS.DRAFT
+    status: WORK_DIARY_STATUS.DRAFT,
+    visibleTo: []
   }
   createImages.value = []
+}
+
+const loadAllUsers = async () => {
+  try {
+    const response = await fetchUsers({ limit: 500 })
+    const records = Array.isArray(response?.records)
+      ? response.records
+      : Array.isArray(response)
+      ? response
+      : []
+    allUsers.value = records
+  } catch (error) {
+    if (!hasLoadedUsers.value) {
+      toast.add({
+        severity: 'warn',
+        summary: '無法讀取使用者',
+        detail: '暫時無法取得使用者清單，稍後可再試一次',
+        life: 3000
+      })
+    }
+  }
 }
 
 const openCreateDialog = () => {
@@ -506,16 +668,29 @@ const openCreateDialog = () => {
 
 const syncRouteParams = async () => {
   const params = {}
-  const dateString = formatDate(calendarValue.value)
-  if (dateString) params.date = dateString
+  const query = {}
+  if (!showAllDates.value) {
+    const dateString = formatDate(calendarValue.value)
+    if (dateString) params.date = dateString
+  }
   const userId = selectedUserId.value
-  if (canReadAll.value && userId && userId !== 'all') params.userId = userId
+  if (canReadAll.value && userId && userId !== 'all') {
+    params.userId = userId
+  }
+  if (showAllDates.value) {
+    query.all = '1'
+  }
 
   const currentDate = route.params.date || route.query.date || null
   const currentUser = route.params.userId || route.query.user || null
+  const currentAll = route.query.all === '1'
 
-  if (currentDate !== params.date || currentUser !== params.userId) {
-    await router.replace({ name: 'WorkDiaries', params })
+  const nextDate = params.date || null
+  const nextUser = params.userId || null
+  const nextAll = !!query.all
+
+  if (currentDate !== nextDate || currentUser !== nextUser || currentAll !== nextAll) {
+    await router.replace({ name: 'WorkDiaries', params, query })
   }
 }
 
@@ -524,8 +699,10 @@ const loadDiaries = async () => {
     workDiaryStore.$patch({ diaries: [], selectedDiaryId: null })
     return
   }
-  const payload = {
-    date: formatDate(calendarValue.value)
+  const payload = {}
+  if (!showAllDates.value) {
+    const dateString = formatDate(calendarValue.value)
+    if (dateString) payload.date = dateString
   }
   if (
     canReadAll.value &&
@@ -536,6 +713,10 @@ const loadDiaries = async () => {
   }
   try {
     await workDiaryStore.loadDiaries(payload)
+    if ((isSupervisor.value || canReadAll.value) && !hasLoadedUsers.value) {
+      await loadAllUsers()
+      hasLoadedUsers.value = true
+    }
   } catch (error) {
     toast.add({
       severity: 'error',
@@ -547,17 +728,23 @@ const loadDiaries = async () => {
 }
 
 watch(
-  () => route.params,
-  (params) => {
-    const nextDate = parseDate(params.date) || parseDate(route.query.date)
-    if (nextDate && formatDate(nextDate) !== formatDate(calendarValue.value)) {
-      calendarValue.value = nextDate
+  () => [route.params, route.query],
+  ([params, query]) => {
+    const showAll = query.all === '1'
+    if (showAllDates.value !== showAll) {
+      showAllDates.value = showAll
+    }
+    if (!showAll) {
+      const nextDate = parseDate(params.date) || parseDate(query.date)
+      if (nextDate && formatDate(nextDate) !== formatDate(calendarValue.value)) {
+        calendarValue.value = nextDate
+      }
     }
     if (!canReadAll.value) {
       selectedUserId.value = 'all'
       return
     }
-    const nextUser = params.userId || route.query.user || 'all'
+    const nextUser = params.userId || query.user || 'all'
     if (selectedUserId.value !== nextUser) {
       selectedUserId.value = nextUser
     }
@@ -565,7 +752,7 @@ watch(
 )
 
 watch(
-  [calendarValue, selectedUserId],
+  [calendarValue, selectedUserId, showAllDates],
   async () => {
     await syncRouteParams()
     await loadDiaries()
@@ -624,7 +811,10 @@ watch(
       content,
       managerCommentText: commentText,
       status: diary.status || WORK_DIARY_STATUS.DRAFT,
-      images: Array.isArray(diary.images) ? [...diary.images] : []
+      images: Array.isArray(diary.images) ? [...diary.images] : [],
+      visibleTo: Array.isArray(diary.visibleTo)
+        ? diary.visibleTo.map((viewer) => toUserId(viewer)).filter(Boolean)
+        : []
     }
   },
   { immediate: true }
@@ -658,12 +848,17 @@ const handleSave = async () => {
     content: detailForm.value.content,
     status: canChangeStatus.value
       ? detailForm.value.status
-      : workDiaryStore.selectedDiary?.status,
+      : workDiaryStore.selectedDiary?.status
   }
   if (isSupervisor.value) {
     payload.managerComment = {
       text: detailForm.value.managerCommentText ?? ''
     }
+  }
+  if (canManageVisibility.value) {
+    payload.visibleTo = Array.isArray(detailForm.value.visibleTo)
+      ? detailForm.value.visibleTo.filter(Boolean)
+      : []
   }
   try {
     await workDiaryStore.saveDiary(workDiaryStore.selectedDiaryId, payload)
@@ -746,6 +941,11 @@ const handleCreateDiarySubmit = async () => {
   if (isSupervisor.value && canReadAll.value && selectedUserId.value && selectedUserId.value !== 'all') {
     formData.append('author', selectedUserId.value)
   }
+  if (Array.isArray(createForm.value.visibleTo)) {
+    createForm.value.visibleTo
+      .filter((id) => !!id)
+      .forEach((id) => formData.append('visibleTo', id))
+  }
   createImages.value.forEach((file) => {
     const payload = file?.raw || file?.file || file
     if (payload) formData.append('images', payload)
@@ -817,6 +1017,19 @@ const handleCreateDiarySubmit = async () => {
   min-width: 200px;
 }
 
+.toolbar-field--switch {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: auto;
+}
+
+.toolbar-field--switch .field-label {
+  margin: 0;
+  margin-right: 0.5rem;
+  font-weight: 600;
+}
+
 .field-label {
   font-weight: 600;
   margin-bottom: 0.5rem;
@@ -853,6 +1066,26 @@ const handleCreateDiarySubmit = async () => {
   gap: 0.75rem;
 }
 
+.list-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.list-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--surface-600);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0 0.25rem;
+}
+
+.list-group-header .pi {
+  color: var(--primary-color);
+}
+
 .list-item {
   border: 1px solid var(--surface-200);
   border-radius: 10px;
@@ -885,6 +1118,11 @@ const handleCreateDiarySubmit = async () => {
 
 .item-title small {
   color: var(--surface-500);
+}
+
+.item-title .item-date {
+  display: block;
+  margin-top: 0.2rem;
 }
 
 .item-preview {
@@ -932,6 +1170,10 @@ const handleCreateDiarySubmit = async () => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.visibility-select {
+  width: 100%;
 }
 
 .status-control {

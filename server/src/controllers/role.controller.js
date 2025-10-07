@@ -1,13 +1,32 @@
 import { t } from '../i18n/messages.js'
+import mongoose from 'mongoose'
 import Role from '../models/role.model.js'
 import { getCache, setCache, delCache, clearCacheByPrefix } from '../utils/cache.js'
 
+const normalizeViewerIds = value => {
+  if (value === undefined || value === null) return undefined
+  const list = Array.isArray(value) ? value : [value]
+  const unique = new Set()
+  list.forEach(id => {
+    if (!id) return
+    const str = id?.toString?.() || String(id)
+    if (mongoose.Types.ObjectId.isValid(str)) {
+      unique.add(str)
+    }
+  })
+  return Array.from(unique)
+}
+
 export const createRole = async (req, res) => {
-  const role = await Role.create({
+  const payload = {
     name: req.body.name,
     permissions: req.body.permissions,
     menus: req.body.menus
-  })
+  }
+  const viewers = normalizeViewerIds(req.body.workDiaryViewers)
+  if (viewers !== undefined) payload.workDiaryViewers = viewers
+
+  const role = await Role.create(payload)
   await clearCacheByPrefix('roles:')
   res.status(201).json(role)
 }
@@ -32,15 +51,15 @@ export const getRole = async (req, res) => {
 }
 
 export const updateRole = async (req, res) => {
-  const role = await Role.findByIdAndUpdate(
-    req.params.id,
-    {
-      name: req.body.name,
-      permissions: req.body.permissions,
-      menus: req.body.menus
-    },
-    { new: true }
-  )
+  const update = {
+    name: req.body.name,
+    permissions: req.body.permissions,
+    menus: req.body.menus
+  }
+  const viewers = normalizeViewerIds(req.body.workDiaryViewers)
+  if (viewers !== undefined) update.workDiaryViewers = viewers
+
+  const role = await Role.findByIdAndUpdate(req.params.id, update, { new: true })
   if (!role) return res.status(404).json({ message: t('ROLE_NOT_FOUND') })
   await clearCacheByPrefix('roles:')
   await delCache(`role:${req.params.id}`)

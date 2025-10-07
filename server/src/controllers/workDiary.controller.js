@@ -3,6 +3,8 @@ import fs from 'node:fs/promises'
 import mongoose from 'mongoose'
 import { t } from '../i18n/messages.js'
 import WorkDiary from '../models/workDiary.model.js'
+import Role from '../models/role.model.js'
+import User from '../models/user.model.js'
 import { uploadFile, getSignedUrl } from '../utils/gcs.js'
 import { decodeFilename } from '../utils/decodeFilename.js'
 import logger from '../config/logger.js'
@@ -15,6 +17,61 @@ const AUTHOR_ALLOWED_STATUSES = new Set(['draft', 'submitted'])
 const REVIEW_STATUSES = new Set(['approved', 'rejected'])
 
 const isManager = user => user?.roleId?.name === ROLES.MANAGER
+
+const toStringId = value =>
+  value?._id?.toString?.() || value?.id || (typeof value === 'string' ? value : value?.toString?.()) || null
+
+const resolveRoleIdForUser = async userId => {
+  const id = toStringId(userId)
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) return null
+  const user = await User.findById(id).select('roleId')
+  if (!user?.roleId) return null
+  return toStringId(user.roleId)
+}
+
+const resolveRoleIdFromDiary = async diary => {
+  if (!diary) return null
+  const author = diary.author
+  const roleFromDoc =
+    author?.roleId?._id?.toString?.() ||
+    (author?.roleId && typeof author.roleId === 'object' && author.roleId?.toString?.()) ||
+    (typeof author?.roleId === 'string' ? author.roleId : null)
+  if (roleFromDoc) return roleFromDoc
+  const authorId = toStringId(author)
+  if (!authorId) return null
+  return resolveRoleIdForUser(authorId)
+}
+
+const getRoleViewerIds = async (roleId, cache = new Map()) => {
+  const id = toStringId(roleId)
+  if (!id) return []
+  if (cache.has(id)) return cache.get(id)
+  const role = await Role.findById(id).select('workDiaryViewers')
+  const viewers = Array.isArray(role?.workDiaryViewers)
+    ? role.workDiaryViewers
+        .map(viewer => toStringId(viewer))
+        .filter(candidate => candidate && mongoose.Types.ObjectId.isValid(candidate))
+    : []
+  cache.set(id, viewers)
+  return viewers
+}
+
+const collectIds = list => {
+  const ids = []
+  if (!Array.isArray(list)) return ids
+  list.forEach(item => {
+    const str = toStringId(item)
+    if (str && mongoose.Types.ObjectId.isValid(str)) {
+      ids.push(str)
+    }
+  })
+  return ids
+}
+
+const mergeVisibleTo = (existing = [], required = []) => {
+  const unique = new Set([...collectIds(existing), ...collectIds(required)])
+  return Array.from(unique).map(id => new mongoose.Types.ObjectId(id))
+}
 
 const normalizeDate = value => {
   if (!value) return undefined
@@ -145,17 +202,22 @@ const appendSignedUrls = async diary => {
   return buildResult(images)
 }
 
-const ensureCanAccess = (user, diary) => {
+const ensureCanAccess = async (user, diary, roleViewerCache = new Map()) => {
   if (!diary) return false
-  if (isManager(user)) return true
   const authorId = diary.author?._id?.toString?.() || diary.author?.toString?.()
-  const userId = user?._id?.toString?.()
+  const userId = user?._id?.toString?.() || user?.id || null
   if (authorId && userId && authorId === userId) return true
   if (PUBLIC_VISIBILITY.includes(diary.visibility)) return true
-  if (Array.isArray(diary.visibleTo)) {
-    const visible = diary.visibleTo.some(person => person?.toString?.() === userId)
-    if (visible) return true
+  if (Array.isArray(diary.visibleTo) && userId) {
+    const visibleIds = collectIds(diary.visibleTo)
+    if (visibleIds.includes(userId)) return true
   }
+  const roleId = await resolveRoleIdFromDiary(diary)
+  const viewers = await getRoleViewerIds(roleId, roleViewerCache)
+  if (viewers.length === 0) {
+    return isManager(user)
+  }
+  if (userId && viewers.includes(userId)) return true
   return false
 }
 
@@ -212,21 +274,31 @@ export const listWorkDiaries = async (req, res) => {
     ]
   }
 
+  const roleViewerCache = new Map()
   const diaries = await WorkDiary.find(query)
     .sort({ date: -1 })
     .populate('author', 'username name email roleId')
     .populate('managerComment.commentedBy', 'username name email roleId')
+    .populate('visibleTo', 'username name email roleId')
 
-  const diariesWithUrls = await Promise.all(diaries.map(appendSignedUrls))
-  res.json(diariesWithUrls)
+  const accessible = []
+  for (const diary of diaries) {
+    if (await ensureCanAccess(req.user, diary, roleViewerCache)) {
+      accessible.push(await appendSignedUrls(diary))
+    }
+  }
+
+  res.json(accessible)
 }
 
 export const getWorkDiary = async (req, res) => {
+  const roleViewerCache = new Map()
   const diary = await WorkDiary.findById(req.params.diaryId)
     .populate('author', 'username name email roleId')
     .populate('managerComment.commentedBy', 'username name email roleId')
+    .populate('visibleTo', 'username name email roleId')
   if (!diary) return res.status(404).json({ message: t('DIARY_NOT_FOUND') })
-  if (!ensureCanAccess(req.user, diary)) {
+  if (!(await ensureCanAccess(req.user, diary, roleViewerCache))) {
     return res.status(403).json({ message: t('PERMISSION_DENIED') })
   }
   const diaryWithUrls = await appendSignedUrls(diary)
@@ -276,6 +348,8 @@ export const createWorkDiary = async (req, res) => {
 
   const images = await uploadImages(req.files)
 
+  const roleViewerCache = new Map()
+
   let authorId = req.user._id
   if (isManager(req.user) && req.body.author) {
     if (!mongoose.Types.ObjectId.isValid(req.body.author)) {
@@ -283,6 +357,9 @@ export const createWorkDiary = async (req, res) => {
     }
     authorId = req.body.author
   }
+
+  const authorRoleId = await resolveRoleIdForUser(authorId)
+  const roleViewers = await getRoleViewerIds(authorRoleId, roleViewerCache)
 
   const diaryData = {
     author: authorId,
@@ -292,7 +369,9 @@ export const createWorkDiary = async (req, res) => {
     images,
     visibility: visibility || 'private'
   }
-  if (visibleTo !== undefined) diaryData.visibleTo = visibleTo
+  if (visibleTo !== undefined || roleViewers.length) {
+    diaryData.visibleTo = mergeVisibleTo(visibleTo ?? [], roleViewers)
+  }
 
   if (status) {
     if (isManager(req.user) || AUTHOR_ALLOWED_STATUSES.has(status)) {
@@ -311,6 +390,7 @@ export const createWorkDiary = async (req, res) => {
     const populated = await diary
       .populate('author', 'username name email roleId')
       .populate('managerComment.commentedBy', 'username name email roleId')
+      .populate('visibleTo', 'username name email roleId')
     const diaryWithUrls = await appendSignedUrls(populated)
     if (diaryWithUrls.status === 'submitted') {
       await notifyDiarySubmitted({ diary: diaryWithUrls, actor: req.user })
@@ -325,11 +405,15 @@ export const createWorkDiary = async (req, res) => {
 }
 
 export const updateWorkDiary = async (req, res) => {
+  const roleViewerCache = new Map()
   const diary = await WorkDiary.findById(req.params.diaryId)
   if (!diary) return res.status(404).json({ message: t('DIARY_NOT_FOUND') })
   if (!ensureCanEdit(req.user, diary)) {
     return res.status(403).json({ message: t('DIARY_EDIT_FORBIDDEN') })
   }
+
+  const authorRoleId = await resolveRoleIdFromDiary(diary)
+  const roleViewers = await getRoleViewerIds(authorRoleId, roleViewerCache)
 
   const update = {}
   const previousStatus = diary.status
@@ -371,11 +455,15 @@ export const updateWorkDiary = async (req, res) => {
   }
 
   if (req.body.visibleTo !== undefined) {
+    let requestedVisibleTo
     try {
-      update.visibleTo = parseVisibleTo(req.body.visibleTo)
+      requestedVisibleTo = parseVisibleTo(req.body.visibleTo)
     } catch (err) {
       return res.status(err.status || 400).json({ message: t('DATA_FORMAT_ERROR') })
     }
+    update.visibleTo = mergeVisibleTo(requestedVisibleTo, roleViewers)
+  } else if (roleViewers.length) {
+    update.visibleTo = mergeVisibleTo(diary.visibleTo || [], roleViewers)
   }
 
   if (req.body.status) {
@@ -426,6 +514,7 @@ export const updateWorkDiary = async (req, res) => {
   await diary.save()
   await diary.populate('author', 'username name email roleId')
   await diary.populate('managerComment.commentedBy', 'username name email roleId')
+  await diary.populate('visibleTo', 'username name email roleId')
   const diaryWithUrls = await appendSignedUrls(diary)
   if (previousStatus !== 'submitted' && diary.status === 'submitted') {
     await notifyDiarySubmitted({ diary: diaryWithUrls, actor: req.user })
@@ -437,6 +526,7 @@ export const addWorkDiaryImages = async (req, res) => {
   const diary = await WorkDiary.findById(req.params.diaryId)
     .populate('author', 'username name email roleId')
     .populate('managerComment.commentedBy', 'username name email roleId')
+    .populate('visibleTo', 'username name email roleId')
 
   if (!diary) {
     return res.status(404).json({ message: t('DIARY_NOT_FOUND') })
@@ -454,6 +544,7 @@ export const addWorkDiaryImages = async (req, res) => {
   }
 
   await diary.save()
+  await diary.populate('visibleTo', 'username name email roleId')
   const diaryWithUrls = await appendSignedUrls(diary)
   res.json(diaryWithUrls)
 }
@@ -462,6 +553,7 @@ export const removeWorkDiaryImage = async (req, res) => {
   const diary = await WorkDiary.findById(req.params.diaryId)
     .populate('author', 'username name email roleId')
     .populate('managerComment.commentedBy', 'username name email roleId')
+    .populate('visibleTo', 'username name email roleId')
 
   if (!diary) {
     return res.status(404).json({ message: t('DIARY_NOT_FOUND') })
@@ -485,6 +577,7 @@ export const removeWorkDiaryImage = async (req, res) => {
   images.splice(index, 1)
   diary.images = images
   await diary.save()
+  await diary.populate('visibleTo', 'username name email roleId')
   const diaryWithUrls = await appendSignedUrls(diary)
   res.json(diaryWithUrls)
 }
@@ -511,6 +604,7 @@ export const reviewWorkDiary = async (req, res) => {
   const diary = await WorkDiary.findByIdAndUpdate(req.params.diaryId, update, { new: true })
     .populate('author', 'username name email roleId')
     .populate('managerComment.commentedBy', 'username name email roleId')
+    .populate('visibleTo', 'username name email roleId')
 
   if (!diary) return res.status(404).json({ message: t('DIARY_NOT_FOUND') })
 
