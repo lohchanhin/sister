@@ -12,7 +12,7 @@
       <header class="detail-header">
         <div>
           <h2>{{ idea?.headline || '腳本詳情' }}</h2>
-          <p class="subtitle">上傳影片素材並維護腳本文案內容</p>
+          <p class="subtitle">集中管理腳本思考與段落內容</p>
         </div>
         <div class="actions">
           <Button label="返回列表" icon="pi pi-arrow-left" severity="secondary" @click="goBack" />
@@ -24,33 +24,6 @@
 
       <div v-else class="detail-content">
         <Card class="detail-card">
-          <template #title>影片上傳</template>
-          <template #content>
-            <p class="description">上傳影片檔案，供腳本團隊參考。支援常見影片格式。</p>
-            <div class="upload-area">
-              <FileUpload name="video" accept="video/*" :auto="false" :showUploadButton="false"
-                :showCancelButton="false" :maxFileSize="1024 * 1024 * 1024" v-model:files="videoFiles"
-                @select="onVideoSelect" @remove="onVideoRemove">
-                <template #empty>
-                  <span class="upload-placeholder">
-                    <i class="pi pi-cloud-upload"></i>
-                    <span>拖曳或選擇影片檔案</span>
-                  </span>
-                </template>
-              </FileUpload>
-              <div v-if="idea?.videoUrl && !removeVideo" class="current-video">
-                <p>目前檔案：<a :href="idea.videoUrl" target="_blank" rel="noopener">{{ idea.videoName }}</a></p>
-                <Button label="清除既有檔案" severity="secondary" text @click="toggleRemove" />
-              </div>
-              <div v-else-if="removeVideo" class="current-video muted">
-                <p>儲存後將移除現有影片</p>
-                <Button label="取消移除" severity="secondary" text @click="toggleRemove" />
-              </div>
-            </div>
-          </template>
-        </Card>
-
-        <Card class="detail-card">
           <template #title>腳本內容</template>
           <template #content>
             <div class="form-grid">
@@ -61,10 +34,6 @@
               <span class="field">
                 <label for="title">標題</label>
                 <InputText id="title" v-model="form.headline" />
-              </span>
-              <span class="field">
-                <label for="first">第一段</label>
-                <Textarea id="first" v-model="form.firstParagraph" rows="3" autoResize />
               </span>
               <span class="field">
                 <label for="lines">台詞</label>
@@ -79,6 +48,21 @@
                 <Textarea id="feedback" v-model="form.feedback" rows="4" autoResize />
               </span>
             </div>
+            <div class="paragraphs">
+              <header class="paragraphs__header">
+                <h3>腳本段落</h3>
+                <Button label="新增段落" icon="pi pi-plus" text @click="addParagraph" />
+              </header>
+              <div v-if="form.paragraphs.length === 0" class="paragraphs__empty">目前沒有任何段落，請新增。</div>
+              <div v-else class="paragraphs__list">
+                <div v-for="(paragraph, index) in form.paragraphs" :key="index" class="paragraphs__item">
+                  <label :for="`paragraph-${index}`">段落 {{ index + 1 }}</label>
+                  <Textarea :id="`paragraph-${index}`" v-model="form.paragraphs[index]" rows="3" autoResize />
+                  <Button v-if="form.paragraphs.length > 1" icon="pi pi-trash" severity="danger" text
+                    @click="removeParagraph(index)" />
+                </div>
+              </div>
+            </div>
           </template>
         </Card>
       </div>
@@ -92,7 +76,6 @@ import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
-import FileUpload from 'primevue/fileupload'
 import Textarea from 'primevue/textarea'
 import InputText from 'primevue/inputtext'
 import {
@@ -117,16 +100,13 @@ const toast = useToast()
 const loading = ref(true)
 const saving = ref(false)
 const idea = ref(null)
-const videoFiles = ref([])
-const videoFile = ref(null)
-const removeVideo = ref(false)
 const permissionError = ref(false)
 const errorMessage = ref('')
 
 const form = reactive({
   summaryScript: '',
   headline: '',
-  firstParagraph: '',
+  paragraphs: [],
   dialogue: '',
   keyLines: '',
   feedback: ''
@@ -135,7 +115,13 @@ const form = reactive({
 const assignForm = (data) => {
   form.summaryScript = data.summaryScript || ''
   form.headline = data.headline || ''
-  form.firstParagraph = data.firstParagraph || ''
+  if (Array.isArray(data.paragraphs)) {
+    form.paragraphs = data.paragraphs.length ? [...data.paragraphs] : ['']
+  } else if (data.firstParagraph) {
+    form.paragraphs = [data.firstParagraph]
+  } else {
+    form.paragraphs = ['']
+  }
   form.dialogue = data.dialogue || ''
   form.keyLines = data.keyLines || ''
   form.feedback = data.feedback || ''
@@ -149,13 +135,9 @@ const loadDetail = async () => {
     const data = await getScriptIdea(props.clientId, props.recordId)
     idea.value = data
     assignForm(data)
-    removeVideo.value = false
-    videoFiles.value = []
-    videoFile.value = null
     console.info('[ScriptIdeasDetail] 已載入腳本詳情', {
       clientId: props.clientId,
-      ideaId: props.recordId,
-      hasVideo: Boolean(data?.videoUrl)
+      ideaId: props.recordId
     })
   } catch (error) {
     if (error?.response?.status === 403) {
@@ -172,28 +154,10 @@ const loadDetail = async () => {
   }
 }
 
-const onVideoSelect = (event) => {
-  const file = event.files?.[0]
-  videoFile.value = file || null
-  removeVideo.value = false
-}
-
-const onVideoRemove = () => {
-  videoFile.value = null
-}
-
-const toggleRemove = () => {
-  removeVideo.value = !removeVideo.value
-  if (removeVideo.value) {
-    videoFiles.value = []
-    videoFile.value = null
-  }
-}
-
 const buildPayload = () => ({
   ...form,
-  video: videoFile.value || undefined,
-  removeVideo: removeVideo.value ? 'true' : undefined
+  paragraphs: form.paragraphs.filter((paragraph) => paragraph.trim().length > 0),
+  firstParagraph: form.paragraphs.find((paragraph) => paragraph.trim().length > 0) || ''
 })
 
 const save = async () => {
@@ -205,8 +169,7 @@ const save = async () => {
     console.info('[ScriptIdeasDetail] 已儲存腳本詳情', {
       clientId: props.clientId,
       ideaId: props.recordId,
-      removeVideo: removeVideo.value,
-      hasNewVideo: Boolean(videoFile.value)
+      paragraphCount: form.paragraphs.length
     })
   } catch (error) {
     if (error?.response?.status === 403) {
@@ -235,6 +198,15 @@ watch(
     loadDetail()
   }
 )
+
+const addParagraph = () => {
+  form.paragraphs.push('')
+}
+
+const removeParagraph = (index) => {
+  if (index < 0 || index >= form.paragraphs.length) return
+  form.paragraphs.splice(index, 1)
+}
 </script>
 
 <style scoped>
@@ -270,7 +242,7 @@ watch(
 
 .detail-content {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
 }
 
@@ -305,44 +277,6 @@ watch(
   max-width: 420px;
 }
 
-.description {
-  margin-bottom: 1rem;
-  color: #6b7280;
-}
-
-.upload-area {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.upload-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 2rem;
-  color: #6b7280;
-}
-
-.upload-placeholder i {
-  font-size: 2rem;
-}
-
-.current-video {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  justify-content: space-between;
-  background: #f3f4f6;
-  padding: 0.75rem 1rem;
-  border-radius: 0.75rem;
-}
-
-.current-video.muted {
-  color: #6b7280;
-}
-
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -356,6 +290,52 @@ watch(
 }
 
 .field label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.paragraphs {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.paragraphs__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.paragraphs__header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.paragraphs__empty {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.paragraphs__list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.paragraphs__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background-color: #f9fafb;
+}
+
+.paragraphs__item label {
   font-weight: 600;
   color: #374151;
 }
