@@ -54,15 +54,7 @@
 
         <Card class="detail-card storyboard-card">
           <template #title>腳本模板與故事板</template>
-          <template #content>
-            <div class="template-selector">
-              <span class="field">
-                <label for="template">情境模板</label>
-                <Dropdown id="template" v-model="selectedTemplateId" :options="scenarioTemplates" optionLabel="label"
-                  optionValue="id" placeholder="選擇腳本情境" showClear />
-              </span>
-              <Button label="套用模板" icon="pi pi-sparkles" severity="help" @click="applyTemplate" />
-            </div>
+          <template #content>           
             <div v-if="currentTemplate" class="template-preview">
               <h3>{{ currentTemplate.label }}</h3>
               <p class="template-description">{{ currentTemplate.description }}</p>
