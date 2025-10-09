@@ -84,7 +84,8 @@
                   <div class="scene-item__header">
                     <h4>段落 {{ index + 1 }}</h4>
                     <div class="scene-item__actions">
-                      <Button icon="pi pi-arrow-up" text rounded :disabled="index === 0" @click="moveScene(index, index - 1)" />
+                      <Button icon="pi pi-arrow-up" text rounded :disabled="index === 0"
+                        @click="moveScene(index, index - 1)" />
                       <Button icon="pi pi-arrow-down" text rounded :disabled="index === form.storyboard.length - 1"
                         @click="moveScene(index, index + 1)" />
                       <Button icon="pi pi-trash" text rounded severity="danger" @click="removeScene(index)" />
@@ -132,18 +133,15 @@
             <div class="form-grid">
               <span class="field field--wide">
                 <label for="dialogue">完整台詞/旁白</label>
-                <Textarea id="dialogue" v-model="form.dialogue" rows="4" autoResize
-                  placeholder="可整理要保留的台詞或腳本全文" />
+                <Textarea id="dialogue" v-model="form.dialogue" rows="4" autoResize placeholder="可整理要保留的台詞或腳本全文" />
               </span>
               <span class="field field--wide">
                 <label for="keyLines">一定要講的金句</label>
-                <Textarea id="keyLines" v-model="form.keyLines" rows="3" autoResize
-                  placeholder="列出不可漏講的重點台詞" />
+                <Textarea id="keyLines" v-model="form.keyLines" rows="3" autoResize placeholder="列出不可漏講的重點台詞" />
               </span>
               <span class="field field--wide">
                 <label for="feedback">備註/修改建議</label>
-                <Textarea id="feedback" v-model="form.feedback" rows="3" autoResize
-                  placeholder="團隊協作用的提醒或下一版調整方向" />
+                <Textarea id="feedback" v-model="form.feedback" rows="3" autoResize placeholder="團隊協作用的提醒或下一版調整方向" />
               </span>
             </div>
           </template>
@@ -834,8 +832,8 @@ onMounted(loadDetail)
 }
 
 .detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 1.5rem;
 }
 
@@ -845,7 +843,7 @@ onMounted(loadDetail)
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1rem;
 }
 
@@ -961,7 +959,7 @@ onMounted(loadDetail)
 
 .scene-item__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1rem;
 }
 
