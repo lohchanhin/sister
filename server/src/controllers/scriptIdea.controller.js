@@ -26,6 +26,45 @@ const normalizeStatus = (value) => {
   return allowed.includes(value) ? value : 'pending'
 }
 
+const normalizeString = (value) => {
+  if (value === undefined || value === null) return ''
+  if (typeof value === 'string') return value.trim()
+  return String(value).trim()
+}
+
+const toScene = (input = {}) => ({
+  stage: normalizeString(input.stage),
+  narration: normalizeString(input.narration),
+  visuals: normalizeString(input.visuals),
+  assets: normalizeString(input.assets),
+  cta: normalizeString(input.cta),
+  notes: normalizeString(input.notes)
+})
+
+const hasSceneContent = (scene) =>
+  Boolean(
+    scene.stage ||
+      scene.narration ||
+      scene.visuals ||
+      scene.assets ||
+      scene.cta ||
+      scene.notes
+  )
+
+const parseStoryboard = (value) => {
+  if (!value) return []
+  let raw = value
+  if (typeof value === 'string') {
+    try {
+      raw = JSON.parse(value)
+    } catch {
+      return []
+    }
+  }
+  if (!Array.isArray(raw)) return []
+  return raw.map(toScene).filter(hasSceneContent)
+}
+
 const uploadVideo = async (file, clientId) => {
   if (!file) return null
   const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
@@ -85,7 +124,12 @@ export const createScriptIdea = async (req, res) => {
     firstParagraph: req.body.firstParagraph || '',
     dialogue: req.body.dialogue || '',
     keyLines: req.body.keyLines || '',
-    feedback: req.body.feedback || ''
+    feedback: req.body.feedback || '',
+    templateId: normalizeString(req.body.templateId),
+    targetAudience: req.body.targetAudience || '',
+    corePromise: req.body.corePromise || '',
+    visualTone: req.body.visualTone || '',
+    storyboard: parseStoryboard(req.body.storyboard)
   }
   if (req.file) {
     const uploaded = await uploadVideo(req.file, clientId)
@@ -147,6 +191,21 @@ export const updateScriptIdea = async (req, res) => {
   }
   if (Object.prototype.hasOwnProperty.call(req.body, 'feedback')) {
     update.feedback = req.body.feedback || ''
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body, 'templateId')) {
+    update.templateId = normalizeString(req.body.templateId)
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body, 'targetAudience')) {
+    update.targetAudience = req.body.targetAudience || ''
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body, 'corePromise')) {
+    update.corePromise = req.body.corePromise || ''
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body, 'visualTone')) {
+    update.visualTone = req.body.visualTone || ''
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body, 'storyboard')) {
+    update.storyboard = parseStoryboard(req.body.storyboard)
   }
   if (req.body.date) {
     const parsed = normalizeDate(req.body.date)
