@@ -1,5 +1,17 @@
 import mongoose from 'mongoose'
 
+const storyboardSceneSchema = new mongoose.Schema(
+  {
+    stage: { type: String, trim: true, default: '' },
+    narration: { type: String, trim: true, default: '' },
+    visuals: { type: String, trim: true, default: '' },
+    assets: { type: String, trim: true, default: '' },
+    cta: { type: String, trim: true, default: '' },
+    notes: { type: String, trim: true, default: '' }
+  },
+  { _id: false }
+)
+
 const scriptIdeaSchema = new mongoose.Schema(
   {
     clientId: {
@@ -57,6 +69,30 @@ const scriptIdeaSchema = new mongoose.Schema(
     feedback: {
       type: String,
       default: ''
+    },
+    templateId: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    targetAudience: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    corePromise: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    visualTone: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    storyboard: {
+      type: [storyboardSceneSchema],
+      default: []
     }
   },
   { timestamps: true }

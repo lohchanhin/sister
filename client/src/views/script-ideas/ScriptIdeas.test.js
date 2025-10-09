@@ -378,7 +378,25 @@ describe('ScriptIdeasDetail 編輯詳情', () => {
       clientId: 'client-1',
       summaryScript: '原始腳本',
       headline: '原始標題',
-      paragraphs: ['段落 A', '段落 B'],
+      storyboard: [
+        {
+          stage: '段落 A',
+          narration: '講稿 A',
+          visuals: '畫面 A',
+          assets: '',
+          cta: '',
+          notes: ''
+        },
+        {
+          stage: '段落 B',
+          narration: '講稿 B',
+          visuals: '畫面 B',
+          assets: '',
+          cta: '',
+          notes: ''
+        }
+      ],
+      templateId: 'legacy-20yr',
       dialogue: '',
       keyLines: '',
       feedback: ''
@@ -388,7 +406,25 @@ describe('ScriptIdeasDetail 編輯詳情', () => {
       clientId: 'client-1',
       summaryScript: '更新後腳本',
       headline: '更新後標題',
-      paragraphs: ['段落 B', '新增段落'],
+      storyboard: [
+        {
+          stage: '段落 B',
+          narration: '講稿 B',
+          visuals: '畫面 B',
+          assets: '',
+          cta: '',
+          notes: ''
+        },
+        {
+          stage: '新增段落',
+          narration: '新增講稿',
+          visuals: '新增畫面',
+          assets: '',
+          cta: '',
+          notes: ''
+        }
+      ],
+      templateId: 'legacy-20yr',
       dialogue: '',
       keyLines: '',
       feedback: ''
@@ -402,20 +438,33 @@ describe('ScriptIdeasDetail 編輯詳情', () => {
 
     expect(getScriptIdeaMock).toHaveBeenCalledWith('client-1', 'idea-1')
     expect(wrapper.vm.form.summaryScript).toBe('原始腳本')
-    expect(wrapper.vm.form.paragraphs).toEqual(['段落 A', '段落 B'])
+    expect(wrapper.vm.form.storyboard).toHaveLength(2)
+    expect(wrapper.vm.form.storyboard[0].stage).toBe('段落 A')
 
-    wrapper.vm.addParagraph()
-    wrapper.vm.form.paragraphs[2] = '新增段落'
-    wrapper.vm.removeParagraph(0)
+    wrapper.vm.addScene()
+    wrapper.vm.form.storyboard[2].stage = '新增段落'
+    wrapper.vm.form.storyboard[2].narration = '新增講稿'
+    wrapper.vm.form.storyboard[2].visuals = '新增畫面'
+    wrapper.vm.removeScene(0)
     wrapper.vm.form.summaryScript = '更新後腳本'
     await wrapper.vm.save()
     await flushPromises()
 
-    expect(updateScriptIdeaMock).toHaveBeenCalledWith('client-1', 'idea-1', expect.objectContaining({
-      summaryScript: '更新後腳本',
-      paragraphs: ['段落 B', '新增段落'],
-      firstParagraph: '段落 B'
-    }))
+    expect(updateScriptIdeaMock).toHaveBeenCalledWith(
+      'client-1',
+      'idea-1',
+      expect.objectContaining({
+        summaryScript: '更新後腳本'
+      })
+    )
+    const payload = updateScriptIdeaMock.mock.calls[0][2]
+    expect(typeof payload.storyboard).toBe('string')
+    const storyboard = JSON.parse(payload.storyboard)
+    expect(storyboard).toEqual([
+      expect.objectContaining({ stage: '段落 B', narration: '講稿 B', visuals: '畫面 B' }),
+      expect.objectContaining({ stage: '新增段落', narration: '新增講稿', visuals: '新增畫面' })
+    ])
+    expect(payload.firstParagraph).toBe('講稿 B')
     expect(getScriptIdeaMock).toHaveBeenCalledTimes(2)
   })
 })
