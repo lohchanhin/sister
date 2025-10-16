@@ -15,6 +15,13 @@
           <p class="subtitle">設定標題與段落內容，快速完成腳本紀錄</p>
         </div>
         <div class="actions">
+          <Button
+            label="下載腳本"
+            icon="pi pi-download"
+            severity="secondary"
+            :disabled="loading || saving"
+            @click="downloadScript"
+          />
           <Button label="返回列表" icon="pi pi-arrow-left" severity="secondary" @click="goBack" />
           <Button label="儲存變更" icon="pi pi-save" :loading="saving" @click="save" />
         </div>
@@ -254,6 +261,45 @@ const removeParagraph = (index) => {
   if (index <= 0 || index >= form.paragraphs.length) return
   form.paragraphs.splice(index, 1)
   ensureAtLeastOneParagraph()
+}
+
+const downloadScript = () => {
+  if (loading.value || saving.value) return
+
+  const headline = (form.headline || idea.value?.headline || '').trim()
+  const paragraphs = form.paragraphs.map((text) => text.trim()).filter(Boolean)
+
+  if (!headline && !paragraphs.length) {
+    toast.add({ severity: 'warn', summary: '無內容', detail: '目前沒有可下載的腳本內容', life: 2500 })
+    console.info('[ScriptIdeasDetail] 嘗試下載但沒有腳本內容', {
+      clientId: props.clientId,
+      ideaId: props.recordId
+    })
+    return
+  }
+
+  const titleLine = headline ? `標題：${headline}` : '腳本內容'
+  const paragraphLines = paragraphs.map((text, index) => [`段落 ${index + 1}`, text].join('\n'))
+  const content = [titleLine, ...paragraphLines].join('\n\n')
+
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+  const objectUrl = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  const formattedDate = new Date().toISOString().slice(0, 10)
+  const safeTitle = (headline || 'script-idea').replace(/[\\/:*?"<>|]/g, '').trim() || 'script-idea'
+  link.href = objectUrl
+  link.download = `${safeTitle}-${formattedDate}.txt`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(objectUrl)
+
+  console.info('[ScriptIdeasDetail] 已下載腳本內容', {
+    clientId: props.clientId,
+    ideaId: props.recordId,
+    headline,
+    paragraphCount: paragraphs.length
+  })
 }
 
 watch(
