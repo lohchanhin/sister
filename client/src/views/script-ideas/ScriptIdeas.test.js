@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { defineComponent, h } from 'vue'
@@ -441,5 +441,129 @@ describe('ScriptIdeasDetail 編輯詳情', () => {
     expect(payload.dialogue).toBe('')
     expect(payload.templateId).toBe('')
     expect(getScriptIdeaMock).toHaveBeenCalledTimes(2)
+  })
+
+  describe('下載腳本', () => {
+    const originalCreateElement = document.createElement.bind(document)
+    let createObjectURLSpy
+    let revokeObjectURLSpy
+    let createElementSpy
+    let clickSpy
+    let originalCreateObjectURL
+    let originalRevokeObjectURL
+    const createdAnchors = []
+
+    beforeEach(() => {
+      createdAnchors.length = 0
+      toastMock.add.mockClear()
+      originalCreateObjectURL = global.URL.createObjectURL
+      originalRevokeObjectURL = global.URL.revokeObjectURL
+      createObjectURLSpy = vi.fn(() => 'blob:mock-url')
+      revokeObjectURLSpy = vi.fn()
+      global.URL.createObjectURL = createObjectURLSpy
+      global.URL.revokeObjectURL = revokeObjectURLSpy
+      clickSpy = vi.spyOn(HTMLElement.prototype, 'click').mockImplementation(function clickMock() {
+        return undefined
+      })
+      createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tag) => {
+        const element = originalCreateElement(tag)
+        if (tag === 'a') {
+          createdAnchors.push(element)
+        }
+        return element
+      })
+    })
+
+    afterEach(() => {
+      if (originalCreateObjectURL) {
+        global.URL.createObjectURL = originalCreateObjectURL
+      } else {
+        delete global.URL.createObjectURL
+      }
+      if (originalRevokeObjectURL) {
+        global.URL.revokeObjectURL = originalRevokeObjectURL
+      } else {
+        delete global.URL.revokeObjectURL
+      }
+      clickSpy.mockRestore()
+      createElementSpy.mockRestore()
+    })
+
+    it('在有內容時可匯出腳本檔案', async () => {
+      getScriptIdeaMock.mockResolvedValueOnce({
+        _id: 'idea-1',
+        clientId: 'client-1',
+        headline: '下載測試',
+        storyboard: [
+          {
+            stage: '段落 1',
+            narration: '第一段內容'
+          }
+        ]
+      })
+
+      const router = await createTestRouter('/script-ideas/client-1/records/idea-1')
+      const wrapper = mount(ScriptIdeasDetail, {
+        props: { clientId: 'client-1', recordId: 'idea-1' },
+        global: { plugins: [router], stubs: globalStubs }
+      })
+
+      await flushPromises()
+
+      const downloadButton = wrapper.find('[data-icon="pi pi-download"]')
+      expect(downloadButton.exists()).toBe(true)
+
+      await downloadButton.trigger('click')
+
+      expect(createObjectURLSpy).toHaveBeenCalledTimes(1)
+      expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:mock-url')
+      expect(clickSpy).toHaveBeenCalled()
+      expect(createdAnchors).toHaveLength(1)
+      expect(createdAnchors[0].href).toBe('blob:mock-url')
+      expect(createdAnchors[0].download).toMatch(/^下載測試-\d{4}-\d{2}-\d{2}\.txt$/)
+      expect(toastMock.add).not.toHaveBeenCalled()
+
+      const blobArg = createObjectURLSpy.mock.calls[0][0]
+      expect(blobArg).toBeInstanceOf(Blob)
+      const textContent = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result))
+        reader.onerror = reject
+        reader.readAsText(blobArg)
+      })
+      expect(textContent).toContain('標題：下載測試')
+      expect(textContent).toContain('段落 1')
+      expect(textContent).toContain('第一段內容')
+    })
+
+    it('沒有段落時提醒使用者', async () => {
+      getScriptIdeaMock.mockResolvedValueOnce({
+        _id: 'idea-2',
+        clientId: 'client-1',
+        headline: '',
+        storyboard: []
+      })
+
+      const router = await createTestRouter('/script-ideas/client-1/records/idea-2')
+      const wrapper = mount(ScriptIdeasDetail, {
+        props: { clientId: 'client-1', recordId: 'idea-2' },
+        global: { plugins: [router], stubs: globalStubs }
+      })
+
+      await flushPromises()
+
+      const downloadButton = wrapper.find('[data-icon="pi pi-download"]')
+      await downloadButton.trigger('click')
+
+      expect(createObjectURLSpy).not.toHaveBeenCalled()
+      expect(revokeObjectURLSpy).not.toHaveBeenCalled()
+      expect(clickSpy).not.toHaveBeenCalled()
+      expect(toastMock.add).toHaveBeenCalledWith({
+        severity: 'warn',
+        summary: '無內容',
+        detail: '目前沒有可下載的腳本內容',
+        life: 2500
+      })
+    })
   })
 })
