@@ -65,6 +65,80 @@ const parseStoryboard = (value) => {
   return raw.map(toScene).filter(hasSceneContent)
 }
 
+const normalizeParagraph = (value) => {
+  if (value === undefined || value === null) return ''
+  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'object' && value) {
+    if (typeof value.text === 'string') return value.text.trim()
+    return ''
+  }
+  return normalizeString(String(value))
+}
+
+const toScriptContent = (input = {}) => {
+  if (typeof input === 'string') {
+    return { title: normalizeString(input), paragraphs: [] }
+  }
+  const title = normalizeString(input.title)
+  let paragraphs = []
+  if (Array.isArray(input.paragraphs)) {
+    paragraphs = input.paragraphs
+  } else if (typeof input.paragraphs === 'string') {
+    paragraphs = [input.paragraphs]
+  } else if (input.paragraphs && typeof input.paragraphs === 'object') {
+    paragraphs = Object.values(input.paragraphs)
+  }
+  return {
+    title,
+    paragraphs: paragraphs.map(normalizeParagraph)
+  }
+}
+
+const parseScripts = (value) => {
+  if (!value) return []
+  let raw = value
+  if (typeof value === 'string') {
+    try {
+      raw = JSON.parse(value)
+    } catch {
+      return []
+    }
+  }
+  if (Array.isArray(raw)) return raw.map(toScriptContent)
+  if (raw && typeof raw === 'object') {
+    return Object.values(raw).map(toScriptContent)
+  }
+  return []
+}
+
+const alignScriptsByCount = (scripts, countValue) => {
+  const normalizedCount = normalizeNumber(countValue, scripts.length)
+  const sanitized = scripts.map((script) => ({
+    title: normalizeString(script.title),
+    paragraphs: Array.isArray(script.paragraphs)
+      ? script.paragraphs.map(normalizeParagraph)
+      : []
+  }))
+  const targetCount = Math.max(normalizedCount, sanitized.length)
+  while (sanitized.length < targetCount) {
+    sanitized.push({ title: '', paragraphs: [] })
+  }
+  return { scripts: sanitized.slice(0, targetCount), scriptCount: targetCount }
+}
+
+const normalizeIdeaScripts = (idea) => {
+  if (!idea) return idea
+  const obj = idea.toObject ? idea.toObject() : { ...idea }
+  const rawScripts = Array.isArray(obj.scripts)
+    ? obj.scripts.map((script) => ({
+        title: script?.title ?? '',
+        paragraphs: Array.isArray(script?.paragraphs) ? script.paragraphs : []
+      }))
+    : []
+  const { scripts, scriptCount } = alignScriptsByCount(rawScripts, obj.scriptCount)
+  return { ...obj, scripts, scriptCount }
+}
+
 const uploadVideo = async (file, clientId) => {
   if (!file) return null
   const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
@@ -81,7 +155,7 @@ const uploadVideo = async (file, clientId) => {
 
 const appendVideoInfo = async (idea) => {
   if (!idea) return idea
-  const obj = idea.toObject ? idea.toObject() : { ...idea }
+  const obj = normalizeIdeaScripts(idea)
   if (!obj.videoPath) {
     return { ...obj, videoUrl: '', videoName: obj.videoName || '' }
   }
@@ -113,11 +187,16 @@ export const createScriptIdea = async (req, res) => {
   if (!date) {
     return res.status(400).json({ message: '腳本日期為必填欄位' })
   }
+  const parsedScripts = parseScripts(req.body.scripts)
+  const { scripts, scriptCount } = alignScriptsByCount(
+    parsedScripts,
+    req.body.scriptCount ?? parsedScripts.length
+  )
   const payload = {
     clientId,
     date,
     location: req.body.location || '',
-    scriptCount: normalizeNumber(req.body.scriptCount, 0),
+    scriptCount,
     status: normalizeStatus(req.body.status),
     summaryScript: req.body.summaryScript || '',
     headline: req.body.headline || '',
@@ -129,7 +208,8 @@ export const createScriptIdea = async (req, res) => {
     targetAudience: req.body.targetAudience || '',
     corePromise: req.body.corePromise || '',
     visualTone: req.body.visualTone || '',
-    storyboard: parseStoryboard(req.body.storyboard)
+    storyboard: parseStoryboard(req.body.storyboard),
+    scripts
   }
   if (req.file) {
     const uploaded = await uploadVideo(req.file, clientId)
@@ -155,7 +235,7 @@ export const getScriptIdea = async (req, res) => {
   if (!idea) {
     return res.status(404).json({ message: '找不到腳本記錄' })
   }
-  const plain = idea.toObject()
+  const plain = normalizeIdeaScripts(idea)
   await setCache(cacheKey, plain)
   const withVideo = await appendVideoInfo(plain)
   res.json(withVideo)
@@ -164,6 +244,11 @@ export const getScriptIdea = async (req, res) => {
 export const updateScriptIdea = async (req, res) => {
   const clientId = req.params.clientId
   const ideaId = req.params.ideaId
+  const existing = await ScriptIdea.findOne({ _id: ideaId, clientId })
+  if (!existing) {
+    return res.status(404).json({ message: '找不到腳本記錄' })
+  }
+  const normalizedExisting = normalizeIdeaScripts(existing)
   const update = {}
   if (Object.prototype.hasOwnProperty.call(req.body, 'location')) {
     update.location = req.body.location || ''
@@ -207,6 +292,20 @@ export const updateScriptIdea = async (req, res) => {
   if (Object.prototype.hasOwnProperty.call(req.body, 'storyboard')) {
     update.storyboard = parseStoryboard(req.body.storyboard)
   }
+  if (Object.prototype.hasOwnProperty.call(req.body, 'scripts')) {
+    const parsedScripts = parseScripts(req.body.scripts)
+    const expectedCount = Object.prototype.hasOwnProperty.call(update, 'scriptCount')
+      ? update.scriptCount
+      : normalizedExisting.scriptCount
+    const { scripts, scriptCount } = alignScriptsByCount(parsedScripts, expectedCount)
+    update.scripts = scripts
+    if (!Object.prototype.hasOwnProperty.call(update, 'scriptCount')) {
+      update.scriptCount = scriptCount
+    }
+  } else if (Object.prototype.hasOwnProperty.call(update, 'scriptCount')) {
+    const { scripts } = alignScriptsByCount(normalizedExisting.scripts, update.scriptCount)
+    update.scripts = scripts
+  }
   if (req.body.date) {
     const parsed = normalizeDate(req.body.date)
     if (!parsed) {
@@ -225,14 +324,7 @@ export const updateScriptIdea = async (req, res) => {
       update.videoName = uploaded.name
     }
   }
-  const idea = await ScriptIdea.findOneAndUpdate(
-    { _id: ideaId, clientId },
-    update,
-    { new: true }
-  )
-  if (!idea) {
-    return res.status(404).json({ message: '找不到腳本記錄' })
-  }
+  const idea = await ScriptIdea.findOneAndUpdate({ _id: ideaId, clientId }, update, { new: true })
   await delCache(listCacheKey(clientId))
   await delCache(detailCacheKey(ideaId))
   const withVideo = await appendVideoInfo(idea)

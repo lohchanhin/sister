@@ -12,6 +12,25 @@ const storyboardSceneSchema = new mongoose.Schema(
   { _id: false }
 )
 
+const scriptContentSchema = new mongoose.Schema(
+  {
+    title: { type: String, trim: true, default: '' },
+    paragraphs: {
+      type: [String],
+      default: [],
+      set: (value) => {
+        if (!Array.isArray(value)) return []
+        return value.map((item) => {
+          if (typeof item === 'string') return item
+          if (!item || typeof item !== 'object') return ''
+          return typeof item.text === 'string' ? item.text : ''
+        })
+      }
+    }
+  },
+  { _id: false }
+)
+
 const scriptIdeaSchema = new mongoose.Schema(
   {
     clientId: {
@@ -89,6 +108,10 @@ const scriptIdeaSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: ''
+    },
+    scripts: {
+      type: [scriptContentSchema],
+      default: []
     },
     storyboard: {
       type: [storyboardSceneSchema],

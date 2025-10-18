@@ -32,42 +32,62 @@
       <Card v-else class="detail-card">
         <template #title>腳本內容</template>
         <template #content>
-          <div class="simple-form">
-            <span class="field">
-              <label for="title">標題</label>
-              <InputText id="title" v-model="form.headline" placeholder="請輸入腳本標題" />
-            </span>
+          <div class="scripts-form">
+            <div
+              v-for="(script, scriptIndex) in form.scripts"
+              :key="scriptIndex"
+              class="script-block"
+            >
+              <div class="script-block__header">
+                <h3>腳本 {{ scriptIndex + 1 }}</h3>
+              </div>
 
-            <div v-for="(paragraph, index) in form.paragraphs" :key="index" class="paragraph-field">
-              <div class="paragraph-field__header">
-                <label :for="`paragraph-${index}`">第 {{ index + 1 }} 段內容</label>
-                <Button
-                  v-if="index > 0"
-                  icon="pi pi-trash"
-                  text
-                  rounded
-                  severity="danger"
-                  @click="removeParagraph(index)"
+              <span class="field">
+                <label :for="`script-${scriptIndex}-title`">標題</label>
+                <InputText
+                  :id="`script-${scriptIndex}-title`"
+                  v-model="form.scripts[scriptIndex].title"
+                  placeholder="請輸入腳本標題"
+                />
+              </span>
+
+              <div
+                v-for="(paragraph, paragraphIndex) in script.paragraphs"
+                :key="paragraphIndex"
+                class="paragraph-field"
+              >
+                <div class="paragraph-field__header">
+                  <label :for="`script-${scriptIndex}-paragraph-${paragraphIndex}`">
+                    段落 {{ paragraphIndex + 1 }} 內容
+                  </label>
+                  <Button
+                    v-if="paragraphIndex > 0"
+                    icon="pi pi-trash"
+                    text
+                    rounded
+                    severity="danger"
+                    @click="removeParagraph(scriptIndex, paragraphIndex)"
+                  />
+                </div>
+                <Textarea
+                  :id="`script-${scriptIndex}-paragraph-${paragraphIndex}`"
+                  v-model="form.scripts[scriptIndex].paragraphs[paragraphIndex]"
+                  :autoResize="true"
+                  rows="4"
+                  placeholder="請輸入段落內容"
                 />
               </div>
-              <Textarea
-                :id="`paragraph-${index}`"
-                v-model="form.paragraphs[index]"
-                :autoResize="true"
-                rows="4"
-                placeholder="請輸入段落內容"
-              />
-            </div>
 
-            <div class="paragraph-actions">
-              <Button
-                v-if="canAddParagraph"
-                label="新增段落"
-                icon="pi pi-plus"
-                text
-                @click="addParagraph"
-              />
-              <p class="paragraph-hint">可依需求新增或移除第二、第三段內容。</p>
+              <div class="paragraph-actions">
+                <Button
+                  v-if="canAddParagraph(scriptIndex)"
+                  label="新增段落"
+                  icon="pi pi-plus"
+                  text
+                  @click="addParagraph(scriptIndex)"
+                />
+                <p class="paragraph-hint">可依需求新增或移除段落內容。</p>
+              </div>
             </div>
           </div>
         </template>
@@ -77,7 +97,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import Button from 'primevue/button'
@@ -109,16 +129,32 @@ const permissionError = ref(false)
 const errorMessage = ref('')
 
 const form = reactive({
-  headline: '',
+  scripts: []
+})
+
+const createEmptyScript = () => ({
+  title: '',
   paragraphs: ['']
 })
 
-const canAddParagraph = computed(() => form.paragraphs.length < MAX_PARAGRAPHS)
-
-const ensureAtLeastOneParagraph = () => {
-  if (form.paragraphs.length === 0) {
-    form.paragraphs.push('')
+const ensureParagraphs = (script) => {
+  if (!Array.isArray(script.paragraphs)) {
+    script.paragraphs = ['']
   }
+  if (script.paragraphs.length === 0) {
+    script.paragraphs.push('')
+  }
+}
+
+const ensureScripts = (count) => {
+  const target = Number.isFinite(count) && count > 0 ? count : 1
+  while (form.scripts.length < target) {
+    form.scripts.push(createEmptyScript())
+  }
+  if (form.scripts.length > target) {
+    form.scripts.splice(target)
+  }
+  form.scripts.forEach((script) => ensureParagraphs(script))
 }
 
 const parseStoryboard = (storyboard) => {
@@ -155,11 +191,41 @@ const extractParagraphs = (data = {}) => {
   return paragraphs.slice(0, MAX_PARAGRAPHS)
 }
 
+const sanitizeScript = (script = {}) => {
+  const sanitized = {
+    title: typeof script.title === 'string' ? script.title : ''
+  }
+  if (Array.isArray(script.paragraphs) && script.paragraphs.length > 0) {
+    sanitized.paragraphs = script.paragraphs.map((text) => (typeof text === 'string' ? text : ''))
+  } else {
+    sanitized.paragraphs = ['']
+  }
+  return sanitized
+}
+
+const buildScriptsFromIdea = (data = {}) => {
+  const expectedCount = Math.max(Number(data.scriptCount) || 0, 1)
+  let scripts = []
+  if (Array.isArray(data.scripts) && data.scripts.length > 0) {
+    scripts = data.scripts.map((item) => sanitizeScript(item))
+  } else {
+    scripts = [
+      sanitizeScript({
+        title: data.headline || '',
+        paragraphs: extractParagraphs(data)
+      })
+    ]
+  }
+  while (scripts.length < expectedCount) {
+    scripts.push(createEmptyScript())
+  }
+  return scripts.slice(0, Math.max(expectedCount, scripts.length))
+}
+
 const assignForm = (data = {}) => {
-  form.headline = data.headline || ''
-  const paragraphs = extractParagraphs(data)
-  form.paragraphs.splice(0, form.paragraphs.length, ...paragraphs)
-  ensureAtLeastOneParagraph()
+  const scripts = buildScriptsFromIdea(data)
+  form.scripts.splice(0, form.scripts.length, ...scripts)
+  ensureScripts(scripts.length || 1)
 }
 
 const loadDetail = async () => {
@@ -189,49 +255,64 @@ const loadDetail = async () => {
   }
 }
 
-const buildPayload = () => {
-  const trimmedParagraphs = form.paragraphs.map((text) => text.trim())
-  const filledParagraphs = trimmedParagraphs
-    .map((text, index) => ({ text, index }))
-    .filter(({ text }) => text)
-    .map(({ text }) => text)
+const buildScriptsPayload = () =>
+  form.scripts.map((script) => ({
+    title: script.title.trim(),
+    paragraphs: script.paragraphs.map((text) => text.trim())
+  }))
 
+const buildLegacyFields = (scriptsPayload) => {
+  const firstScript = scriptsPayload[0] || { title: '', paragraphs: [] }
+  const filledParagraphs = firstScript.paragraphs.filter((text) => text)
   const storyboard = filledParagraphs.map((text, index) => ({
-    stage: `段落 ${index + 1}`,
+    stage: `腳本 1 - 段落 ${index + 1}`,
     narration: text,
     visuals: '',
     assets: '',
     cta: '',
     notes: ''
   }))
-
-  const firstNarration = filledParagraphs[0]?.split('\n')[0] || ''
-
   return {
-    headline: form.headline,
-    summaryScript: '',
-    dialogue: '',
-    keyLines: '',
-    feedback: '',
-    targetAudience: '',
-    corePromise: '',
-    visualTone: '',
-    templateId: '',
-    storyboard: JSON.stringify(storyboard),
-    firstParagraph: firstNarration
+    headline: firstScript.title || idea.value?.headline || '',
+    summaryScript: filledParagraphs.join('\n\n') || idea.value?.summaryScript || '',
+    firstParagraph: filledParagraphs[0] || idea.value?.firstParagraph || '',
+    dialogue: idea.value?.dialogue || '',
+    keyLines: idea.value?.keyLines || '',
+    feedback: idea.value?.feedback || '',
+    targetAudience: idea.value?.targetAudience || '',
+    corePromise: idea.value?.corePromise || '',
+    visualTone: idea.value?.visualTone || '',
+    templateId: idea.value?.templateId || '',
+    storyboard: JSON.stringify(storyboard)
+  }
+}
+
+const buildPayload = (scriptsPayload = buildScriptsPayload()) => {
+  const scriptCount = Math.max(idea.value?.scriptCount || 0, scriptsPayload.length)
+  return {
+    ...buildLegacyFields(scriptsPayload),
+    scripts: JSON.stringify(scriptsPayload),
+    scriptCount
   }
 }
 
 const save = async () => {
   saving.value = true
   try {
-    await updateScriptIdea(props.clientId, props.recordId, buildPayload())
+    const scriptsPayload = buildScriptsPayload()
+    const payload = buildPayload(scriptsPayload)
+    await updateScriptIdea(props.clientId, props.recordId, payload)
     toast.add({ severity: 'success', summary: '已儲存', detail: '腳本詳情更新成功', life: 2500 })
     await loadDetail()
+    const totalParagraphs = scriptsPayload.reduce((count, script) => {
+      const filled = script.paragraphs.filter((text) => text).length
+      return count + filled
+    }, 0)
     console.info('[ScriptIdeasDetail] 已儲存腳本詳情', {
       clientId: props.clientId,
       ideaId: props.recordId,
-      paragraphCount: form.paragraphs.filter((text) => text.trim()).length
+      scriptCount: scriptsPayload.length,
+      paragraphCount: totalParagraphs
     })
   } catch (error) {
     if (error?.response?.status === 403) {
@@ -252,24 +333,36 @@ const goBack = () => {
   router.push({ name: 'ScriptIdeasRecords', params: { clientId: props.clientId } })
 }
 
-const addParagraph = () => {
-  if (!canAddParagraph.value) return
-  form.paragraphs.push('')
+const canAddParagraph = (scriptIndex) => {
+  const script = form.scripts[scriptIndex]
+  if (!script) return false
+  return script.paragraphs.length < MAX_PARAGRAPHS
 }
 
-const removeParagraph = (index) => {
-  if (index <= 0 || index >= form.paragraphs.length) return
-  form.paragraphs.splice(index, 1)
-  ensureAtLeastOneParagraph()
+const addParagraph = (scriptIndex) => {
+  if (!canAddParagraph(scriptIndex)) return
+  form.scripts[scriptIndex].paragraphs.push('')
+}
+
+const removeParagraph = (scriptIndex, paragraphIndex) => {
+  const script = form.scripts[scriptIndex]
+  if (!script) return
+  if (paragraphIndex <= 0 || paragraphIndex >= script.paragraphs.length) return
+  script.paragraphs.splice(paragraphIndex, 1)
+  ensureParagraphs(script)
 }
 
 const downloadScript = () => {
   if (loading.value || saving.value) return
 
-  const headline = (form.headline || idea.value?.headline || '').trim()
-  const paragraphs = form.paragraphs.map((text) => text.trim()).filter(Boolean)
+  const scriptsPayload = buildScriptsPayload()
+  const nonEmptyScripts = scriptsPayload.filter((script) => {
+    const hasTitle = Boolean(script.title)
+    const hasParagraph = script.paragraphs.some((text) => text)
+    return hasTitle || hasParagraph
+  })
 
-  if (!headline && !paragraphs.length) {
+  if (!nonEmptyScripts.length) {
     toast.add({ severity: 'warn', summary: '無內容', detail: '目前沒有可下載的腳本內容', life: 2500 })
     console.info('[ScriptIdeasDetail] 嘗試下載但沒有腳本內容', {
       clientId: props.clientId,
@@ -278,15 +371,23 @@ const downloadScript = () => {
     return
   }
 
-  const titleLine = headline ? `標題：${headline}` : '腳本內容'
-  const paragraphLines = paragraphs.map((text, index) => [`段落 ${index + 1}`, text].join('\n'))
-  const content = [titleLine, ...paragraphLines].join('\n\n')
+  const contentBlocks = nonEmptyScripts.map((script, index) => {
+    const titleLine = script.title ? `腳本 ${index + 1}：${script.title}` : `腳本 ${index + 1}`
+    const paragraphLines = script.paragraphs
+      .map((text, paragraphIndex) => (text ? [`段落 ${paragraphIndex + 1}`, text].join('\n') : ''))
+      .filter(Boolean)
+    return [titleLine, ...paragraphLines].join('\n\n')
+  })
+
+  const content = contentBlocks.join('\n\n')
+
+  const primaryTitle = scriptsPayload[0]?.title || idea.value?.headline || '腳本內容'
 
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
   const objectUrl = URL.createObjectURL(blob)
   const link = document.createElement('a')
   const formattedDate = new Date().toISOString().slice(0, 10)
-  const safeTitle = (headline || 'script-idea').replace(/[\\/:*?"<>|]/g, '').trim() || 'script-idea'
+  const safeTitle = (primaryTitle || 'script-idea').replace(/[\\/:*?"<>|]/g, '').trim() || 'script-idea'
   link.href = objectUrl
   link.download = `${safeTitle}-${formattedDate}.txt`
   document.body.appendChild(link)
@@ -297,8 +398,7 @@ const downloadScript = () => {
   console.info('[ScriptIdeasDetail] 已下載腳本內容', {
     clientId: props.clientId,
     ideaId: props.recordId,
-    headline,
-    paragraphCount: paragraphs.length
+    scriptCount: nonEmptyScripts.length
   })
 }
 
@@ -347,10 +447,32 @@ onMounted(loadDetail)
   height: 100%;
 }
 
-.simple-form {
+.scripts-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.script-block {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background-color: #fff;
+}
+
+.script-block__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.script-block__header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #1f2937;
 }
 
 .field {
