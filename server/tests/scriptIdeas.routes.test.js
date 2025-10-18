@@ -110,12 +110,23 @@ describe('Script Ideas API', () => {
       .set('Authorization', `Bearer ${token}`)
       .field('date', '2024-02-01T00:00:00.000Z')
       .field('location', '台北')
-      .field('scriptCount', '3')
+      .field('scriptCount', '2')
+      .field(
+        'scripts',
+        JSON.stringify([
+          { title: '腳本 A', paragraphs: ['第一段', '第二段'] }
+        ])
+      )
       .field('status', 'pending')
       .expect(201)
 
     expect(res.body.location).toBe('台北')
-    expect(res.body.scriptCount).toBe(3)
+    expect(res.body.scriptCount).toBe(2)
+    expect(Array.isArray(res.body.scripts)).toBe(true)
+    expect(res.body.scripts).toHaveLength(2)
+    expect(res.body.scripts[0]).toMatchObject({ title: '腳本 A' })
+    expect(res.body.scripts[0].paragraphs).toEqual(['第一段', '第二段'])
+    expect(res.body.scripts[1]).toMatchObject({ title: '', paragraphs: [] })
     ideaId = res.body._id
   })
 
@@ -147,6 +158,13 @@ describe('Script Ideas API', () => {
       .set('Authorization', `Bearer ${token}`)
       .field('summaryScript', '更新後腳本')
       .field('headline', '更新後標題')
+      .field(
+        'scripts',
+        JSON.stringify([
+          { title: '腳本 A', paragraphs: ['第一段更新', '第二段更新'] },
+          { title: '腳本 B', paragraphs: ['B 段落'] }
+        ])
+      )
       .attach('video', videoPath)
       .expect(200)
 
@@ -155,6 +173,8 @@ describe('Script Ideas API', () => {
     expect(uploadFileMock).toHaveBeenCalled()
     expect(res.body.summaryScript).toBe('更新後腳本')
     expect(res.body.videoName).toBe('idea.mp4')
+    expect(res.body.scripts).toHaveLength(2)
+    expect(res.body.scripts[0].paragraphs).toEqual(['第一段更新', '第二段更新'])
   })
 
   it('取得腳本詳情時附帶簽署網址', async () => {
@@ -165,6 +185,7 @@ describe('Script Ideas API', () => {
 
     expect(getSignedUrlMock).toHaveBeenCalled()
     expect(res.body.videoUrl).toContain('https://signed.example.com/')
+    expect(res.body.scripts).toHaveLength(2)
   })
 
   it('移除影片並刪除腳本記錄', async () => {

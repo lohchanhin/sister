@@ -20,8 +20,15 @@ const scriptIdeasModuleMock = vi.hoisted(() => ({
   getScriptIdea: vi.fn(() => Promise.resolve({
     _id: 'idea-1',
     clientId: 'client-1',
-    summaryScript: '原始腳本',
-    headline: '原始標題',
+    scriptCount: 1,
+    scripts: [
+      {
+        title: '預設腳本',
+        paragraphs: ['預設內容']
+      }
+    ],
+    summaryScript: '預設腳本',
+    headline: '預設腳本',
     videoUrl: '',
     videoName: ''
   }))
@@ -372,36 +379,30 @@ describe('ScriptIdeasDetail 編輯詳情', () => {
     toastMock.add.mockClear()
   })
 
-  it('可管理段落並儲存腳本內容', async () => {
+  it('可管理多腳本段落並儲存內容', async () => {
     getScriptIdeaMock.mockResolvedValueOnce({
       _id: 'idea-1',
       clientId: 'client-1',
-      headline: '原始標題',
-      storyboard: [
-        {
-          stage: '段落 A',
-          narration: '講稿 A'
-        },
-        {
-          stage: '段落 B',
-          narration: '講稿 B'
-        }
-      ]
+      scriptCount: 2,
+      scripts: [
+        { title: '腳本 1', paragraphs: ['講稿 A', '講稿 B'] },
+        { title: '腳本 2', paragraphs: ['第二腳本第一段'] }
+      ],
+      headline: '腳本 1',
+      summaryScript: '講稿 A',
+      storyboard: []
     })
     getScriptIdeaMock.mockResolvedValueOnce({
       _id: 'idea-1',
       clientId: 'client-1',
+      scriptCount: 2,
+      scripts: [
+        { title: '更新後標題', paragraphs: ['更新後第一段', '新增講稿'] },
+        { title: '腳本 2', paragraphs: ['第二腳本第一段'] }
+      ],
       headline: '更新後標題',
-      storyboard: [
-        {
-          stage: '段落 1',
-          narration: '講稿 B'
-        },
-        {
-          stage: '段落 2',
-          narration: '新增講稿'
-        }
-      ]
+      summaryScript: '更新後第一段',
+      storyboard: []
     })
     const router = await createTestRouter('/script-ideas/client-1/records/idea-1')
     const wrapper = mount(ScriptIdeasDetail, {
@@ -411,14 +412,15 @@ describe('ScriptIdeasDetail 編輯詳情', () => {
     await flushPromises()
 
     expect(getScriptIdeaMock).toHaveBeenCalledWith('client-1', 'idea-1')
-    expect(wrapper.vm.form.paragraphs).toEqual(['講稿 A', '講稿 B'])
+    expect(wrapper.vm.form.scripts).toHaveLength(2)
+    expect(wrapper.vm.form.scripts[0].paragraphs).toEqual(['講稿 A', '講稿 B'])
 
-    wrapper.vm.addParagraph()
-    wrapper.vm.form.paragraphs[0] = '更新後第一段'
-    wrapper.vm.form.paragraphs[1] = '講稿 B'
-    wrapper.vm.form.paragraphs[2] = '新增講稿'
-    wrapper.vm.removeParagraph(1)
-    wrapper.vm.form.headline = '更新後標題'
+    wrapper.vm.addParagraph(0)
+    wrapper.vm.form.scripts[0].paragraphs[0] = '更新後第一段'
+    wrapper.vm.form.scripts[0].paragraphs[1] = '講稿 B'
+    wrapper.vm.form.scripts[0].paragraphs[2] = '新增講稿'
+    wrapper.vm.removeParagraph(0, 1)
+    wrapper.vm.form.scripts[0].title = '更新後標題'
     await wrapper.vm.save()
     await flushPromises()
 
@@ -426,20 +428,27 @@ describe('ScriptIdeasDetail 編輯詳情', () => {
       'client-1',
       'idea-1',
       expect.objectContaining({
-        headline: '更新後標題'
+        headline: '更新後標題',
+        scriptCount: 2
       })
     )
     const payload = updateScriptIdeaMock.mock.calls[0][2]
     expect(typeof payload.storyboard).toBe('string')
     const storyboard = JSON.parse(payload.storyboard)
     expect(storyboard).toEqual([
-      expect.objectContaining({ stage: '段落 1', narration: '更新後第一段' }),
-      expect.objectContaining({ stage: '段落 2', narration: '新增講稿' })
+      expect.objectContaining({ stage: '腳本 1 - 段落 1', narration: '更新後第一段' }),
+      expect.objectContaining({ stage: '腳本 1 - 段落 2', narration: '新增講稿' })
     ])
     expect(payload.firstParagraph).toBe('更新後第一段')
-    expect(payload.summaryScript).toBe('')
+    expect(payload.summaryScript).toBe('更新後第一段\n\n新增講稿')
     expect(payload.dialogue).toBe('')
     expect(payload.templateId).toBe('')
+    expect(payload.scripts).toBeDefined()
+    const scriptsPayload = JSON.parse(payload.scripts)
+    expect(scriptsPayload).toEqual([
+      { title: '更新後標題', paragraphs: ['更新後第一段', '新增講稿'] },
+      { title: '腳本 2', paragraphs: ['第二腳本第一段'] }
+    ])
     expect(getScriptIdeaMock).toHaveBeenCalledTimes(2)
   })
 
@@ -493,13 +502,12 @@ describe('ScriptIdeasDetail 編輯詳情', () => {
       getScriptIdeaMock.mockResolvedValueOnce({
         _id: 'idea-1',
         clientId: 'client-1',
-        headline: '下載測試',
-        storyboard: [
-          {
-            stage: '段落 1',
-            narration: '第一段內容'
-          }
-        ]
+        scriptCount: 2,
+        scripts: [
+          { title: '腳本 A', paragraphs: ['第一段內容'] },
+          { title: '腳本 B', paragraphs: ['第二腳本段落'] }
+        ],
+        headline: '腳本 A'
       })
 
       const router = await createTestRouter('/script-ideas/client-1/records/idea-1')
@@ -520,7 +528,7 @@ describe('ScriptIdeasDetail 編輯詳情', () => {
       expect(clickSpy).toHaveBeenCalled()
       expect(createdAnchors).toHaveLength(1)
       expect(createdAnchors[0].href).toBe('blob:mock-url')
-      expect(createdAnchors[0].download).toMatch(/^下載測試-\d{4}-\d{2}-\d{2}\.txt$/)
+      expect(createdAnchors[0].download).toMatch(/^腳本 A-\d{4}-\d{2}-\d{2}\.txt$/)
       expect(toastMock.add).not.toHaveBeenCalled()
 
       const blobArg = createObjectURLSpy.mock.calls[0][0]
@@ -531,17 +539,22 @@ describe('ScriptIdeasDetail 編輯詳情', () => {
         reader.onerror = reject
         reader.readAsText(blobArg)
       })
-      expect(textContent).toContain('標題：下載測試')
+      expect(textContent).toContain('腳本 1：腳本 A')
+      expect(textContent).toContain('腳本 2：腳本 B')
       expect(textContent).toContain('段落 1')
       expect(textContent).toContain('第一段內容')
+      expect(textContent).toContain('第二腳本段落')
     })
 
     it('沒有段落時提醒使用者', async () => {
       getScriptIdeaMock.mockResolvedValueOnce({
         _id: 'idea-2',
         clientId: 'client-1',
-        headline: '',
-        storyboard: []
+        scriptCount: 2,
+        scripts: [
+          { title: '', paragraphs: ['', ''] },
+          { title: '', paragraphs: [] }
+        ]
       })
 
       const router = await createTestRouter('/script-ideas/client-1/records/idea-2')
