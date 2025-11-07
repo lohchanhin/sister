@@ -177,3 +177,6 @@ export const deleteAssetsBulk = ids =>
 
 export const getBatchDownloadProgress = id =>
   api.get(`/assets/batch-download/${id}`).then(res => res.data)
+
+export const fetchAssetDeletionLogs = (params = {}) =>
+  api.get('/assets/deletion-logs', { params }).then(res => res.data)

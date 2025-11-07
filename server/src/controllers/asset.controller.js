@@ -17,6 +17,8 @@ import { includeManagers } from '../utils/includeManagers.js'
 import { getCache, setCache, clearCacheByPrefix, delCache } from '../utils/cache.js'
 import { clearDashboardCache } from './dashboard.controller.js'
 import logger from '../config/logger.js'
+import AssetDeletionLog from '../models/assetDeletionLog.model.js'
+import { deleteAssetsByIds, DeletionMethod } from '../services/assetDeletion.service.js'
 
 const parseTags = (t) => {
   if (!t) return []
@@ -241,16 +243,15 @@ export const reviewAsset = async (req, res) => {
 }
 
 export const deleteAsset = async (req, res) => {
-  const asset = await Asset.findByIdAndDelete(req.params.id)
-  if (asset?.folderId) {
-    await Folder.updateOne({ _id: asset.folderId }, { $set: { updatedAt: new Date() } })
-    const parents = await getAncestorFolderIds(asset.folderId)
-  if (parents.length) {
-      await Folder.updateMany({ _id: { $in: parents } }, { $set: { updatedAt: new Date() } })
-    }
+  const result = await deleteAssetsByIds([req.params.id], {
+    method: DeletionMethod.MANUAL_SINGLE,
+    deletedBy: req.user?._id || null
+  })
+
+  if (!result.deletedCount) {
+    return res.status(404).json({ message: t('ASSET_NOT_FOUND') })
   }
-  await clearCacheByPrefix('assets:')
-  await clearDashboardCache()
+
   res.json({ message: t('ASSET_DELETED') })
 }
 
@@ -517,19 +518,68 @@ export const deleteAssets = async (req, res) => {
     return res.status(400).json({ message: t('PARAMS_ERROR') })
   }
 
-  const assets = await Asset.find({ _id: { $in: ids } })
-  await Asset.deleteMany({ _id: { $in: ids } })
+  const result = await deleteAssetsByIds(ids, {
+    method: DeletionMethod.MANUAL_BULK,
+    deletedBy: req.user?._id || null
+  })
 
-  const folderIds = [...new Set(assets.map(a => a.folderId).filter(Boolean).map(id => id.toString()))]
-  for (const id of folderIds) {
-    await Folder.updateOne({ _id: id }, { $set: { updatedAt: new Date() } })
-    const parents = await getAncestorFolderIds(id)
-    if (parents.length) {
-      await Folder.updateMany({ _id: { $in: parents } }, { $set: { updatedAt: new Date() } })
+  res.json({ message: t('DELETED'), deletedCount: result.deletedCount })
+}
+
+export const getAssetDeletionLogs = async (req, res) => {
+  const page = Math.max(parseInt(req.query.page, 10) || 1, 1)
+  const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100)
+  const filter = {}
+
+  const parseDate = (value, endOfDay = false) => {
+    if (!value) return null
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return null
+    if (endOfDay) {
+      date.setHours(23, 59, 59, 999)
+    } else {
+      date.setHours(0, 0, 0, 0)
     }
+    return date
   }
 
-  await clearCacheByPrefix('assets:')
-  await clearDashboardCache()
-  res.json({ message: t('DELETED') })
+  const start = parseDate(req.query.startDate)
+  const end = parseDate(req.query.endDate, true)
+  if (start || end) {
+    filter.deletedAt = {}
+    if (start) filter.deletedAt.$gte = start
+    if (end) filter.deletedAt.$lte = end
+  }
+
+  if (req.query.method && Object.values(DeletionMethod).includes(req.query.method)) {
+    filter.method = req.query.method
+  }
+
+  const [logs, total] = await Promise.all([
+    AssetDeletionLog.find(filter)
+      .sort({ deletedAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate('deletedBy', 'username name'),
+    AssetDeletionLog.countDocuments(filter)
+  ])
+
+  res.json({
+    data: logs.map(log => ({
+      id: log._id,
+      assetId: log.assetId,
+      originalFilename: log.originalFilename,
+      deletedAt: log.deletedAt,
+      method: log.method,
+      deletedBy: log.deletedBy ? {
+        id: log.deletedBy._id,
+        name: log.deletedBy.name || log.deletedBy.username
+      } : null
+    })),
+    pagination: {
+      page,
+      limit,
+      total
+    }
+  })
 }

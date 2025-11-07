@@ -19,6 +19,13 @@
             v-tooltip.bottom="'重新整理'"
           />
           <Button
+            icon="pi pi-history"
+            label="刪除紀錄"
+            class="action-btn secondary"
+            @click="openDeletionLogs"
+            v-tooltip.bottom="'查看自動與手動刪除紀錄'"
+          />
+          <Button
             icon="pi pi-upload"
             label="上傳素材"
             class="action-btn primary"
@@ -378,9 +385,9 @@
 
     <Dialog v-model:visible="previewVisible" :header="previewItem?.name" class="preview-dialog" :modal="true">
       <div class="preview-content">
-        <img 
-          v-if="isImage(previewItem)" 
-          :src="previewItem.url" 
+        <img
+          v-if="isImage(previewItem)"
+          :src="previewItem.url"
           class="preview-media" 
           alt="預覽圖片"
         />
@@ -397,6 +404,15 @@
         </div>
       </div>
     </Dialog>
+    <Dialog
+      v-model:visible="showDeletionLogs"
+      header="刪除紀錄"
+      class="log-dialog"
+      :modal="true"
+      :style="{ width: '60vw', maxWidth: '900px' }"
+    >
+      <AssetDeletionLogList :visible="showDeletionLogs" :retention-days="RETENTION_DAYS" />
+    </Dialog>
   </div>
 </template>
 
@@ -411,6 +427,7 @@ import { useUploadStore } from '../stores/upload'
 import { fetchUsers } from '../services/user'
 import { fetchTags } from '../services/tags'
 import { useProgressStore } from '../stores/progress'
+import AssetDeletionLogList from '../components/assets/AssetDeletionLogList.vue'
 
 import Toolbar from 'primevue/toolbar'
 import Button from 'primevue/button'
@@ -453,6 +470,8 @@ const previewItem = ref(null)
 const moveDialog = ref(false)
 const targetFolder = ref(null)
 const folderOptions = ref([])
+const showDeletionLogs = ref(false)
+const RETENTION_DAYS = 90
 
 const expandedItems = ref(new Set())
 const TRUNCATE_LENGTH = 60
@@ -515,6 +534,10 @@ const getItemIcon = (item) => {
 
 const triggerUpload = () => {
   fileUploadRef.value?.$el.querySelector('input[type="file"]')?.click()
+}
+
+const openDeletionLogs = () => {
+  showDeletionLogs.value = true
 }
 
 const focusFolderInput = () => {
@@ -1373,6 +1396,11 @@ watch(filterTags, () => loadData(currentFolder.value?._id), { deep: true })
 .preview-dialog {
   width: 90vw;
   max-width: 800px;
+}
+
+.log-dialog :deep(.p-dialog-content) {
+  max-height: 60vh;
+  overflow-y: auto;
 }
 
 .dialog-form {

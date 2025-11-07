@@ -18,7 +18,8 @@ import {
   createAsset,
     batchDownload,
     getBatchDownloadProgress,
-    deleteAssets
+    deleteAssets,
+    getAssetDeletionLogs
 } from '../controllers/asset.controller.js'
 import {
   getAssetStages,
@@ -45,6 +46,12 @@ router.post('/', protect, requirePerm(PERMISSIONS.ASSET_CREATE), asyncHandler(cr
 router.post('/batch-download', protect, asyncHandler(batchDownload))
 router.get('/batch-download/:id', protect, asyncHandler(getBatchDownloadProgress))
 router.get('/', protect, requirePerm(PERMISSIONS.ASSET_READ), asyncHandler(getAssets))
+router.get(
+  '/deletion-logs',
+  protect,
+  requirePerm(PERMISSIONS.ASSET_READ),
+  asyncHandler(getAssetDeletionLogs)
+)
 router.post(
   '/:id/comment',
   protect,
