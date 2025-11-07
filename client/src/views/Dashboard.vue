@@ -65,10 +65,19 @@
           <template #content>
             <div v-if="!isMobile" class="table-container">
               <DataTable
+                :key="refreshKey"
                 :value="recentProducts"
+                :lazy="true"
+                :paginator="true"
+                :rows="pagination.pageSize"
+                :totalRecords="pagination.total"
+                :first="firstProductRow"
+                :rowsPerPageOptions="[10, 20, 30, 50]"
                 responsiveLayout="scroll"
                 emptyMessage="尚無成品"
                 class="modern-table"
+                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
+                @page="onProductPage"
               >
                 <Column field="createdAt" header="上傳時間" style="min-width: 150px">
                   <template #body="{ data }">
@@ -159,6 +168,24 @@
                     />
                   </div>
                 </div>
+              </div>
+              <div class="mobile-pagination">
+                <Button
+                  label="上一頁"
+                  icon="pi pi-arrow-left"
+                  class="p-button-text"
+                  :disabled="!canPrevPage"
+                  @click="goToPreviousPage"
+                />
+                <span class="mobile-page-indicator">第 {{ pagination.page }} / {{ totalPages }} 頁</span>
+                <Button
+                  label="下一頁"
+                  icon="pi pi-arrow-right"
+                  iconPos="right"
+                  class="p-button-text"
+                  :disabled="!canNextPage"
+                  @click="goToNextPage"
+                />
               </div>
             </div>
           </template>
@@ -359,9 +386,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import api from '../services/api'
+import { ref, onMounted, onUnmounted, nextTick, reactive, computed } from 'vue'
 import { fetchProductStages, updateProductStage, updateProduct } from '../services/products'
+import { fetchDashboardSummary } from '../services/dashboard'
 
 import Card from 'primevue/card'
 import Button from 'primevue/button'
@@ -386,6 +413,20 @@ const stageList = ref([])
 let currentProductId = null
 let dashboardTimer = null
 const isMobile = ref(window.innerWidth <= 991)
+
+const pagination = reactive({
+  page: 1,
+  pageSize: 20,
+  total: 0
+})
+
+const firstProductRow = computed(() => (pagination.page - 1) * pagination.pageSize)
+const totalPages = computed(() => {
+  if (!pagination.total) return 1
+  return Math.max(Math.ceil(pagination.total / pagination.pageSize), 1)
+})
+const canPrevPage = computed(() => pagination.page > 1)
+const canNextPage = computed(() => pagination.page < totalPages.value)
 
 const handleResize = () => {
   isMobile.value = window.innerWidth <= 991
@@ -417,14 +458,45 @@ function saveLists() {
 }
 
 /* ===== API ===== */
-async function fetchDashboard() {
-  // recentProducts.value = null;
-  const { data } = await api.get('/dashboard/summary')
+async function fetchDashboard(page = pagination.page) {
+  const targetPage = Math.max(page, 1)
+  const data = await fetchDashboardSummary({ page: targetPage, pageSize: pagination.pageSize })
   recentAssets.value = structuredClone(data.recentAssets)
   recentReviews.value = structuredClone(data.recentReviews)
-  recentProducts.value = structuredClone(data.recentProducts) // 取得完整成品列表
+  const productPayload = data.recentProducts || { items: [], total: 0 }
+  recentProducts.value = structuredClone(productPayload.items || [])
+  pagination.total = productPayload.total ?? recentProducts.value.length
+  pagination.page = productPayload.page ?? targetPage
+  if (productPayload.pageSize) {
+    pagination.pageSize = productPayload.pageSize
+  }
+  if (!recentProducts.value.length && pagination.page > 1 && pagination.total) {
+    const finalPage = Math.max(Math.ceil(pagination.total / pagination.pageSize), 1)
+    if (finalPage !== pagination.page) {
+      await fetchDashboard(finalPage)
+      return
+    }
+  }
   assetStats.value = { ...data.assetStats }
   refreshKey.value++                         // 觸發 DataTable 重繪
+}
+
+function onProductPage(event) {
+  const nextPage = event.page + 1
+  const nextPageSize = event.rows
+  const sizeChanged = nextPageSize !== pagination.pageSize
+  pagination.pageSize = nextPageSize
+  if (nextPage !== pagination.page || sizeChanged) {
+    fetchDashboard(nextPage)
+  }
+}
+
+function goToPreviousPage() {
+  if (canPrevPage.value) fetchDashboard(pagination.page - 1)
+}
+
+function goToNextPage() {
+  if (canNextPage.value) fetchDashboard(pagination.page + 1)
 }
 
 /* ===== Stages Dialog ===== */
@@ -686,6 +758,19 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.mobile-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.mobile-page-indicator {
+  font-weight: 600;
+  color: var(--text-color);
 }
 
 .mobile-card {
