@@ -57,8 +57,8 @@ test('summary reflects stage progress after update', async () => {
     .set('Authorization', `Bearer ${token}`)
     .expect(200)
 
-  expect(res1.body.recentProducts[0].progress.done).toBe(0)
-  expect(res1.body.recentProducts[0].pendingStage).toBe('S1')
+  expect(res1.body.recentProducts.items[0].progress.done).toBe(0)
+  expect(res1.body.recentProducts.items[0].pendingStage).toBe('S1')
 
   await request(app)
     .put(`/api/assets/${assetId}/stages/${stageId}`)
@@ -71,6 +71,6 @@ test('summary reflects stage progress after update', async () => {
     .set('Authorization', `Bearer ${token}`)
     .expect(200)
 
-  expect(res2.body.recentProducts[0].progress.done).toBe(1)
-  expect(res2.body.recentProducts[0].pendingStage).toBeNull()
+  expect(res2.body.recentProducts.items[0].progress.done).toBe(1)
+  expect(res2.body.recentProducts.items[0].pendingStage).toBeNull()
 })

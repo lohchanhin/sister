@@ -5,9 +5,15 @@ import ReviewStage from '../models/reviewStage.model.js'
 import AdDaily from '../models/adDaily.model.js'
 import { getCache, setCache, clearCacheByPrefix } from '../utils/cache.js'
 import { t } from '../i18n/messages.js'
+import {
+  resolveSummaryPagination,
+  buildSummaryCacheKey,
+  buildProductAccessFilter
+} from '../services/dashboard.service.js'
 
 export const getSummary = async (req, res) => {
-  const cacheKey = `dashboard:${req.user._id}`
+  const { page, pageSize, skip, limit } = resolveSummaryPagination(req.query)
+  const cacheKey = buildSummaryCacheKey(req.user._id, page, pageSize)
   const cached = await getCache(cacheKey)
   if (cached) return res.json(cached)
 
@@ -51,26 +57,30 @@ export const getSummary = async (req, res) => {
     }))
 
   /* -------- 成品及進度 -------- */
-  const productDocs = await Asset.find({ type: 'edited' })
-    .sort({ createdAt: -1 })
-    .populate('uploadedBy', 'username name')
-    .lean()
-
-  const filteredProducts = productDocs.filter(p =>
-    !p.allowedUsers?.length || p.allowedUsers.some(id => id.equals(req.user._id))
-  )
+  const productFilter = buildProductAccessFilter(req.user._id)
+  const [totalProducts, productDocs] = await Promise.all([
+    Asset.countDocuments(productFilter),
+    Asset.find(productFilter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('uploadedBy', 'username name')
+      .lean()
+  ])
 
   const totalStages = await ReviewStage.countDocuments()
   const allStages = await ReviewStage.find().sort('order')
-  const ids = filteredProducts.map(p => p._id)
-  const progressRecords = await ReviewRecord.aggregate([
-    { $match: { assetId: { $in: ids }, completed: true } },
-    { $group: { _id: '$assetId', done: { $sum: 1 } } }
-  ])
+  const ids = productDocs.map(p => p._id)
+  const progressRecords = ids.length
+    ? await ReviewRecord.aggregate([
+        { $match: { assetId: { $in: ids }, completed: true } },
+        { $group: { _id: '$assetId', done: { $sum: 1 } } }
+      ])
+    : []
   const progressMap = {}
   progressRecords.forEach(r => { progressMap[r._id.toString()] = r.done })
 
-  const recentProducts = filteredProducts.map(p => {
+  const productItems = productDocs.map(p => {
     const done = progressMap[p._id.toString()] || 0
     const pendingStage = done < allStages.length ? allStages[done].name : null
     return {
@@ -110,6 +120,13 @@ export const getSummary = async (req, res) => {
   const assetStats = { rawTotal, editedTotal, pending, approved, rejected }
 
   /* -------- 統整 & 快取 -------- */
+  const recentProducts = {
+    items: productItems,
+    total: totalProducts,
+    page,
+    pageSize
+  }
+
   const result = { recentAssets, recentReviews, recentProducts, assetStats }
   await setCache(cacheKey, result, 60)   // 快取 60 秒
   res.json(result)

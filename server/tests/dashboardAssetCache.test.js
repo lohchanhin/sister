@@ -77,7 +77,7 @@ test('summary updates after asset update', async () => {
     .get('/api/dashboard/summary')
     .set('Authorization', `Bearer ${token}`)
     .expect(200)
-  expect(first.body.recentProducts[0].finalChecked).toBe(false)
+  expect(first.body.recentProducts.items[0].finalChecked).toBe(false)
 
   await request(app)
     .put(`/api/assets/${id}`)
@@ -89,5 +89,37 @@ test('summary updates after asset update', async () => {
     .get('/api/dashboard/summary')
     .set('Authorization', `Bearer ${token}`)
     .expect(200)
-  expect(second.body.recentProducts[0].finalChecked).toBe(true)
+  expect(second.body.recentProducts.items[0].finalChecked).toBe(true)
+})
+
+test('summary pagination returns total count and respects page parameter', async () => {
+  const createPromises = []
+  for (let i = 0; i < 25; i++) {
+    createPromises.push(
+      request(app)
+        .post('/api/assets')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ filename: `paged-${i}.mp4`, path: `/tmp/paged-${i}.mp4`, type: 'edited' })
+        .expect(201)
+    )
+  }
+  await Promise.all(createPromises)
+
+  const page1 = await request(app)
+    .get('/api/dashboard/summary?page=1&pageSize=20')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200)
+
+  expect(page1.body.recentProducts.total).toBeGreaterThanOrEqual(25)
+  expect(page1.body.recentProducts.items).toHaveLength(20)
+  expect(page1.body.recentProducts.page).toBe(1)
+
+  const page2 = await request(app)
+    .get('/api/dashboard/summary?page=2&pageSize=20')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200)
+
+  expect(page2.body.recentProducts.page).toBe(2)
+  expect(page2.body.recentProducts.items.length).toBeGreaterThan(0)
+  expect(page2.body.recentProducts.items[0]._id).not.toBe(page1.body.recentProducts.items[0]._id)
 })
