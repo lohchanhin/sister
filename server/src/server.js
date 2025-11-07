@@ -20,6 +20,7 @@ import mongoose                    from 'mongoose'
 import connectDB                   from './config/db.js'
 import { notFound, errorHandler }  from './utils/handleError.js'
 import AdDaily                     from './models/adDaily.model.js'
+import { scheduleAssetCleanup }    from './services/assetCleanupScheduler.js'
 
 /* ────────────────────────── 0. Service-Account 還原 ───────────────────────── */
 const base64Key = process.env.GCS_KEY_JSON || process.env.GCP_SA_KEY
@@ -132,3 +133,5 @@ const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`)
 })
+
+scheduleAssetCleanup()
