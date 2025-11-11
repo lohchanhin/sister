@@ -351,7 +351,8 @@ import { getPlatform, getPlatformAliases, updatePlatformAliases } from '@/servic
 
 /**** ------------------ 路由 / 狀態 ------------------ ****/
 const route = useRoute()
-const { clientId, platformId } = route.params
+const clientId = computed(() => route.params.clientId)
+const platformId = computed(() => route.params.platformId)
 const router = useRouter()
 const toast = useToast()
 const confirm = useConfirm()
@@ -470,21 +471,23 @@ const aliasStoreKey = (pid) => `addata_alias_${pid}`
 const fieldAliases = ref({})
 const loadAliases = async () => {
   try {
-    fieldAliases.value = await getPlatformAliases(clientId, platformId)
+    if (!clientId.value || !platformId.value) { fieldAliases.value = {}; return }
+    fieldAliases.value = await getPlatformAliases(clientId.value, platformId.value)
     if (typeof window !== 'undefined') {
-      localStorage.setItem(aliasStoreKey(platformId), JSON.stringify(fieldAliases.value))
+      localStorage.setItem(aliasStoreKey(platformId.value), JSON.stringify(fieldAliases.value))
     }
   } catch {
     if (typeof window === 'undefined') { fieldAliases.value = {}; return }
-    try { fieldAliases.value = JSON.parse(localStorage.getItem(aliasStoreKey(platformId)) || '{}') }
+    try { fieldAliases.value = JSON.parse(localStorage.getItem(aliasStoreKey(platformId.value)) || '{}') }
     catch { fieldAliases.value = {} }
   }
 }
 const saveAliases = async () => {
+  if (!clientId.value || !platformId.value) return
   if (typeof window !== 'undefined') {
-    localStorage.setItem(aliasStoreKey(platformId), JSON.stringify(fieldAliases.value))
+    localStorage.setItem(aliasStoreKey(platformId.value), JSON.stringify(fieldAliases.value))
   }
-  try { await updatePlatformAliases(clientId, platformId, fieldAliases.value) } catch { }
+  try { await updatePlatformAliases(clientId.value, platformId.value, fieldAliases.value) } catch { }
 }
 
 /**** ------------------ 取值器（先 id，再 alias 兜底，再安全 slug） ------------------ ****/
@@ -759,7 +762,12 @@ const formatNote = text => {
 /**** ------------------ 載入資料 ------------------ ****/
 const loadPlatform = async () => {
   // 先拉平台定义
-  platform.value = await getPlatform(clientId, platformId)
+  if (!clientId.value || !platformId.value) {
+    platform.value = null
+    customColumns.value = []
+    return
+  }
+  platform.value = await getPlatform(clientId.value, platformId.value)
 
   // f_1,f_2... 的后备稳定键
   let counter = 0
@@ -791,7 +799,8 @@ const loadDaily = async () => {
     params.order = sortOrder.value === 1 ? 'asc' : 'desc'
   }
   try {
-    const list = await fetchDaily(clientId, platformId, params)
+    if (!clientId.value || !platformId.value) { adData.value = []; return }
+    const list = await fetchDaily(clientId.value, platformId.value, params)
     let data = []
     if (Array.isArray(list)) data = list
     else if (Array.isArray(list?.data)) data = list.data
@@ -815,8 +824,28 @@ const loadDaily = async () => {
   } finally { loading.value = false }
 }
 const loadWeeklyNotes = async () => {
-  const list = await fetchWeeklyNotes(clientId, platformId)
+  if (!clientId.value || !platformId.value) { weeklyNotes.value = {}; return }
+  const list = await fetchWeeklyNotes(clientId.value, platformId.value)
   weeklyNotes.value = list.reduce((acc, n) => { acc[n.week] = n; return acc }, {})
+}
+
+const refreshAllData = async () => {
+  if (!clientId.value || !platformId.value) return
+  loading.value = true
+  try {
+    platform.value = null
+    customColumns.value = []
+    adData.value = []
+    weeklyNotes.value = {}
+    fieldAliases.value = {}
+    await loadPlatform()
+    await loadAliases()
+    initRecordForm()
+    await loadDaily()
+    await loadWeeklyNotes()
+  } finally {
+    loading.value = false
+  }
 }
 
 /**** ------------------ 修復流程：重新匹配（嚴格先清空空記錄 → 再取可匹配樣本） ------------------ ****/
@@ -826,6 +855,7 @@ const applying = ref(false)
 const progress = ref({ total: 0, done: 0 })
 
 async function openRemapDialog() {
+  if (!clientId.value || !platformId.value) return
   // 1) 掃描空記錄
   const empties = adData.value.filter(isTrulyEmptyRow)
   if (empties.length) {
@@ -839,7 +869,9 @@ async function openRemapDialog() {
         // 帶進度提示清理
         startOp('清空空記錄', empties.length, '開始刪除')
         for (const r of empties) {
-          try { await deleteDaily(clientId, platformId, r._id) } catch (e) { console.error('刪除失敗', r._id, e) }
+          try {
+            await deleteDaily(clientId.value, platformId.value, r._id)
+          } catch (e) { console.error('刪除失敗', r._id, e) }
           tickOp(`刪除中 …`)
         }
         endOp()
@@ -906,6 +938,7 @@ function openRemapDialogForRow(row) {
 
 /**** ------------------ 批量寫回（顯示進度，清理殘留，成功後清空 alias） ------------------ ****/
 async function saveMappingFromFirstRow(writeBackAll = true) {
+  if (!clientId.value || !platformId.value) return
   // —— 本地工具：把英文名轉成安全鍵，如 "Ads Spent" -> "ads_spent"
   const safeKeyFromName = (name) => {
     if (typeof name !== 'string') return null
@@ -1041,7 +1074,7 @@ async function saveMappingFromFirstRow(writeBackAll = true) {
 
       if (touched) {
         try {
-          await updateDaily(clientId, platformId, row._id, {
+          await updateDaily(clientId.value, platformId.value, row._id, {
             date: row.date,
             extraData: ed,
             colors: cs
@@ -1101,6 +1134,19 @@ function autoBuildAliasesIfNeeded() {
 }
 
 /**** ------------------ 監聽 / 生命週期 ------------------ ****/
+watch([clientId, platformId], async ([newClient, newPlatform], [oldClient, oldPlatform]) => {
+  if (!newClient || !newPlatform) {
+    platform.value = null
+    customColumns.value = []
+    adData.value = []
+    weeklyNotes.value = {}
+    fieldAliases.value = {}
+    return
+  }
+  if (newClient === oldClient && newPlatform === oldPlatform) return
+  await refreshAllData()
+})
+
 watch([sortField, sortOrder], () => { loadDaily() })
 watch([startDate, endDate], loadDaily)
 watch([weeklyAgg, yMetric], () => { if (activeTab.value === 'weekly') drawChart() })
@@ -1117,13 +1163,7 @@ const colorOptions = [
 ]
 
 onMounted(async () => {
-  loading.value = true
-  await loadPlatform()          // 等字段定义就绪
-  await loadAliases()           // 你现在没 await，这里建议也 await
-  initRecordForm()              // 抽个函数专门初始化表单模型更清晰
-  await loadDaily()             // 再拉数据
-  await loadWeeklyNotes()
-  loading.value = false
+  await refreshAllData()
 })
 
 
@@ -1150,10 +1190,12 @@ const handleConfirm = async () => {
       colors: canonicalizeExtra(recordForm.value.colors)
     }
     if (editing.value) {
-      await updateDaily(clientId, platformId, editingId.value, payload)
+      if (!clientId.value || !platformId.value) return
+      await updateDaily(clientId.value, platformId.value, editingId.value, payload)
       toast.add({ severity: 'success', summary: '成功', detail: '已更新記錄', life: 3000 })
     } else {
-      await createDaily(clientId, platformId, payload)
+      if (!clientId.value || !platformId.value) return
+      await createDaily(clientId.value, platformId.value, payload)
       toast.add({ severity: 'success', summary: '成功', detail: '已新增記錄', life: 3000 })
     }
     dialogVisible.value = false
@@ -1179,7 +1221,8 @@ const removeDaily = async row => {
     acceptLabel: '刪除',
     rejectLabel: '取消',
     accept: async () => {
-      await deleteDaily(clientId, platformId, row._id)
+      if (!clientId.value || !platformId.value) return
+      await deleteDaily(clientId.value, platformId.value, row._id)
       toast.add({ severity: 'success', summary: '成功', detail: '已刪除紀錄', life: 3000 })
       await loadDaily()
     }
@@ -1193,7 +1236,8 @@ const importFile = async (event) => {
     const ext = file.name.split('.').pop().toLowerCase()
     const rows = ext === 'csv' ? await parseCSV(file) : await parseExcel(file)
     if (!rows.length) throw new Error('檔案無有效資料')
-    await bulkCreateDaily(clientId, platformId, rows)
+    if (!clientId.value || !platformId.value) return false
+    await bulkCreateDaily(clientId.value, platformId.value, rows)
     toast.add({ severity: 'success', summary: '成功', detail: `匯入完成，共 ${rows.length} 筆`, life: 3000 })
     await loadDaily()
   } catch (err) {
@@ -1253,6 +1297,7 @@ async function exportWeekly() {
   if (!weeklyAgg.value.length) {
     toast.add({ severity: 'warn', summary: '警告', detail: '無資料可匯出', life: 3000 }); return
   }
+  if (!clientId.value || !platformId.value) return
   const ExcelJS = (await import('exceljs')).default
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet('weekly')
@@ -1265,7 +1310,7 @@ async function exportWeekly() {
       try {
         const firstImg = row.images[0]
         const imgPath = typeof firstImg === 'string' ? firstImg : firstImg.path
-        const signedUrl = await getWeeklyNoteImageUrl(clientId, platformId, imgPath)
+        const signedUrl = await getWeeklyNoteImageUrl(clientId.value, platformId.value, imgPath)
         const res = await fetch(signedUrl); const buf = await res.arrayBuffer()
         const ext = imgPath.split('.').pop().replace('jpg', 'jpeg')
         const imgId = wb.addImage({ buffer: buf, extension: ext })
@@ -1293,12 +1338,16 @@ const onImageRemove = e => {
 }
 const openNote = async row => {
   const week = row.week
-  let note = null; try { note = await fetchWeeklyNote(clientId, platformId, week) } catch { }
+  if (!clientId.value || !platformId.value) return
+  let note = null; try { note = await fetchWeeklyNote(clientId.value, platformId.value, week) } catch { }
   if (note) weeklyNotes.value[week] = note
   let images = []
   if (note?.images && note.images.length) {
     const promises = note.images.map(async p => {
-      try { const url = await getWeeklyNoteImageUrl(clientId, platformId, p); return { name: p, objectURL: url, path: p } }
+      try {
+        if (!clientId.value || !platformId.value) return null
+        const url = await getWeeklyNoteImageUrl(clientId.value, platformId.value, p); return { name: p, objectURL: url, path: p }
+      }
       catch { return null }
     })
     images = (await Promise.all(promises)).filter(Boolean)
@@ -1309,10 +1358,11 @@ const openNote = async row => {
 }
 const saveNote = async () => {
   const { week, text, images } = noteForm.value
+  if (!clientId.value || !platformId.value) return
   const newImages = images.filter(i => !i.path)
   let note
-  try { note = await updateWeeklyNote(clientId, platformId, week, { text, images: newImages, keepImages: keepImages.value }) }
-  catch { note = await createWeeklyNote(clientId, platformId, { week, text, images: newImages }) }
+  try { note = await updateWeeklyNote(clientId.value, platformId.value, week, { text, images: newImages, keepImages: keepImages.value }) }
+  catch { note = await createWeeklyNote(clientId.value, platformId.value, { week, text, images: newImages }) }
   weeklyNotes.value[week] = note
   toast.add({ severity: 'success', summary: '成功', detail: '已儲存備註', life: 3000 })
   noteDialog.value = false
@@ -1321,7 +1371,8 @@ const previewImages = async imgs => {
   if (!imgs || !imgs.length) return
   if (imgs[0].url) imgList.value = imgs.map(i => i.url)
   else {
-    const urls = await Promise.all(imgs.map(p => getWeeklyNoteImageUrl(clientId, platformId, p)))
+    if (!clientId.value || !platformId.value) return
+    const urls = await Promise.all(imgs.map(p => getWeeklyNoteImageUrl(clientId.value, platformId.value, p)))
     imgList.value = urls
   }
   imgPreviewDialog.value = true
