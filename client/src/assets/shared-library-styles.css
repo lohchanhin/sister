@@ -181,7 +181,7 @@ body {
   font-weight: 700;
 }
 
-/* Text utilities with proper dark theme support */
+/* Text utilities */
 .text-primary {
   color: var(--text-primary) !important;
 }
